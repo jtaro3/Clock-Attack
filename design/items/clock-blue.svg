@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">青い時計・移動距離10倍</title>
+  <circle cx="32" cy="33" r="29" fill="#66c8ee" opacity=".18"/>
+  <circle cx="32" cy="32" r="24" fill="#66c8ee" stroke="#d5f4ff" stroke-width="2"/>
+  <circle cx="32" cy="32" r="18" fill="#23343c"/>
+  <path d="M32 20v12l9 5" fill="none" stroke="#fff0b5" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="32" cy="32" r="2.5" fill="#fff0b5"/>
+</svg>

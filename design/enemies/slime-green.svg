@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">緑のスライム・体力2</title>
+  <ellipse cx="32" cy="55" rx="22" ry="5" fill="#0b1722" opacity=".45"/>
+  <path d="M9 37a23 23 0 0 1 46 0v8c0 7-7 10-12 8-5 3-10 3-15 0-5 3-9 2-12-1-5 1-7-3-7-8z" fill="#74d590" stroke="#45a968" stroke-width="2"/>
+  <path d="M16 33c4-12 13-17 25-16" fill="none" stroke="#dcffe6" stroke-width="4" stroke-linecap="round" opacity=".55"/>
+  <circle cx="24" cy="36" r="2.7" fill="#24333b"/><circle cx="40" cy="36" r="2.7" fill="#24333b"/>
+</svg>
