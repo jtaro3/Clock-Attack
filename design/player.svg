@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">プレイヤー・上向き</title>
+  <ellipse cx="32" cy="52" rx="20" ry="6" fill="#0b1722" opacity=".45"/>
+  <circle cx="32" cy="34" r="19" fill="#f3eee0"/>
+  <circle cx="32" cy="34" r="13" fill="#566d75"/>
+  <path d="M32 33V7" stroke="#e4c98e" stroke-width="5" stroke-linecap="round"/>
+  <path d="M25 26h14" stroke="#e4c98e" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="32" cy="34" r="4" fill="#d8e4db"/>
+</svg>
