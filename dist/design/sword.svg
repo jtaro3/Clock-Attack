@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">剣</title>
+  <path d="M32 5 39 17 36 43H28L25 17z" fill="#f3eee0" stroke="#a8b8b5" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M32 9v32" stroke="#cfdad5" stroke-width="2"/>
+  <path d="M20 43h24" stroke="#e4c98e" stroke-width="6" stroke-linecap="round"/>
+  <path d="M32 46v12" stroke="#8b6547" stroke-width="6" stroke-linecap="round"/>
+  <circle cx="32" cy="59" r="3" fill="#e4c98e"/>
+</svg>

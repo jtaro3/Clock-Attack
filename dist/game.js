@@ -26,6 +26,8 @@
     };
     image.src=`design/man${i+1}.png`;
   });
+  const swordImage=new Image();
+  swordImage.src='design/sword.svg';
   const enemies=[],particles=[],clocks=[],storedClocks=[];
   const clockTypes={blue:{label:'青い時計',color:'#66c8ee',effect:'移動距離が10倍'},green:{label:'緑の時計',color:'#74d590',effect:'攻撃回数が5倍'},red:{label:'赤い時計',color:'#e97a83',effect:'HP全回復・5秒無敵'}};
   const drag={pointer:null,x:0,y:0};
@@ -299,6 +301,16 @@
     }
     checkExhausted();
   }
+  function drawSword(angle,radius,opacity){
+    if(!swordImage.complete||!swordImage.naturalWidth)return;
+    ctx.save();
+    ctx.globalAlpha=opacity;
+    ctx.translate(player.x+Math.cos(angle)*(radius-40),player.y+Math.sin(angle)*(radius-40));
+    ctx.rotate(angle+Math.PI/2);
+    // SVG の柄を手元に置き、刃先を軌跡の外周へ向ける。
+    ctx.drawImage(swordImage,-25,-44,50,50);
+    ctx.restore();
+  }
   function draw(now){
     ctx.clearRect(0,0,w,h);ctx.save();
     if(shake>0)ctx.translate((Math.random()-.5)*5,(Math.random()-.5)*5);
@@ -348,6 +360,14 @@
       ctx.fillStyle='#566d75';ctx.beginPath();ctx.arc(player.x,player.y,player.r-5,0,7);ctx.fill();
     }
     ctx.globalAlpha=1;
+    if(swing>0){
+      const progress=1-swing/.27;
+      drawSword(swingAngle-.95+progress*1.9,49,Math.min(1,swing/.055));
+    }
+    if(spin>0){
+      const progress=1-spin/.55;
+      drawSword(swingAngle+progress*Math.PI*2,53,Math.min(1,spin/.075));
+    }
     const label=String(Math.ceil(distance)),labelY=player.y-55;
     ctx.font='bold 15px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';
     const labelW=Math.max(42,ctx.measureText(label).width+20);
