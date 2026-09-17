@@ -4,6 +4,28 @@
   const canvas=$('field'),ctx=canvas.getContext('2d');
   const ui={overlay:$('overlay'),panel:$('panel'),title:$('title'),eyebrow:$('eyebrow'),description:$('description'),readout:$('readout'),hourHand:$('hourHand'),minuteHand:$('minuteHand'),previewAttack:$('previewAttack'),previewMove:$('previewMove'),stop:$('stop'),sub:$('sub'),score:$('score'),health:$('health'),attackCount:$('attackCount'),clockCount:$('clockCount'),clockButton:$('clockButton'),clockStock:$('clockStock'),attack:$('attack')};
   const player={x:0,y:0,r:14,angle:-Math.PI/2};
+  // 上から時計回り: 背面、背面右、右、正面右、正面、正面左、左、背面左。
+  const spriteBounds=[[386,362,850,928],[396,376,846,930],[432,356,812,956],[396,344,836,952],[386,350,866,946],[374,340,862,916],[394,344,828,926],[396,324,828,922]];
+  const playerSprites=Array(8).fill(null);
+  spriteBounds.forEach(([left,top,right,bottom],i)=>{
+    const image=new Image();
+    image.onload=()=>{
+      const margin=16,x=left-margin,y=top-margin;
+      const sprite=document.createElement('canvas');
+      sprite.width=right-left+margin*2+1;sprite.height=bottom-top+margin*2+1;
+      const spriteContext=sprite.getContext('2d',{willReadFrequently:true});
+      spriteContext.drawImage(image,x,y,sprite.width,sprite.height,0,0,sprite.width,sprite.height);
+      const pixels=spriteContext.getImageData(0,0,sprite.width,sprite.height);
+      for(let p=0;p<pixels.data.length;p+=4){
+        // 元画像の黒い背景（RGB 0〜2）だけを透明にする。
+        if(Math.max(pixels.data[p],pixels.data[p+1],pixels.data[p+2])<=2)pixels.data[p+3]=0;
+      }
+      spriteContext.putImageData(pixels,0,0);
+      playerSprites[i]=sprite;
+      image.onload=null;
+    };
+    image.src=`design/man${i+1}.png`;
+  });
   const enemies=[],particles=[],clocks=[],storedClocks=[];
   const clockTypes={blue:{label:'青い時計',color:'#66c8ee',effect:'移動距離が10倍'},green:{label:'緑の時計',color:'#74d590',effect:'攻撃回数が5倍'},red:{label:'赤い時計',color:'#e97a83',effect:'HP全回復・5秒無敵'}};
   const drag={pointer:null,x:0,y:0};
@@ -314,12 +336,19 @@
     }
     ctx.globalAlpha=invincible>0&&Math.floor(now/90)%2?.4:1;
     ctx.fillStyle='#111d26aa';ctx.beginPath();ctx.ellipse(player.x,player.y+14,17,6,0,0,7);ctx.fill();
-    ctx.fillStyle='#f3eee0';ctx.beginPath();ctx.arc(player.x,player.y,player.r,0,7);ctx.fill();
-    ctx.fillStyle='#566d75';ctx.beginPath();ctx.arc(player.x,player.y,player.r-5,0,7);ctx.fill();
-    ctx.strokeStyle='#e4c98e';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(player.x,player.y);
-    ctx.lineTo(player.x+Math.cos(player.angle)*18,player.y+Math.sin(player.angle)*18);ctx.stroke();
+    const direction=((Math.round((player.angle+Math.PI/2)/(Math.PI/4))%8)+8)%8;
+    const sprite=playerSprites[direction];
+    if(sprite){
+      const height=56,width=height*sprite.width/sprite.height;
+      ctx.imageSmoothingEnabled=false;
+      ctx.drawImage(sprite,player.x-width/2,player.y+21-height,width,height);
+      ctx.imageSmoothingEnabled=true;
+    }else{
+      ctx.fillStyle='#f3eee0';ctx.beginPath();ctx.arc(player.x,player.y,player.r,0,7);ctx.fill();
+      ctx.fillStyle='#566d75';ctx.beginPath();ctx.arc(player.x,player.y,player.r-5,0,7);ctx.fill();
+    }
     ctx.globalAlpha=1;
-    const label=String(Math.ceil(distance)),labelY=player.y-42;
+    const label=String(Math.ceil(distance)),labelY=player.y-55;
     ctx.font='bold 15px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';
     const labelW=Math.max(42,ctx.measureText(label).width+20);
     ctx.fillStyle='#102c39dd';ctx.fillRect(player.x-labelW/2,labelY-12,labelW,24);
