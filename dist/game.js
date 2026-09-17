@@ -2,14 +2,14 @@
   'use strict';
   const $=id=>document.getElementById(id);
   const canvas=$('field'),ctx=canvas.getContext('2d');
-  const ui={overlay:$('overlay'),panel:$('panel'),title:$('title'),eyebrow:$('eyebrow'),description:$('description'),readout:$('readout'),hourHand:$('hourHand'),minuteHand:$('minuteHand'),previewAttack:$('previewAttack'),previewMove:$('previewMove'),stop:$('stop'),sub:$('sub'),score:$('score'),health:$('health'),attackCount:$('attackCount'),moveCount:$('moveCount'),attack:$('attack')};
+  const ui={overlay:$('overlay'),panel:$('panel'),title:$('title'),eyebrow:$('eyebrow'),description:$('description'),readout:$('readout'),hourHand:$('hourHand'),minuteHand:$('minuteHand'),previewAttack:$('previewAttack'),previewMove:$('previewMove'),stop:$('stop'),sub:$('sub'),score:$('score'),health:$('health'),attackCount:$('attackCount'),clockCount:$('clockCount'),clockButton:$('clockButton'),attack:$('attack')};
   const player={x:0,y:0,r:14,angle:-Math.PI/2};
   const enemies=[],particles=[],clocks=[];
   const drag={pointer:null,x:0,y:0};
   const keys=new Set();
   let w=0,h=0,dpr=1,last=performance.now(),clockOrigin=last-61/1440*3000;
   let mode='select',selectionReason='start',transitionTimer=null;
-  let attacks=0,distance=0,health=3,score=0,spawnTimer=0,invincible=0,swing=0,swingAngle=0,shake=0;
+  let attacks=0,distance=0,storedClocks=0,health=3,score=0,spawnTimer=0,invincible=0,swing=0,swingAngle=0,shake=0;
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
   const minY=()=>Math.max(92,h*.12),maxY=()=>Math.max(minY()+60,h-130);
 
@@ -55,7 +55,9 @@
     ui.score.textContent=score;
     ui.health.textContent='♥ '.repeat(health).trim()||'—';
     ui.attackCount.textContent=attacks;
-    ui.moveCount.textContent=Math.ceil(distance);
+    ui.clockCount.textContent=storedClocks;
+    ui.clockButton.disabled=mode!=='play'||storedClocks<=0;
+    ui.clockButton.classList.toggle('ready',mode==='play'&&storedClocks>0);
     ui.attack.disabled=mode!=='play'||attacks<=0;
   }
   function startSelection(initial=false,bonus=false){
@@ -90,7 +92,7 @@
   }
   ui.stop.addEventListener('click',stopClock);
   function restart(){
-    clearTimeout(transitionTimer);health=3;score=0;attacks=0;distance=0;
+    clearTimeout(transitionTimer);health=3;score=0;attacks=0;distance=0;storedClocks=0;
     enemies.length=0;particles.length=0;clocks.length=0;
     player.x=w/2;player.y=(minY()+maxY())/2;invincible=0;swing=0;
     startSelection(true);
@@ -122,13 +124,18 @@
       const item=clocks[i];
       if(Math.hypot(item.x-player.x,item.y-player.y)>player.r+16)continue;
       clocks.splice(i,1);burst(item.x,item.y,'#f4d47c',14);
-      startSelection(false,true);return;
+      storedClocks++;setHud();
     }
   }
+  function useStoredClock(){
+    if(mode!=='play'||storedClocks<=0)return;
+    storedClocks--;startSelection(false,true);
+  }
   function movePlayer(dx,dy){
-    if(mode!=='play'||distance<=0)return;
+    if(mode!=='play')return;
     const length=Math.hypot(dx,dy);if(length<.1)return;
     player.angle=Math.atan2(dy,dx);
+    if(distance<=0)return;
     const scale=Math.min(1,distance*8/length),oldX=player.x,oldY=player.y;
     player.x=clamp(player.x+dx*scale,player.r+4,w-player.r-4);
     player.y=clamp(player.y+dy*scale,minY()+player.r,maxY()-player.r);
@@ -136,20 +143,28 @@
     if(distance<.999)distance=0;
     setHud();collectClocks();checkExhausted();
   }
+  function aimAt(clientX,clientY){
+    const rect=canvas.getBoundingClientRect();
+    const dx=clientX-rect.left-player.x,dy=clientY-rect.top-player.y;
+    if(Math.hypot(dx,dy)>8)player.angle=Math.atan2(dy,dx);
+  }
   canvas.addEventListener('pointerdown',e=>{
-    if(mode!=='play'||distance<=0)return;
+    if(mode!=='play')return;
     e.preventDefault();canvas.setPointerCapture(e.pointerId);
-    drag.pointer=e.pointerId;drag.x=e.clientX;drag.y=e.clientY;
+    drag.pointer=e.pointerId;drag.x=e.clientX;drag.y=e.clientY;aimAt(e.clientX,e.clientY);
   });
   canvas.addEventListener('pointermove',e=>{
     if(drag.pointer!==e.pointerId)return;
     e.preventDefault();const dx=e.clientX-drag.x,dy=e.clientY-drag.y;
-    drag.x=e.clientX;drag.y=e.clientY;movePlayer(dx,dy);
+    drag.x=e.clientX;drag.y=e.clientY;
+    if(distance>0)movePlayer(dx*.8,dy*.8);
+    else aimAt(e.clientX,e.clientY);
   });
   function endDrag(e){if(drag.pointer===e.pointerId)drag.pointer=null}
   canvas.addEventListener('pointerup',endDrag);
   canvas.addEventListener('pointercancel',endDrag);
   canvas.addEventListener('lostpointercapture',endDrag);
+  ui.clockButton.addEventListener('pointerdown',e=>{e.preventDefault();useStoredClock()});
   ui.attack.addEventListener('pointerdown',e=>{e.preventDefault();attack()});
   for(const type of ['contextmenu','dblclick','gesturestart','gesturechange','selectstart'])
     document.addEventListener(type,e=>e.preventDefault(),{passive:false});
@@ -191,7 +206,7 @@
     if(keys.has('ArrowUp')||keys.has('KeyW'))dy--;
     if(keys.has('ArrowDown')||keys.has('KeyS'))dy++;
     const length=Math.hypot(dx,dy);
-    if(length){movePlayer(dx/length*155*dt,dy/length*155*dt);if(mode!=='play')return}
+    if(length){movePlayer(dx/length*124*dt,dy/length*124*dt);if(mode!=='play')return}
     collectClocks();if(mode!=='play')return;
     spawnTimer+=dt;
     if(spawnTimer>Math.max(.65,1.8-score*.02)){spawnTimer=0;spawn()}
