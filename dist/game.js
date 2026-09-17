@@ -2,8 +2,32 @@
   'use strict';
   const $=id=>document.getElementById(id);
   const canvas=$('field'),ctx=canvas.getContext('2d');
-  const ui={overlay:$('overlay'),panel:$('panel'),title:$('title'),eyebrow:$('eyebrow'),description:$('description'),readout:$('readout'),hourHand:$('hourHand'),minuteHand:$('minuteHand'),previewAttack:$('previewAttack'),previewMove:$('previewMove'),stop:$('stop'),sub:$('sub'),score:$('score'),health:$('health'),attackCount:$('attackCount'),clockCount:$('clockCount'),clockButton:$('clockButton'),clockStock:$('clockStock'),attack:$('attack')};
+  const ui={overlay:$('overlay'),panel:$('panel'),title:$('title'),eyebrow:$('eyebrow'),description:$('description'),readout:$('readout'),hourHand:$('hourHand'),minuteHand:$('minuteHand'),previewAttack:$('previewAttack'),previewMove:$('previewMove'),stop:$('stop'),debug:$('debug'),sub:$('sub'),score:$('score'),health:$('health'),attackCount:$('attackCount'),clockCount:$('clockCount'),clockButton:$('clockButton'),clockStock:$('clockStock'),attack:$('attack')};
   const player={x:0,y:0,r:14,angle:-Math.PI/2};
+  // 上から時計回り: 背面、背面右、右、正面右、正面、正面左、左、背面左。
+  const spriteBounds=[[386,362,850,928],[396,376,846,930],[432,356,812,956],[396,344,836,952],[386,350,866,946],[374,340,862,916],[394,344,828,926],[396,324,828,922]];
+  const playerSprites=Array(8).fill(null);
+  spriteBounds.forEach(([left,top,right,bottom],i)=>{
+    const image=new Image();
+    image.onload=()=>{
+      const margin=16,x=left-margin,y=top-margin;
+      const sprite=document.createElement('canvas');
+      sprite.width=right-left+margin*2+1;sprite.height=bottom-top+margin*2+1;
+      const spriteContext=sprite.getContext('2d',{willReadFrequently:true});
+      spriteContext.drawImage(image,x,y,sprite.width,sprite.height,0,0,sprite.width,sprite.height);
+      const pixels=spriteContext.getImageData(0,0,sprite.width,sprite.height);
+      for(let p=0;p<pixels.data.length;p+=4){
+        // 元画像の黒い背景（RGB 0〜2）だけを透明にする。
+        if(Math.max(pixels.data[p],pixels.data[p+1],pixels.data[p+2])<=2)pixels.data[p+3]=0;
+      }
+      spriteContext.putImageData(pixels,0,0);
+      playerSprites[i]=sprite;
+      image.onload=null;
+    };
+    image.src=`design/man${i+1}.png`;
+  });
+  const swordImage=new Image();
+  swordImage.src='design/sword.svg';
   const enemies=[],particles=[],clocks=[],storedClocks=[];
   const clockTypes={blue:{label:'青い時計',color:'#66c8ee',effect:'移動距離が10倍'},green:{label:'緑の時計',color:'#74d590',effect:'攻撃回数が5倍'},red:{label:'赤い時計',color:'#e97a83',effect:'HP全回復・5秒無敵'}};
   const drag={pointer:null,x:0,y:0};
@@ -89,32 +113,33 @@
     ui.eyebrow.textContent=bonus?clockTypes[type].label:initial?'3秒で一周する時計':'戦闘を再開する時刻';
     ui.title.textContent=bonus?'追加の時刻を決めよう':initial?'時を止めて、戦え。':'次の時刻を決めよう';
     ui.description.innerHTML=bonus?`${clockTypes[type].effect}。<br>確定した行動力を現在の値に加算します。`:initial?'短針は剣を振る回数、長針は移動できる距離。<br>好きな瞬間に時計を止めて、行動量を決めよう。':'時計を止めると、剣と移動距離が補充されます。';
-    ui.stop.disabled=false;ui.stop.textContent='時計を止める';
+    ui.stop.disabled=false;ui.stop.textContent='時計を止める';ui.debug.disabled=false;
     ui.sub.textContent='時計は止めるまで3秒ごとに回り続けます';setHud();
   }
-  function stopClock(){
+  function stopClock(debug=false){
     if(mode==='gameover'){restart();return}
     if(mode!=='select')return;
     const t=updateClock(performance.now()),bonus=selectionReason==='bonus';
-    const gainedAttacks=bonus&&selectedClockType==='green'?t.attack*5:t.attack;
-    const gainedDistance=bonus&&selectedClockType==='blue'?t.minute*10:t.minute;
-    attacks=bonus?attacks+gainedAttacks:gainedAttacks;
-    distance=bonus?distance+gainedDistance:gainedDistance;
+    const gainedAttacks=debug?100:bonus&&selectedClockType==='green'?t.attack*5:t.attack;
+    const gainedDistance=debug?1000:bonus&&selectedClockType==='blue'?t.minute*10:t.minute;
+    attacks=debug?100:bonus?attacks+gainedAttacks:gainedAttacks;
+    distance=debug?1000:bonus?distance+gainedDistance:gainedDistance;
     health=Math.min(10,health+1);
     if(bonus&&selectedClockType==='red'){health=10;invincible=5}
     mode='confirmed';ui.panel.classList.remove('selecting');ui.panel.classList.add('confirmed');
-    ui.previewAttack.textContent=(bonus?'+':'')+gainedAttacks;
-    ui.previewMove.textContent=(bonus?'+':'')+gainedDistance;
-    ui.eyebrow.textContent=`${t.text} で確定`;
-    ui.title.textContent=bonus?clockTypes[selectedClockType].effect:'行動量が決まりました';
-    ui.description.textContent=bonus?`剣 ${attacks} 回・移動 ${Math.ceil(distance)}・HP ${health}/10`:`HP ${health}/10。1秒後に戦闘を再開します`;
-    ui.stop.disabled=true;ui.stop.textContent='まもなく開始';ui.sub.textContent='';setHud();
+    ui.previewAttack.textContent=(bonus&&!debug?'+':'')+gainedAttacks;
+    ui.previewMove.textContent=(bonus&&!debug?'+':'')+gainedDistance;
+    ui.eyebrow.textContent=debug?'デバッグで確定':`${t.text} で確定`;
+    ui.title.textContent=debug?'攻撃100回・移動1000':bonus?clockTypes[selectedClockType].effect:'行動量が決まりました';
+    ui.description.textContent=debug?`HP ${health}/10。1秒後に戦闘を再開します`:bonus?`剣 ${attacks} 回・移動 ${Math.ceil(distance)}・HP ${health}/10`:`HP ${health}/10。1秒後に戦闘を再開します`;
+    ui.stop.disabled=true;ui.debug.disabled=true;ui.stop.textContent='まもなく開始';ui.sub.textContent='';setHud();
     transitionTimer=setTimeout(()=>{
       if(mode!=='confirmed')return;
       mode='play';ui.overlay.classList.add('hidden');spawnTimer=0;transitionTimer=null;setHud();
     },1000);
   }
-  ui.stop.addEventListener('click',stopClock);
+  ui.stop.addEventListener('click',()=>stopClock());
+  ui.debug.addEventListener('click',()=>stopClock(true));
   function restart(){
     clearTimeout(transitionTimer);health=3;score=0;attacks=0;distance=0;
     enemies.length=0;particles.length=0;clocks.length=0;storedClocks.length=0;
@@ -277,6 +302,16 @@
     }
     checkExhausted();
   }
+  function drawSword(angle,radius,opacity){
+    if(!swordImage.complete||!swordImage.naturalWidth)return;
+    ctx.save();
+    ctx.globalAlpha=opacity;
+    ctx.translate(player.x+Math.cos(angle)*(radius-40),player.y+Math.sin(angle)*(radius-40));
+    ctx.rotate(angle+Math.PI/2);
+    // SVG の柄を手元に置き、刃先を軌跡の外周へ向ける。
+    ctx.drawImage(swordImage,-25,-44,50,50);
+    ctx.restore();
+  }
   function draw(now){
     ctx.clearRect(0,0,w,h);ctx.save();
     if(shake>0)ctx.translate((Math.random()-.5)*5,(Math.random()-.5)*5);
@@ -314,12 +349,27 @@
     }
     ctx.globalAlpha=invincible>0&&Math.floor(now/90)%2?.4:1;
     ctx.fillStyle='#111d26aa';ctx.beginPath();ctx.ellipse(player.x,player.y+14,17,6,0,0,7);ctx.fill();
-    ctx.fillStyle='#f3eee0';ctx.beginPath();ctx.arc(player.x,player.y,player.r,0,7);ctx.fill();
-    ctx.fillStyle='#566d75';ctx.beginPath();ctx.arc(player.x,player.y,player.r-5,0,7);ctx.fill();
-    ctx.strokeStyle='#e4c98e';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(player.x,player.y);
-    ctx.lineTo(player.x+Math.cos(player.angle)*18,player.y+Math.sin(player.angle)*18);ctx.stroke();
+    const direction=((Math.round((player.angle+Math.PI/2)/(Math.PI/4))%8)+8)%8;
+    const sprite=playerSprites[direction];
+    if(sprite){
+      const height=56,width=height*sprite.width/sprite.height;
+      ctx.imageSmoothingEnabled=false;
+      ctx.drawImage(sprite,player.x-width/2,player.y+21-height,width,height);
+      ctx.imageSmoothingEnabled=true;
+    }else{
+      ctx.fillStyle='#f3eee0';ctx.beginPath();ctx.arc(player.x,player.y,player.r,0,7);ctx.fill();
+      ctx.fillStyle='#566d75';ctx.beginPath();ctx.arc(player.x,player.y,player.r-5,0,7);ctx.fill();
+    }
     ctx.globalAlpha=1;
-    const label=String(Math.ceil(distance)),labelY=player.y-42;
+    if(swing>0){
+      const progress=1-swing/.27;
+      drawSword(swingAngle-.95+progress*1.9,49,Math.min(1,swing/.055));
+    }
+    if(spin>0){
+      const progress=1-spin/.55;
+      drawSword(swingAngle+progress*Math.PI*2,53,Math.min(1,spin/.075));
+    }
+    const label=String(Math.ceil(distance)),labelY=player.y-55;
     ctx.font='bold 15px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';
     const labelW=Math.max(42,ctx.measureText(label).width+20);
     ctx.fillStyle='#102c39dd';ctx.fillRect(player.x-labelW/2,labelY-12,labelW,24);
