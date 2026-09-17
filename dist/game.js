@@ -4,12 +4,13 @@
   const canvas=$('field'),ctx=canvas.getContext('2d');
   const ui={overlay:$('overlay'),panel:$('panel'),title:$('title'),eyebrow:$('eyebrow'),description:$('description'),readout:$('readout'),hourHand:$('hourHand'),minuteHand:$('minuteHand'),previewAttack:$('previewAttack'),previewMove:$('previewMove'),stop:$('stop'),sub:$('sub'),score:$('score'),health:$('health'),attackCount:$('attackCount'),clockCount:$('clockCount'),clockButton:$('clockButton'),attack:$('attack')};
   const player={x:0,y:0,r:14,angle:-Math.PI/2};
-  const enemies=[],particles=[],clocks=[];
+  const enemies=[],particles=[],clocks=[],storedClocks=[];
+  const clockTypes={blue:{label:'青い時計',color:'#66c8ee',effect:'移動距離が10倍'},green:{label:'緑の時計',color:'#74d590',effect:'攻撃回数が5倍'},red:{label:'赤い時計',color:'#e97a83',effect:'HP全回復・5秒無敵'}};
   const drag={pointer:null,x:0,y:0};
   const keys=new Set();
   let w=0,h=0,dpr=1,last=performance.now(),clockOrigin=last-61/1440*3000;
-  let mode='select',selectionReason='start',transitionTimer=null;
-  let attacks=0,distance=0,storedClocks=0,health=3,score=0,spawnTimer=0,invincible=0,swing=0,swingAngle=0,shake=0;
+  let mode='select',selectionReason='start',selectedClockType=null,transitionTimer=null;
+  let attacks=0,distance=0,health=3,score=0,spawnTimer=0,invincible=0,swing=0,swingAngle=0,shake=0;
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
   const minY=()=>Math.max(92,h*.12),maxY=()=>Math.max(minY()+60,h-130);
 
@@ -53,22 +54,24 @@
   }
   function setHud(){
     ui.score.textContent=score;
-    ui.health.textContent='♥ '.repeat(health).trim()||'—';
+    ui.health.textContent=`${health}/10`;
     ui.attackCount.textContent=attacks;
-    ui.clockCount.textContent=storedClocks;
-    ui.clockButton.disabled=mode!=='play'||storedClocks<=0;
-    ui.clockButton.classList.toggle('ready',mode==='play'&&storedClocks>0);
+    ui.clockCount.textContent=storedClocks.length;
+    ui.clockButton.disabled=mode!=='play'||storedClocks.length===0;
+    ui.clockButton.dataset.clock=storedClocks[0]||'';
+    ui.clockButton.classList.toggle('ready',mode==='play'&&storedClocks.length>0);
     ui.attack.disabled=mode!=='play'||attacks<=0;
   }
-  function startSelection(initial=false,bonus=false){
+  function startSelection(initial=false,bonus=false,type=null){
     clearTimeout(transitionTimer);transitionTimer=null;
-    mode='select';selectionReason=initial?'start':bonus?'bonus':'refill';drag.pointer=null;
+    mode='select';selectionReason=initial?'start':bonus?'bonus':'refill';selectedClockType=bonus?type:null;drag.pointer=null;
     clockOrigin=performance.now()-(initial?61/1440*3000:0);
     ui.overlay.classList.remove('hidden');
-    ui.panel.classList.remove('gameover','paused','confirmed');ui.panel.classList.add('selecting');
-    ui.eyebrow.textContent=bonus?'時計を獲得':initial?'3秒で一周する時計':'戦闘を再開する時刻';
+    ui.panel.classList.remove('gameover','paused','confirmed','bonus');ui.panel.classList.add('selecting');
+    if(bonus){ui.panel.classList.add('bonus');ui.panel.style.setProperty('--bonus-color',clockTypes[type].color)}
+    ui.eyebrow.textContent=bonus?clockTypes[type].label:initial?'3秒で一周する時計':'戦闘を再開する時刻';
     ui.title.textContent=bonus?'追加の時刻を決めよう':initial?'時を止めて、戦え。':'次の時刻を決めよう';
-    ui.description.innerHTML=bonus?'止めた時刻の攻撃回数と移動距離を<br>現在の値に加算します。':initial?'短針は剣を振る回数、長針は移動できる距離。<br>好きな瞬間に時計を止めて、行動量を決めよう。':'時計を止めると、剣と移動距離が補充されます。';
+    ui.description.innerHTML=bonus?`${clockTypes[type].effect}。<br>確定した行動力を現在の値に加算します。`:initial?'短針は剣を振る回数、長針は移動できる距離。<br>好きな瞬間に時計を止めて、行動量を決めよう。':'時計を止めると、剣と移動距離が補充されます。';
     ui.stop.disabled=false;ui.stop.textContent='時計を止める';
     ui.sub.textContent='時計は止めるまで3秒ごとに回り続けます';setHud();
   }
@@ -76,14 +79,18 @@
     if(mode==='gameover'){restart();return}
     if(mode!=='select')return;
     const t=updateClock(performance.now()),bonus=selectionReason==='bonus';
-    attacks=bonus?attacks+t.attack:t.attack;
-    distance=bonus?distance+t.minute:t.minute;
+    const gainedAttacks=bonus&&selectedClockType==='green'?t.attack*5:t.attack;
+    const gainedDistance=bonus&&selectedClockType==='blue'?t.minute*10:t.minute;
+    attacks=bonus?attacks+gainedAttacks:gainedAttacks;
+    distance=bonus?distance+gainedDistance:gainedDistance;
+    health=Math.min(10,health+1);
+    if(bonus&&selectedClockType==='red'){health=10;invincible=5}
     mode='confirmed';ui.panel.classList.remove('selecting');ui.panel.classList.add('confirmed');
-    ui.previewAttack.textContent=(bonus?'+':'')+t.attack;
-    ui.previewMove.textContent=(bonus?'+':'')+t.minute;
+    ui.previewAttack.textContent=(bonus?'+':'')+gainedAttacks;
+    ui.previewMove.textContent=(bonus?'+':'')+gainedDistance;
     ui.eyebrow.textContent=`${t.text} で確定`;
-    ui.title.textContent=bonus?'行動力を加算しました':'行動量が決まりました';
-    ui.description.textContent=bonus?`現在：剣 ${attacks} 回・移動 ${Math.ceil(distance)}`:'1秒後に戦闘を再開します';
+    ui.title.textContent=bonus?clockTypes[selectedClockType].effect:'行動量が決まりました';
+    ui.description.textContent=bonus?`剣 ${attacks} 回・移動 ${Math.ceil(distance)}・HP ${health}/10`:`HP ${health}/10。1秒後に戦闘を再開します`;
     ui.stop.disabled=true;ui.stop.textContent='まもなく開始';ui.sub.textContent='';setHud();
     transitionTimer=setTimeout(()=>{
       if(mode!=='confirmed')return;
@@ -92,14 +99,14 @@
   }
   ui.stop.addEventListener('click',stopClock);
   function restart(){
-    clearTimeout(transitionTimer);health=3;score=0;attacks=0;distance=0;storedClocks=0;
-    enemies.length=0;particles.length=0;clocks.length=0;
+    clearTimeout(transitionTimer);health=3;score=0;attacks=0;distance=0;
+    enemies.length=0;particles.length=0;clocks.length=0;storedClocks.length=0;
     player.x=w/2;player.y=(minY()+maxY())/2;invincible=0;swing=0;
     startSelection(true);
   }
   function gameOver(){
     clearTimeout(transitionTimer);mode='gameover';drag.pointer=null;
-    ui.overlay.classList.remove('hidden');ui.panel.classList.remove('selecting','paused','confirmed');ui.panel.classList.add('gameover');
+    ui.overlay.classList.remove('hidden');ui.panel.classList.remove('selecting','paused','confirmed','bonus');ui.panel.classList.add('gameover');
     ui.eyebrow.textContent='GAME OVER';ui.title.textContent=`討伐 ${score} 体`;
     ui.description.textContent='時計を止めるタイミングを変えて、もう一度挑戦しよう。';
     ui.stop.disabled=false;ui.stop.textContent='もう一度遊ぶ';ui.sub.textContent='';setHud();
@@ -123,13 +130,13 @@
     for(let i=clocks.length-1;i>=0;i--){
       const item=clocks[i];
       if(Math.hypot(item.x-player.x,item.y-player.y)>player.r+16)continue;
-      clocks.splice(i,1);burst(item.x,item.y,'#f4d47c',14);
-      storedClocks++;setHud();
+      clocks.splice(i,1);burst(item.x,item.y,clockTypes[item.type].color,14);
+      storedClocks.push(item.type);setHud();
     }
   }
   function useStoredClock(){
-    if(mode!=='play'||storedClocks<=0)return;
-    storedClocks--;startSelection(false,true);
+    if(mode!=='play'||storedClocks.length===0)return;
+    const type=storedClocks.shift();startSelection(false,true,type);
   }
   function movePlayer(dx,dy){
     if(mode!=='play')return;
@@ -184,7 +191,7 @@
       enemy.hp--;enemy.hit=.18;burst(enemy.x,enemy.y,enemy.color,6);
       if(enemy.hp>0)continue;
       score++;burst(enemy.x,enemy.y,enemy.color,11);
-      if(score%5===0)clocks.push({x:enemy.x,y:enemy.y,phase:Math.random()*6.28});
+      if(score%5===0)clocks.push({x:enemy.x,y:enemy.y,phase:Math.random()*6.28,type:['blue','green','red'][enemy.hpMax-1]});
       enemies.splice(i,1);
     }
     setHud();collectClocks();checkExhausted();
@@ -196,7 +203,7 @@
     else if(edge===1){x=w+r;y=minY()+Math.random()*(maxY()-minY())}
     else if(edge===2){x=Math.random()*w;y=minY()-r}
     else{x=Math.random()*w;y=maxY()+r}
-    enemies.push({x,y,r,hp,color:['#66c8ee','#74d590','#e97a83'][hp-1],speed:21+Math.random()*12+score*.3,hit:0,wobble:Math.random()*6.28});
+    enemies.push({x,y,r,hp,hpMax:hp,color:['#66c8ee','#74d590','#e97a83'][hp-1],speed:21+Math.random()*12+score*.3,hit:0,wobble:Math.random()*6.28});
   }
   function update(dt){
     if(mode!=='play')return;
@@ -236,8 +243,9 @@
     ctx.strokeStyle='#e7d49e55';ctx.lineWidth=2;ctx.strokeRect(8,minY(),w-16,maxY()-minY());
     for(const item of clocks){
       const y=item.y+Math.sin(now/250+item.phase)*3;
-      ctx.fillStyle='#f8d57533';ctx.beginPath();ctx.arc(item.x,y,23,0,Math.PI*2);ctx.fill();
-      ctx.fillStyle='#efd37f';ctx.beginPath();ctx.arc(item.x,y,15,0,Math.PI*2);ctx.fill();
+      const color=clockTypes[item.type].color;
+      ctx.globalAlpha=.2;ctx.fillStyle=color;ctx.beginPath();ctx.arc(item.x,y,23,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+      ctx.fillStyle=color;ctx.beginPath();ctx.arc(item.x,y,15,0,Math.PI*2);ctx.fill();
       ctx.fillStyle='#23343c';ctx.beginPath();ctx.arc(item.x,y,11,0,Math.PI*2);ctx.fill();
       ctx.strokeStyle='#fff0b5';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(item.x,y);ctx.lineTo(item.x,y-7);ctx.moveTo(item.x,y);ctx.lineTo(item.x+5,y+2);ctx.stroke();
     }
