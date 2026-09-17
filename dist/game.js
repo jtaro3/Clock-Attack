@@ -2,7 +2,7 @@
   'use strict';
   const $=id=>document.getElementById(id);
   const canvas=$('field'),ctx=canvas.getContext('2d');
-  const ui={overlay:$('overlay'),panel:$('panel'),title:$('title'),eyebrow:$('eyebrow'),description:$('description'),readout:$('readout'),hourHand:$('hourHand'),minuteHand:$('minuteHand'),previewAttack:$('previewAttack'),previewMove:$('previewMove'),stop:$('stop'),sub:$('sub'),score:$('score'),health:$('health'),attackCount:$('attackCount'),clockCount:$('clockCount'),clockButton:$('clockButton'),clockStock:$('clockStock'),attack:$('attack')};
+  const ui={overlay:$('overlay'),panel:$('panel'),title:$('title'),eyebrow:$('eyebrow'),description:$('description'),readout:$('readout'),hourHand:$('hourHand'),minuteHand:$('minuteHand'),previewAttack:$('previewAttack'),previewMove:$('previewMove'),stop:$('stop'),debug:$('debug'),sub:$('sub'),score:$('score'),health:$('health'),attackCount:$('attackCount'),clockCount:$('clockCount'),clockButton:$('clockButton'),clockStock:$('clockStock'),attack:$('attack')};
   const player={x:0,y:0,r:14,angle:-Math.PI/2};
   // 上から時計回り: 背面、背面右、右、正面右、正面、正面左、左、背面左。
   const spriteBounds=[[386,362,850,928],[396,376,846,930],[432,356,812,956],[396,344,836,952],[386,350,866,946],[374,340,862,916],[394,344,828,926],[396,324,828,922]];
@@ -113,32 +113,33 @@
     ui.eyebrow.textContent=bonus?clockTypes[type].label:initial?'3秒で一周する時計':'戦闘を再開する時刻';
     ui.title.textContent=bonus?'追加の時刻を決めよう':initial?'時を止めて、戦え。':'次の時刻を決めよう';
     ui.description.innerHTML=bonus?`${clockTypes[type].effect}。<br>確定した行動力を現在の値に加算します。`:initial?'短針は剣を振る回数、長針は移動できる距離。<br>好きな瞬間に時計を止めて、行動量を決めよう。':'時計を止めると、剣と移動距離が補充されます。';
-    ui.stop.disabled=false;ui.stop.textContent='時計を止める';
+    ui.stop.disabled=false;ui.stop.textContent='時計を止める';ui.debug.disabled=false;
     ui.sub.textContent='時計は止めるまで3秒ごとに回り続けます';setHud();
   }
-  function stopClock(){
+  function stopClock(debug=false){
     if(mode==='gameover'){restart();return}
     if(mode!=='select')return;
     const t=updateClock(performance.now()),bonus=selectionReason==='bonus';
-    const gainedAttacks=bonus&&selectedClockType==='green'?t.attack*5:t.attack;
-    const gainedDistance=bonus&&selectedClockType==='blue'?t.minute*10:t.minute;
-    attacks=bonus?attacks+gainedAttacks:gainedAttacks;
-    distance=bonus?distance+gainedDistance:gainedDistance;
+    const gainedAttacks=debug?100:bonus&&selectedClockType==='green'?t.attack*5:t.attack;
+    const gainedDistance=debug?1000:bonus&&selectedClockType==='blue'?t.minute*10:t.minute;
+    attacks=debug?100:bonus?attacks+gainedAttacks:gainedAttacks;
+    distance=debug?1000:bonus?distance+gainedDistance:gainedDistance;
     health=Math.min(10,health+1);
     if(bonus&&selectedClockType==='red'){health=10;invincible=5}
     mode='confirmed';ui.panel.classList.remove('selecting');ui.panel.classList.add('confirmed');
-    ui.previewAttack.textContent=(bonus?'+':'')+gainedAttacks;
-    ui.previewMove.textContent=(bonus?'+':'')+gainedDistance;
-    ui.eyebrow.textContent=`${t.text} で確定`;
-    ui.title.textContent=bonus?clockTypes[selectedClockType].effect:'行動量が決まりました';
-    ui.description.textContent=bonus?`剣 ${attacks} 回・移動 ${Math.ceil(distance)}・HP ${health}/10`:`HP ${health}/10。1秒後に戦闘を再開します`;
-    ui.stop.disabled=true;ui.stop.textContent='まもなく開始';ui.sub.textContent='';setHud();
+    ui.previewAttack.textContent=(bonus&&!debug?'+':'')+gainedAttacks;
+    ui.previewMove.textContent=(bonus&&!debug?'+':'')+gainedDistance;
+    ui.eyebrow.textContent=debug?'デバッグで確定':`${t.text} で確定`;
+    ui.title.textContent=debug?'攻撃100回・移動1000':bonus?clockTypes[selectedClockType].effect:'行動量が決まりました';
+    ui.description.textContent=debug?`HP ${health}/10。1秒後に戦闘を再開します`:bonus?`剣 ${attacks} 回・移動 ${Math.ceil(distance)}・HP ${health}/10`:`HP ${health}/10。1秒後に戦闘を再開します`;
+    ui.stop.disabled=true;ui.debug.disabled=true;ui.stop.textContent='まもなく開始';ui.sub.textContent='';setHud();
     transitionTimer=setTimeout(()=>{
       if(mode!=='confirmed')return;
       mode='play';ui.overlay.classList.add('hidden');spawnTimer=0;transitionTimer=null;setHud();
     },1000);
   }
-  ui.stop.addEventListener('click',stopClock);
+  ui.stop.addEventListener('click',()=>stopClock());
+  ui.debug.addEventListener('click',()=>stopClock(true));
   function restart(){
     clearTimeout(transitionTimer);health=3;score=0;attacks=0;distance=0;
     enemies.length=0;particles.length=0;clocks.length=0;storedClocks.length=0;
