@@ -2,15 +2,16 @@
   'use strict';
   const $=id=>document.getElementById(id);
   const canvas=$('field'),ctx=canvas.getContext('2d');
-  const ui={overlay:$('overlay'),panel:$('panel'),title:$('title'),eyebrow:$('eyebrow'),description:$('description'),readout:$('readout'),hourHand:$('hourHand'),minuteHand:$('minuteHand'),previewAttack:$('previewAttack'),previewMove:$('previewMove'),stop:$('stop'),sub:$('sub'),score:$('score'),health:$('health'),attackCount:$('attackCount'),clockCount:$('clockCount'),clockButton:$('clockButton'),attack:$('attack')};
+  const ui={overlay:$('overlay'),panel:$('panel'),title:$('title'),eyebrow:$('eyebrow'),description:$('description'),readout:$('readout'),hourHand:$('hourHand'),minuteHand:$('minuteHand'),previewAttack:$('previewAttack'),previewMove:$('previewMove'),stop:$('stop'),sub:$('sub'),score:$('score'),health:$('health'),attackCount:$('attackCount'),clockCount:$('clockCount'),clockButton:$('clockButton'),clockStock:$('clockStock'),attack:$('attack')};
   const player={x:0,y:0,r:14,angle:-Math.PI/2};
   const enemies=[],particles=[],clocks=[],storedClocks=[];
   const clockTypes={blue:{label:'青い時計',color:'#66c8ee',effect:'移動距離が10倍'},green:{label:'緑の時計',color:'#74d590',effect:'攻撃回数が5倍'},red:{label:'赤い時計',color:'#e97a83',effect:'HP全回復・5秒無敵'}};
   const drag={pointer:null,x:0,y:0};
+  const charge={pointer:null,start:0,timer:null};
   const keys=new Set();
   let w=0,h=0,dpr=1,last=performance.now(),clockOrigin=last-61/1440*3000;
   let mode='select',selectionReason='start',selectedClockType=null,transitionTimer=null;
-  let attacks=0,distance=0,health=3,score=0,spawnTimer=0,invincible=0,swing=0,swingAngle=0,shake=0;
+  let attacks=0,distance=0,health=3,score=0,spawnTimer=0,invincible=0,swing=0,spin=0,swingAngle=0,shake=0;
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
   const minY=()=>Math.max(92,h*.12),maxY=()=>Math.max(minY()+60,h-130);
 
@@ -39,6 +40,12 @@
     label.style.top=`calc(50% - ${Math.cos(angle)*r}px)`;
     face.insertBefore(label,ui.hourHand);
   }
+  const stockSlots=[];
+  for(let i=0;i<10;i++){
+    const slot=document.createElement('span');slot.className='stock-slot';
+    slot.innerHTML='<svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="12"/><path d="M16 9v7l5 3"/></svg>';
+    ui.clockStock.appendChild(slot);stockSlots.push(slot);
+  }
 
   function timeValues(now){
     const phase=((now-clockOrigin)%3000+3000)%3000/3000;
@@ -61,9 +68,19 @@
     ui.clockButton.dataset.clock=storedClocks[0]||'';
     ui.clockButton.classList.toggle('ready',mode==='play'&&storedClocks.length>0);
     ui.attack.disabled=mode!=='play'||attacks<=0;
+    for(let i=0;i<stockSlots.length;i++){
+      const type=storedClocks[i]||'';
+      stockSlots[i].dataset.clock=type;
+      stockSlots[i].classList.toggle('filled',!!type);
+      stockSlots[i].title=type?`${i+1}: ${clockTypes[type].label}`:'';
+    }
+  }
+  function cancelCharge(){
+    clearTimeout(charge.timer);charge.pointer=null;charge.timer=null;
+    ui.attack.classList.remove('charging');ui.attack.style.setProperty('--charge','0%');
   }
   function startSelection(initial=false,bonus=false,type=null){
-    clearTimeout(transitionTimer);transitionTimer=null;
+    clearTimeout(transitionTimer);transitionTimer=null;cancelCharge();
     mode='select';selectionReason=initial?'start':bonus?'bonus':'refill';selectedClockType=bonus?type:null;drag.pointer=null;
     clockOrigin=performance.now()-(initial?61/1440*3000:0);
     ui.overlay.classList.remove('hidden');
@@ -101,18 +118,19 @@
   function restart(){
     clearTimeout(transitionTimer);health=3;score=0;attacks=0;distance=0;
     enemies.length=0;particles.length=0;clocks.length=0;storedClocks.length=0;
-    player.x=w/2;player.y=(minY()+maxY())/2;invincible=0;swing=0;
+    player.x=w/2;player.y=(minY()+maxY())/2;invincible=0;swing=0;spin=0;
     startSelection(true);
   }
   function gameOver(){
-    clearTimeout(transitionTimer);mode='gameover';drag.pointer=null;
+    clearTimeout(transitionTimer);cancelCharge();mode='gameover';drag.pointer=null;
     ui.overlay.classList.remove('hidden');ui.panel.classList.remove('selecting','paused','confirmed','bonus');ui.panel.classList.add('gameover');
     ui.eyebrow.textContent='GAME OVER';ui.title.textContent=`討伐 ${score} 体`;
     ui.description.textContent='時計を止めるタイミングを変えて、もう一度挑戦しよう。';
     ui.stop.disabled=false;ui.stop.textContent='もう一度遊ぶ';ui.sub.textContent='';setHud();
   }
   function checkExhausted(){
-    if(mode!=='play'||attacks>0||distance>=.999)return;
+    if(mode!=='play'||attacks>0||distance>=.999||swing>0||spin>0)return;
+    cancelCharge();
     mode='exhausted';drag.pointer=null;ui.overlay.classList.remove('hidden');
     ui.panel.classList.remove('selecting','confirmed','gameover');ui.panel.classList.add('paused');
     ui.eyebrow.textContent='戦闘を一時停止';ui.title.textContent='行動量を使い切りました';
@@ -127,9 +145,9 @@
   }
   function collectClocks(){
     if(mode!=='play')return;
-    for(let i=clocks.length-1;i>=0;i--){
+    for(let i=0;i<clocks.length;){
       const item=clocks[i];
-      if(Math.hypot(item.x-player.x,item.y-player.y)>player.r+16)continue;
+      if(storedClocks.length>=10||Math.hypot(item.x-player.x,item.y-player.y)>player.r+16){i++;continue}
       clocks.splice(i,1);burst(item.x,item.y,clockTypes[item.type].color,14);
       storedClocks.push(item.type);setHud();
     }
@@ -172,7 +190,24 @@
   canvas.addEventListener('pointercancel',endDrag);
   canvas.addEventListener('lostpointercapture',endDrag);
   ui.clockButton.addEventListener('pointerdown',e=>{e.preventDefault();useStoredClock()});
-  ui.attack.addEventListener('pointerdown',e=>{e.preventDefault();attack()});
+  ui.attack.addEventListener('pointerdown',e=>{
+    if(mode!=='play'||attacks<=0)return;
+    e.preventDefault();ui.attack.setPointerCapture(e.pointerId);
+    cancelCharge();charge.pointer=e.pointerId;charge.start=performance.now();
+    if(attacks>=10){
+      ui.attack.classList.add('charging');
+      charge.timer=setTimeout(()=>{
+        if(charge.pointer!==e.pointerId||mode!=='play'||attacks<10)return;
+        spinAttack();cancelCharge();
+      },2000);
+    }
+  });
+  ui.attack.addEventListener('pointerup',e=>{
+    if(charge.pointer!==e.pointerId)return;
+    cancelCharge();attack();
+  });
+  ui.attack.addEventListener('pointercancel',e=>{if(charge.pointer===e.pointerId)cancelCharge()});
+  ui.attack.addEventListener('lostpointercapture',e=>{if(charge.pointer===e.pointerId)cancelCharge()});
   for(const type of ['contextmenu','dblclick','gesturestart','gesturechange','selectstart'])
     document.addEventListener(type,e=>e.preventDefault(),{passive:false});
   addEventListener('keydown',e=>{
@@ -180,20 +215,29 @@
     keys.add(e.code);if(e.code==='Space'&&!e.repeat)attack();
   });
   addEventListener('keyup',e=>keys.delete(e.code));
-  addEventListener('blur',()=>{keys.clear();drag.pointer=null});
-  function attack(){
-    if(mode!=='play'||attacks<=0||swing>0)return;
-    attacks--;swing=.27;swingAngle=player.angle;
+  addEventListener('blur',()=>{keys.clear();drag.pointer=null;cancelCharge()});
+  function hitEnemies(damage,fullCircle){
     const ax=Math.cos(player.angle),ay=Math.sin(player.angle);
     for(let i=enemies.length-1;i>=0;i--){
       const enemy=enemies[i],dx=enemy.x-player.x,dy=enemy.y-player.y,len=Math.hypot(dx,dy);
-      if(len>=player.r+enemy.r+51||(len>=25&&(dx*ax+dy*ay)/len<=-.2))continue;
-      enemy.hp--;enemy.hit=.18;burst(enemy.x,enemy.y,enemy.color,6);
+      if(len>=player.r+enemy.r+51||(!fullCircle&&len>=25&&(dx*ax+dy*ay)/len<=-.2))continue;
+      enemy.hp-=damage;enemy.hit=.18;burst(enemy.x,enemy.y,enemy.color,6);
       if(enemy.hp>0)continue;
       score++;burst(enemy.x,enemy.y,enemy.color,11);
       if(score%5===0)clocks.push({x:enemy.x,y:enemy.y,phase:Math.random()*6.28,type:['blue','green','red'][enemy.hpMax-1]});
       enemies.splice(i,1);
     }
+  }
+  function attack(){
+    if(mode!=='play'||attacks<=0||swing>0||spin>0)return;
+    attacks--;swing=.27;swingAngle=player.angle;
+    hitEnemies(1,false);
+    setHud();collectClocks();checkExhausted();
+  }
+  function spinAttack(){
+    if(mode!=='play'||attacks<10||swing>0||spin>0)return;
+    attacks-=10;spin=.55;swingAngle=player.angle;
+    hitEnemies(5,true);
     setHud();collectClocks();checkExhausted();
   }
   function spawn(){
@@ -217,7 +261,7 @@
     collectClocks();if(mode!=='play')return;
     spawnTimer+=dt;
     if(spawnTimer>Math.max(.65,1.8-score*.02)){spawnTimer=0;spawn()}
-    invincible=Math.max(0,invincible-dt);swing=Math.max(0,swing-dt);shake=Math.max(0,shake-dt);
+    invincible=Math.max(0,invincible-dt);swing=Math.max(0,swing-dt);spin=Math.max(0,spin-dt);shake=Math.max(0,shake-dt);
     for(const enemy of enemies){
       enemy.wobble+=dt*5;enemy.hit=Math.max(0,enemy.hit-dt);
       const ex=player.x-enemy.x,ey=player.y-enemy.y,len=Math.hypot(ex,ey)||1;
@@ -231,6 +275,7 @@
       const p=particles[i];p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt;
       if(p.life<=0)particles.splice(i,1);
     }
+    checkExhausted();
   }
   function draw(now){
     ctx.clearRect(0,0,w,h);ctx.save();
@@ -260,6 +305,13 @@
     for(const p of particles){ctx.globalAlpha=clamp(p.life/p.max,0,1);ctx.fillStyle=p.color;ctx.fillRect(p.x-2,p.y-2,4,4)}
     ctx.globalAlpha=1;
     if(swing>0){ctx.strokeStyle=`rgba(255,224,158,${swing/.27})`;ctx.lineWidth=12;ctx.lineCap='round';ctx.beginPath();ctx.arc(player.x,player.y,49,swingAngle-.95,swingAngle+.95);ctx.stroke()}
+    if(spin>0){
+      const progress=1-spin/.55,angle=swingAngle+progress*Math.PI*2;
+      ctx.strokeStyle=`rgba(255,214,133,${spin/.55})`;ctx.lineWidth=13;ctx.lineCap='round';
+      ctx.beginPath();ctx.arc(player.x,player.y,53,angle-1.1,angle+1.1);ctx.stroke();
+      ctx.strokeStyle=`rgba(255,245,210,${spin/.55*.65})`;ctx.lineWidth=3;
+      ctx.beginPath();ctx.arc(player.x,player.y,53,0,Math.PI*2);ctx.stroke();
+    }
     ctx.globalAlpha=invincible>0&&Math.floor(now/90)%2?.4:1;
     ctx.fillStyle='#111d26aa';ctx.beginPath();ctx.ellipse(player.x,player.y+14,17,6,0,0,7);ctx.fill();
     ctx.fillStyle='#f3eee0';ctx.beginPath();ctx.arc(player.x,player.y,player.r,0,7);ctx.fill();
@@ -278,6 +330,7 @@
   function frame(now){
     const dt=Math.min((now-last)/1000,.05);last=now;
     if(mode==='select')updateClock(now);
+    if(charge.pointer!==null&&charge.timer!==null)ui.attack.style.setProperty('--charge',`${Math.min(100,(now-charge.start)/20)}%`);
     update(dt);draw(now);requestAnimationFrame(frame);
   }
   setHud();requestAnimationFrame(frame);
