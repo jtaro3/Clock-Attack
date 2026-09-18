@@ -2,7 +2,7 @@
   'use strict';
   const $=id=>document.getElementById(id);
   const canvas=$('field'),ctx=canvas.getContext('2d');
-  const ui={overlay:$('overlay'),panel:$('panel'),title:$('title'),eyebrow:$('eyebrow'),description:$('description'),resultValue:$('resultValue'),hourHand:$('hourHand'),minuteHand:$('minuteHand'),stop:$('stop'),debug:$('debug'),sub:$('sub'),score:$('score'),energyValue:$('energyValue'),energyFill:$('energyFill'),energyBar:document.querySelector('.energy-bar'),attackCount:$('attackCount'),clockCount:$('clockCount'),clockButton:$('clockButton'),clockStock:$('clockStock'),attack:$('attack'),pauseButton:$('pauseButton'),pauseScreen:$('pauseScreen'),resumeButton:$('resumeButton')};
+  const ui={overlay:$('overlay'),panel:$('panel'),title:$('title'),eyebrow:$('eyebrow'),description:$('description'),resultValue:$('resultValue'),hourHand:$('hourHand'),minuteHand:$('minuteHand'),stop:$('stop'),debug:$('debug'),sub:$('sub'),score:$('score'),elapsedTime:$('elapsedTime'),energyValue:$('energyValue'),energyFill:$('energyFill'),energyBar:document.querySelector('.energy-bar'),attackCount:$('attackCount'),clockCount:$('clockCount'),clockButton:$('clockButton'),clockStock:$('clockStock'),attack:$('attack'),pauseButton:$('pauseButton'),pauseScreen:$('pauseScreen'),resumeButton:$('resumeButton')};
   const player={x:0,y:0,r:14,angle:-Math.PI/2};
   // 上から時計回り: 背面、背面右、右、正面右、正面、正面左、左、背面左。
   const spriteBounds=[[386,362,850,928],[396,376,846,930],[432,356,812,956],[396,344,836,952],[386,350,866,946],[374,340,862,916],[394,344,828,926],[396,324,828,922]];
@@ -53,7 +53,7 @@
   const keys=new Set();
   let w=0,h=0,dpr=1,last=performance.now(),clockOrigin=last-61/1440*3000;
   let mode='select',selectionReason='start',selectionIcons=0,transitionTimer=null;
-  let energy=0,moveProgress=0,unlocked=0,score=0,swordCount=0,spawnTimer=0,invincible=0,damageFlash=0,entryGray=0,lowEnergyGray=false,swing=0,spin=0,swingAngle=0,shake=0;
+  let energy=0,moveProgress=0,unlocked=0,score=0,swordCount=0,elapsed=0,purpleSpawned=false,spawnTimer=0,invincible=0,damageFlash=0,entryGray=0,lowEnergyGray=false,swing=0,spin=0,swingAngle=0,shake=0;
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
   const MOVE_DISTANCE_PER_ENERGY=16;
   function attackDamage(count){
@@ -187,7 +187,8 @@
     mode='play';ui.pauseScreen.classList.add('hidden');last=performance.now();setHud();
   });
   function restart(){
-    clearTimeout(transitionTimer);energy=0;moveProgress=0;unlocked=0;score=0;swordCount=0;damageFlash=0;lowEnergyGray=false;
+    clearTimeout(transitionTimer);energy=0;moveProgress=0;unlocked=0;score=0;swordCount=0;elapsed=0;purpleSpawned=false;damageFlash=0;lowEnergyGray=false;
+    ui.elapsedTime.textContent='0:00';
     ui.pauseScreen.classList.add('hidden');
     enemies.length=0;particles.length=0;
     player.x=w/2;player.y=(minY()+maxY())/2;invincible=0;entryGray=0;swing=0;spin=0;
@@ -300,14 +301,15 @@
     hitEnemies(damage,true);
     setHud();checkExhausted();
   }
-  function spawn(){
-    const hp=1+Math.floor(Math.random()*3),edge=Math.floor(Math.random()*4),r=12+hp*2;
+  function spawn(forcePurple=false){
+    const purple=forcePurple||elapsed>=60&&Math.random()<.15;
+    const hp=purple?10:1+Math.floor(Math.random()*3),edge=Math.floor(Math.random()*4),r=purple?22:12+hp*2;
     let x,y;
     if(edge===0){x=-r;y=minY()+Math.random()*(maxY()-minY())}
     else if(edge===1){x=w+r;y=minY()+Math.random()*(maxY()-minY())}
     else if(edge===2){x=Math.random()*w;y=minY()-r}
     else{x=Math.random()*w;y=maxY()+r}
-    enemies.push({x,y,r,hp,hpMax:hp,color:['#66c8ee','#74d590','#e97a83'][hp-1],speed:21+Math.random()*12+score*.3,hit:0,wobble:Math.random()*6.28});
+    enemies.push({x,y,r,hp,hpMax:hp,color:purple?'#b679e5':['#66c8ee','#74d590','#e97a83'][hp-1],speed:21+Math.random()*12+score*.3,hit:0,wobble:Math.random()*6.28});
   }
   function update(dt){
     if(mode==='entry'){
@@ -316,6 +318,13 @@
       return;
     }
     if(mode!=='play')return;
+    const previousSecond=Math.floor(elapsed);
+    elapsed+=dt;
+    if(Math.floor(elapsed)!==previousSecond){
+      const seconds=Math.floor(elapsed);
+      ui.elapsedTime.textContent=`${Math.floor(seconds/60)}:${String(seconds%60).padStart(2,'0')}`;
+    }
+    if(!purpleSpawned&&elapsed>=60){purpleSpawned=true;spawn(true)}
     let dx=0,dy=0;
     if(keys.has('ArrowLeft')||keys.has('KeyA'))dx--;
     if(keys.has('ArrowRight')||keys.has('KeyD'))dx++;
@@ -364,6 +373,11 @@
       ctx.quadraticCurveTo(enemy.x+enemy.r,y+enemy.r*.85,enemy.x,y+enemy.r*.7);
       ctx.quadraticCurveTo(enemy.x-enemy.r,y+enemy.r*.85,enemy.x-enemy.r,y);ctx.fill();
       ctx.fillStyle='#24333b';ctx.beginPath();ctx.arc(enemy.x-5,y-2,2,0,7);ctx.arc(enemy.x+5,y-2,2,0,7);ctx.fill();
+      const barW=Math.max(34,enemy.r*2),barX=enemy.x-barW/2,barY=y-enemy.r-12;
+      ctx.fillStyle='#17242adf';ctx.fillRect(barX-2,barY-2,barW+4,8);
+      ctx.fillStyle='#642d35';ctx.fillRect(barX,barY,barW,4);
+      ctx.fillStyle=enemy.hp/enemy.hpMax>.5?'#80d98a':enemy.hp/enemy.hpMax>.25?'#f1c66b':'#f07773';
+      ctx.fillRect(barX,barY,barW*Math.max(0,enemy.hp/enemy.hpMax),4);
     }
     for(const p of particles){ctx.globalAlpha=clamp(p.life/p.max,0,1);ctx.fillStyle=p.color;ctx.fillRect(p.x-2,p.y-2,4,4)}
     ctx.globalAlpha=1;
