@@ -47,12 +47,12 @@
   let terrainCanvas=null;
   tileImage.onload=()=>renderTerrain();
   tileImage.src=mapTools.tileSheet;
-  const enemies=[],particles=[],explosions=[],damageNumbers=[];
+  const enemies=[],deadEnemies=[],particles=[],explosions=[],damageNumbers=[];
   const drag={pointer:null,x:0,y:0};
   const charge={pointer:null,start:0,timer:null};
   const keys=new Set();
   let w=0,h=0,dpr=1,last=performance.now(),clockOrigin=last-61/1440*3000;
-  let mode='select',selectionReason='start',selectionIcons=0,transitionTimer=null;
+  let mode='select',selectionReason='start',selectionIcons=0,selectionKills=0,transitionTimer=null;
   let energy=0,moveProgress=0,unlocked=0,score=0,round=1,roundKills=0,roundSpawned=0,roundElapsed=0,swordCount=0,elapsed=0,purpleSpawned=false,spawnTimer=0,invincible=0,damageFlash=0,grayHits=0,entryGray=0,lowEnergyGray=false,swing=0,spin=0,swingAngle=0,shake=0,hitStop=0;
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
   const MOVE_DISTANCE_PER_ENERGY=16;
@@ -95,13 +95,6 @@
     const tick=document.createElement('i'),angle=i*6*Math.PI/180,r=face.offsetWidth*.43;
     tick.className='tick';tick.style.transform=`translate(-50%,-50%) translate(${Math.sin(angle)*r}px,${-Math.cos(angle)*r}px) rotate(${i*6}deg)`;
     tick.style.height=i%5?'5px':'10px';face.insertBefore(tick,ui.hourHand);
-  }
-  for(let n=1;n<=12;n++){
-    const label=document.createElement('span'),angle=n*Math.PI/6,r=face.offsetWidth*.35;
-    label.className='numeral';label.textContent=n;
-    label.style.left=`calc(50% + ${Math.sin(angle)*r}px)`;
-    label.style.top=`calc(50% - ${Math.cos(angle)*r}px)`;
-    face.insertBefore(label,ui.hourHand);
   }
   const stockSlots=[];
   const hourglassSvg=()=>`<svg class="hourglass-svg" viewBox="0 0 32 32" aria-hidden="true"><path d="M7 2h18M7 30h18M9 3v4c0 4 7 7 7 9s-7 5-7 9v4M23 3v4c0 4-7 7-7 9s7 5 7 9v4"/>${Array.from({length:10},(_,i)=>`<rect class="sand-step" x="${10+i*.5}" y="${26-i}" width="${12-i}" height=".8"/>`).join('')}${Array.from({length:10},(_,i)=>`<rect class="sand-settled" x="${10+i*.5}" y="${5+i}" width="${12-i}" height=".8"/>`).join('')}<path class="sand-stream" d="M16 16V6"/></svg>`;
@@ -163,13 +156,13 @@
   }
   function startSelection(initial=false,icons=0){
     clearTimeout(transitionTimer);transitionTimer=null;cancelCharge();
-    mode='select';selectionReason=initial?'start':'refill';selectionIcons=icons;drag.pointer=null;
+    mode='select';selectionReason=initial?'start':'refill';selectionIcons=icons;selectionKills=initial?0:score;drag.pointer=null;shake=0;
     clockOrigin=performance.now()-(initial?61/1440*3000:0);
     ui.overlay.classList.remove('hidden');
     ui.panel.classList.remove('gameover','paused','confirmed','refill','turning');ui.panel.classList.add('selecting');
     ui.panel.classList.toggle('refill',!initial);
     ui.sandPreview.classList.remove('flipped','flowing');
-    ui.eyebrow.textContent=initial?'3秒で一周する時計':'砂時計';
+    ui.eyebrow.textContent=initial?'':'砂時計';
     ui.title.textContent=initial?'時を止めて、戦え。':'砂時計を返そう';
     ui.description.textContent='';
     ui.resultValue.textContent='';ui.stop.disabled=false;ui.stop.textContent='光を';ui.debug.disabled=false;
@@ -205,7 +198,7 @@
     transitionTimer=setTimeout(pour,800/selectionIcons);
   }
   function finishClock(debug){
-    const gained=debug||selectionReason==='start'?100:Math.min(100,selectionIcons*10);
+    const gained=debug||selectionReason==='start'?100:Math.floor(selectionIcons*10*(1+selectionKills/100));
     energy+=gained;moveProgress=0;grayHits=0;lowEnergyGray=false;
     mode='confirmed';ui.panel.classList.remove('selecting','turning');ui.panel.classList.add('confirmed');
     ui.resultValue.textContent=gained;
@@ -216,7 +209,7 @@
       if(mode!=='confirmed')return;
       mode=selectionReason==='start'?'entry':'play';entryGray=selectionReason==='start'?2:0;
       if(selectionReason==='refill')invincible=Math.max(invincible,2);
-      ui.overlay.classList.add('hidden');spawnTimer=0;transitionTimer=null;last=performance.now();setHud();
+      ui.overlay.classList.add('hidden');spawnTimer=0;shake=0;transitionTimer=null;last=performance.now();setHud();
     },1000);
   }
   ui.stop.addEventListener('click',()=>stopClock());
@@ -234,7 +227,7 @@
     clearTimeout(transitionTimer);energy=0;moveProgress=0;unlocked=0;score=0;round=1;roundKills=0;roundSpawned=0;roundElapsed=0;swordCount=0;elapsed=0;purpleSpawned=false;damageFlash=0;grayHits=0;lowEnergyGray=false;
     ui.elapsedTime.textContent='0:00';
     ui.pauseScreen.classList.add('hidden');
-    enemies.length=0;particles.length=0;explosions.length=0;damageNumbers.length=0;
+    enemies.length=0;deadEnemies.length=0;particles.length=0;explosions.length=0;damageNumbers.length=0;
     player.x=w/2;player.y=(minY()+maxY())/2;invincible=0;entryGray=0;swing=0;spin=0;hitStop=0;
     startSelection(true);
   }
@@ -268,6 +261,10 @@
     damageNumbers.push({x,y,amount,life:.85,max:.85});
   }
   function updateHitEffects(dt){
+    for(let i=deadEnemies.length-1;i>=0;i--){
+      deadEnemies[i].deathTime-=dt;
+      if(deadEnemies[i].deathTime<=0)deadEnemies.splice(i,1);
+    }
     for(let i=particles.length-1;i>=0;i--){
       const p=particles[i];p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt;
       if(p.life<=0)particles.splice(i,1);
@@ -348,20 +345,21 @@
   addEventListener('blur',()=>{keys.clear();drag.pointer=null;cancelCharge()});
   function hitEnemies(damage,fullCircle){
     const ax=Math.cos(player.angle),ay=Math.sin(player.angle);
-    let hits=0;
+    let defeated=false;
     for(let i=enemies.length-1;i>=0;i--){
       const enemy=enemies[i],dx=enemy.x-player.x,dy=enemy.y-player.y,len=Math.hypot(dx,dy);
       if(len>=player.r+enemy.r+51||(!fullCircle&&len>=25&&(dx*ax+dy*ay)/len<=-.2))continue;
       const knockAngle=len>0?Math.atan2(dy,dx):player.angle;
       enemy.x+=Math.cos(knockAngle)*4/VIEW_SCALE;enemy.y+=Math.sin(knockAngle)*4/VIEW_SCALE;
-      enemy.hp-=damage;enemy.hit=.18;hits++;
+      enemy.hp-=damage;enemy.hit=.18;
       explosions.push({x:enemy.x,y:enemy.y,r:enemy.r,life:.45,max:.45});
       burst(enemy.x,enemy.y,'#fff1c3',15);showDamage(enemy,damage);
       if(enemy.hp>0)continue;
+      defeated=true;deadEnemies.push({...enemy,deathTime:.45});
       score++;roundKills++;swordCount++;unlocked=Math.min(10,unlocked+1);burst(enemy.x,enemy.y,enemy.color,11);
       enemies.splice(i,1);
     }
-    if(hits>0){hitStop=.5;drag.pointer=null}
+    if(defeated){hitStop=.1;drag.pointer=null}
     if(roundKills>=round*10){
       round++;roundKills=0;roundSpawned=0;roundElapsed=0;spawnTimer=0;
       enemies.length=0;
@@ -458,13 +456,16 @@
     if(terrainCanvas){ctx.imageSmoothingEnabled=false;ctx.drawImage(terrainCanvas,0,0);ctx.imageSmoothingEnabled=true}
     else{ctx.fillStyle='#447a45';ctx.fillRect(0,0,w,h)}
     ctx.strokeStyle='#e7d49e55';ctx.lineWidth=2;ctx.strokeRect(8,minY(),w-16,maxY()-minY());
-    for(const enemy of enemies){
+    for(const enemy of [...enemies,...deadEnemies]){
+      const dying=enemy.deathTime!==undefined;
+      if(dying&&Math.floor(now/55)%2===0)continue;
       const y=enemy.y+Math.sin(enemy.wobble)*2;
       ctx.fillStyle='#0b172277';ctx.beginPath();ctx.ellipse(enemy.x,y+enemy.r*.8,enemy.r,5,0,0,Math.PI*2);ctx.fill();
       ctx.fillStyle=enemy.hit>0?'#fff':enemy.color;ctx.beginPath();ctx.arc(enemy.x,y,enemy.r,Math.PI,0);
       ctx.quadraticCurveTo(enemy.x+enemy.r,y+enemy.r*.85,enemy.x,y+enemy.r*.7);
       ctx.quadraticCurveTo(enemy.x-enemy.r,y+enemy.r*.85,enemy.x-enemy.r,y);ctx.fill();
       ctx.fillStyle='#24333b';ctx.beginPath();ctx.arc(enemy.x-5,y-2,2,0,7);ctx.arc(enemy.x+5,y-2,2,0,7);ctx.fill();
+      if(dying)continue;
       const barW=Math.max(34,enemy.r*2),barX=enemy.x-barW/2,barY=y-enemy.r-12;
       ctx.fillStyle='#17242adf';ctx.fillRect(barX-2,barY-2,barW+4,8);
       ctx.fillStyle='#642d35';ctx.fillRect(barX,barY,barW,4);
