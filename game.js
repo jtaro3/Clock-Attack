@@ -2,7 +2,7 @@
   'use strict';
   const $=id=>document.getElementById(id);
   const canvas=$('field'),ctx=canvas.getContext('2d');
-  const ui={overlay:$('overlay'),panel:$('panel'),title:$('title'),eyebrow:$('eyebrow'),description:$('description'),resultValue:$('resultValue'),hourHand:$('hourHand'),minuteHand:$('minuteHand'),stop:$('stop'),debug:$('debug'),sub:$('sub'),score:$('score'),roundNumber:$('roundNumber'),roundTarget:$('roundTarget'),roundTime:$('roundTime'),elapsedTime:$('elapsedTime'),energyValue:$('energyValue'),energyFill:$('energyFill'),grayDamageFill:$('grayDamageFill'),energyBar:document.querySelector('.energy-bar'),attackCount:$('attackCount'),clockCount:$('clockCount'),clockButton:$('clockButton'),clockStock:$('clockStock'),buttonHourglass:$('buttonHourglass'),previewHourglass:$('previewHourglass'),previewSandCount:$('previewSandCount'),attack:$('attack'),pauseButton:$('pauseButton'),pauseScreen:$('pauseScreen'),resumeButton:$('resumeButton')};
+  const ui={overlay:$('overlay'),panel:$('panel'),title:$('title'),eyebrow:$('eyebrow'),description:$('description'),resultValue:$('resultValue'),hourHand:$('hourHand'),minuteHand:$('minuteHand'),stop:$('stop'),debug:$('debug'),sub:$('sub'),score:$('score'),roundNumber:$('roundNumber'),roundTarget:$('roundTarget'),roundTime:$('roundTime'),elapsedTime:$('elapsedTime'),energyValue:$('energyValue'),energyFill:$('energyFill'),grayDamageFill:$('grayDamageFill'),energyBar:document.querySelector('.energy-bar'),attackCount:$('attackCount'),clockCount:$('clockCount'),clockButton:$('clockButton'),clockStock:$('clockStock'),buttonHourglass:$('buttonHourglass'),sandPreview:$('sandPreview'),previewHourglass:$('previewHourglass'),previewSandCount:$('previewSandCount'),attack:$('attack'),pauseButton:$('pauseButton'),pauseScreen:$('pauseScreen'),resumeButton:$('resumeButton')};
   const player={x:0,y:0,r:14,angle:-Math.PI/2};
   // 上から時計回り: 背面、背面右、右、正面右、正面、正面左、左、背面左。
   const spriteBounds=[[386,362,850,928],[396,376,846,930],[432,356,812,956],[396,344,836,952],[386,350,866,946],[374,340,862,916],[394,344,828,926],[396,324,828,922]];
@@ -106,6 +106,7 @@
   const stockSlots=[];
   const hourglassSvg=()=>`<svg class="hourglass-svg" viewBox="0 0 32 32" aria-hidden="true"><path d="M7 2h18M7 30h18M9 3v4c0 4 7 7 7 9s-7 5-7 9v4M23 3v4c0 4-7 7-7 9s7 5 7 9v4"/>${Array.from({length:10},(_,i)=>`<rect class="sand-step" x="${10+i*.5}" y="${26-i}" width="${12-i}" height=".8"/>`).join('')}</svg>`;
   ui.buttonHourglass.innerHTML=hourglassSvg();
+  ui.buttonHourglass.querySelectorAll('.sand-step').forEach((step,i)=>step.classList.toggle('filled',i<5));
   ui.previewHourglass.innerHTML=hourglassSvg();
   for(let i=0;i<10;i++){
     const slot=document.createElement('span');slot.className='stock-slot';
@@ -113,8 +114,7 @@
     ui.clockStock.appendChild(slot);stockSlots.push(slot);
   }
   function showSand(steps){
-    for(const glass of [ui.buttonHourglass,ui.previewHourglass])
-      glass.querySelectorAll('.sand-step').forEach((step,i)=>step.classList.toggle('filled',i<steps));
+    ui.previewHourglass.querySelectorAll('.sand-step').forEach((step,i)=>step.classList.toggle('filled',i<steps));
     ui.previewSandCount.textContent=`砂のビン ${steps}/10`;
   }
 
@@ -137,7 +137,7 @@
     ui.energyBar.setAttribute('aria-valuetext',energy===0&&unlocked>0?`行動力0、灰色状態での被弾 ${grayHits} / 3`:`行動力 ${energy}`);
     ui.attackCount.textContent=swordCount;
     ui.clockCount.textContent=unlocked;
-    showSand(mode==='select'&&selectionReason==='refill'?selectionIcons:unlocked);
+    showSand(selectionReason==='refill'&&['select','turning','confirmed'].includes(mode)?selectionIcons:unlocked);
     ui.clockButton.disabled=mode!=='play'||unlocked===0;
     ui.pauseButton.disabled=mode!=='play';
     ui.clockButton.classList.toggle('ready',mode==='play'&&unlocked>0);
@@ -165,10 +165,11 @@
     mode='select';selectionReason=initial?'start':'refill';selectionIcons=icons;drag.pointer=null;
     clockOrigin=performance.now()-(initial?61/1440*3000:0);
     ui.overlay.classList.remove('hidden');
-    ui.panel.classList.remove('gameover','paused','confirmed','refill');ui.panel.classList.add('selecting');
+    ui.panel.classList.remove('gameover','paused','confirmed','refill','turning');ui.panel.classList.add('selecting');
     ui.panel.classList.toggle('refill',!initial);
-    ui.eyebrow.textContent='3秒で一周する時計';
-    ui.title.textContent=initial?'時を止めて、戦え。':'次の光を決めよう';
+    ui.sandPreview.classList.remove('flipped');
+    ui.eyebrow.textContent=initial?'3秒で一周する時計':'砂時計';
+    ui.title.textContent=initial?'時を止めて、戦え。':'砂時計を返そう';
     ui.description.textContent='';
     ui.resultValue.textContent='';ui.stop.disabled=false;ui.stop.textContent='光を';ui.debug.disabled=false;
     ui.sub.textContent='';setHud();
@@ -176,10 +177,19 @@
   function stopClock(debug=false){
     if(mode==='gameover'){restart();return}
     if(mode!=='select')return;
+    if(selectionReason==='refill'){
+      mode='turning';ui.stop.disabled=true;ui.debug.disabled=true;
+      ui.panel.classList.add('turning');ui.sandPreview.classList.add('flipped');setHud();
+      transitionTimer=setTimeout(()=>finishClock(debug),650);
+      return;
+    }
     updateClock(performance.now());
+    finishClock(debug);
+  }
+  function finishClock(debug){
     const gained=debug||selectionReason==='start'?100:Math.min(100,selectionIcons*10);
     energy+=gained;moveProgress=0;grayHits=0;lowEnergyGray=false;
-    mode='confirmed';ui.panel.classList.remove('selecting');ui.panel.classList.add('confirmed');
+    mode='confirmed';ui.panel.classList.remove('selecting','turning');ui.panel.classList.add('confirmed');
     ui.resultValue.textContent=gained;
     ui.eyebrow.textContent='行動力を取得';ui.title.textContent=`+${gained}`;
     ui.description.textContent=`元の値と合わせて行動力 ${energy}。1秒後に戦闘を再開します。`;
