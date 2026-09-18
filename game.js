@@ -2,7 +2,7 @@
   'use strict';
   const $=id=>document.getElementById(id);
   const canvas=$('field'),ctx=canvas.getContext('2d');
-  const ui={overlay:$('overlay'),panel:$('panel'),title:$('title'),eyebrow:$('eyebrow'),description:$('description'),resultValue:$('resultValue'),hourHand:$('hourHand'),minuteHand:$('minuteHand'),stop:$('stop'),debug:$('debug'),sub:$('sub'),score:$('score'),elapsedTime:$('elapsedTime'),energyValue:$('energyValue'),energyFill:$('energyFill'),grayDamageFill:$('grayDamageFill'),energyBar:document.querySelector('.energy-bar'),attackCount:$('attackCount'),clockCount:$('clockCount'),clockButton:$('clockButton'),clockStock:$('clockStock'),attack:$('attack'),pauseButton:$('pauseButton'),pauseScreen:$('pauseScreen'),resumeButton:$('resumeButton')};
+  const ui={overlay:$('overlay'),panel:$('panel'),title:$('title'),eyebrow:$('eyebrow'),description:$('description'),resultValue:$('resultValue'),hourHand:$('hourHand'),minuteHand:$('minuteHand'),stop:$('stop'),debug:$('debug'),sub:$('sub'),score:$('score'),roundNumber:$('roundNumber'),roundTarget:$('roundTarget'),roundTime:$('roundTime'),elapsedTime:$('elapsedTime'),energyValue:$('energyValue'),energyFill:$('energyFill'),grayDamageFill:$('grayDamageFill'),energyBar:document.querySelector('.energy-bar'),attackCount:$('attackCount'),clockCount:$('clockCount'),clockButton:$('clockButton'),clockStock:$('clockStock'),buttonHourglass:$('buttonHourglass'),previewHourglass:$('previewHourglass'),previewSandCount:$('previewSandCount'),attack:$('attack'),pauseButton:$('pauseButton'),pauseScreen:$('pauseScreen'),resumeButton:$('resumeButton')};
   const player={x:0,y:0,r:14,angle:-Math.PI/2};
   // 上から時計回り: 背面、背面右、右、正面右、正面、正面左、左、背面左。
   const spriteBounds=[[386,362,850,928],[396,376,846,930],[432,356,812,956],[396,344,836,952],[386,350,866,946],[374,340,862,916],[394,344,828,926],[396,324,828,922]];
@@ -53,7 +53,7 @@
   const keys=new Set();
   let w=0,h=0,dpr=1,last=performance.now(),clockOrigin=last-61/1440*3000;
   let mode='select',selectionReason='start',selectionIcons=0,transitionTimer=null;
-  let energy=0,moveProgress=0,unlocked=0,score=0,swordCount=0,elapsed=0,purpleSpawned=false,spawnTimer=0,invincible=0,damageFlash=0,grayHits=0,entryGray=0,lowEnergyGray=false,swing=0,spin=0,swingAngle=0,shake=0;
+  let energy=0,moveProgress=0,unlocked=0,score=0,round=1,roundKills=0,roundSpawned=0,roundElapsed=0,swordCount=0,elapsed=0,purpleSpawned=false,spawnTimer=0,invincible=0,damageFlash=0,grayHits=0,entryGray=0,lowEnergyGray=false,swing=0,spin=0,swingAngle=0,shake=0;
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
   const MOVE_DISTANCE_PER_ENERGY=16;
   function attackDamage(count){
@@ -104,10 +104,18 @@
     face.insertBefore(label,ui.hourHand);
   }
   const stockSlots=[];
+  const hourglassSvg=()=>`<svg class="hourglass-svg" viewBox="0 0 32 32" aria-hidden="true"><path d="M7 2h18M7 30h18M9 3v4c0 4 7 7 7 9s-7 5-7 9v4M23 3v4c0 4-7 7-7 9s7 5 7 9v4"/>${Array.from({length:10},(_,i)=>`<rect class="sand-step" x="${10+i*.5}" y="${26-i}" width="${12-i}" height=".8"/>`).join('')}</svg>`;
+  ui.buttonHourglass.innerHTML=hourglassSvg();
+  ui.previewHourglass.innerHTML=hourglassSvg();
   for(let i=0;i<10;i++){
     const slot=document.createElement('span');slot.className='stock-slot';
-    slot.innerHTML='<svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="12"/><path d="M16 9v7l5 3"/></svg><svg class="lock-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 7V5a4 4 0 0 1 8 0v2h1v8H3V7h1zm2 0h4V5a2 2 0 0 0-4 0v2z"/></svg>';
+    slot.innerHTML='<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M12 3h8v5l3 3v16c0 2-2 3-4 3h-6c-2 0-4-1-4-3V11l3-3z"/><path d="M11 8h10"/><path class="bottle-sand" d="M11 21h10v6H11z"/></svg>';
     ui.clockStock.appendChild(slot);stockSlots.push(slot);
+  }
+  function showSand(steps){
+    for(const glass of [ui.buttonHourglass,ui.previewHourglass])
+      glass.querySelectorAll('.sand-step').forEach((step,i)=>step.classList.toggle('filled',i<steps));
+    ui.previewSandCount.textContent=`砂のビン ${steps}/10`;
   }
 
   function updateClock(now){
@@ -116,7 +124,11 @@
     ui.minuteHand.style.transform=`rotate(${-phase*360}deg)`;
   }
   function setHud(){
-    ui.score.textContent=score;
+    ui.score.textContent=roundKills;
+    ui.roundNumber.textContent=round;
+    ui.roundTarget.textContent=round*10;
+    const secondsLeft=Math.ceil(Math.max(0,60-roundElapsed));
+    ui.roundTime.textContent=`${Math.floor(secondsLeft/60)}:${String(secondsLeft%60).padStart(2,'0')}`;
     ui.energyValue.textContent=energy;
     ui.energyFill.style.width=`${Math.min(100,energy)}%`;
     ui.grayDamageFill.style.width=energy===0?`${grayHits/3*100}%`:'0%';
@@ -125,6 +137,7 @@
     ui.energyBar.setAttribute('aria-valuetext',energy===0&&unlocked>0?`行動力0、灰色状態での被弾 ${grayHits} / 3`:`行動力 ${energy}`);
     ui.attackCount.textContent=swordCount;
     ui.clockCount.textContent=unlocked;
+    showSand(mode==='select'&&selectionReason==='refill'?selectionIcons:unlocked);
     ui.clockButton.disabled=mode!=='play'||unlocked===0;
     ui.pauseButton.disabled=mode!=='play';
     ui.clockButton.classList.toggle('ready',mode==='play'&&unlocked>0);
@@ -133,7 +146,7 @@
     ui.energyBar.classList.toggle('hit',damageFlash>0);
     for(let i=0;i<stockSlots.length;i++){
       stockSlots[i].classList.toggle('unlocked',i<unlocked);
-      stockSlots[i].title=`${i+1}: ${i<unlocked?'解錠済み':'施錠中'}`;
+      stockSlots[i].title=`砂のビン ${i+1}: ${i<unlocked?'砂入り':'空'}`;
     }
   }
   function spendEnergy(amount){
@@ -152,7 +165,8 @@
     mode='select';selectionReason=initial?'start':'refill';selectionIcons=icons;drag.pointer=null;
     clockOrigin=performance.now()-(initial?61/1440*3000:0);
     ui.overlay.classList.remove('hidden');
-    ui.panel.classList.remove('gameover','paused','confirmed');ui.panel.classList.add('selecting');
+    ui.panel.classList.remove('gameover','paused','confirmed','refill');ui.panel.classList.add('selecting');
+    ui.panel.classList.toggle('refill',!initial);
     ui.eyebrow.textContent='3秒で一周する時計';
     ui.title.textContent=initial?'時を止めて、戦え。':'次の光を決めよう';
     ui.description.textContent='';
@@ -163,7 +177,7 @@
     if(mode==='gameover'){restart();return}
     if(mode!=='select')return;
     updateClock(performance.now());
-    const gained=debug?100:selectionReason==='start'?30+Math.floor(Math.random()*31):Math.min(100,selectionIcons*10);
+    const gained=debug||selectionReason==='start'?100:Math.min(100,selectionIcons*10);
     energy+=gained;moveProgress=0;grayHits=0;lowEnergyGray=false;
     mode='confirmed';ui.panel.classList.remove('selecting');ui.panel.classList.add('confirmed');
     ui.resultValue.textContent=gained;
@@ -189,18 +203,18 @@
     mode='play';ui.pauseScreen.classList.add('hidden');last=performance.now();setHud();
   });
   function restart(){
-    clearTimeout(transitionTimer);energy=0;moveProgress=0;unlocked=0;score=0;swordCount=0;elapsed=0;purpleSpawned=false;damageFlash=0;grayHits=0;lowEnergyGray=false;
+    clearTimeout(transitionTimer);energy=0;moveProgress=0;unlocked=0;score=0;round=1;roundKills=0;roundSpawned=0;roundElapsed=0;swordCount=0;elapsed=0;purpleSpawned=false;damageFlash=0;grayHits=0;lowEnergyGray=false;
     ui.elapsedTime.textContent='0:00';
     ui.pauseScreen.classList.add('hidden');
     enemies.length=0;particles.length=0;
     player.x=w/2;player.y=(minY()+maxY())/2;invincible=0;entryGray=0;swing=0;spin=0;
     startSelection(true);
   }
-  function gameOver(){
+  function gameOver(reason='energy'){
     clearTimeout(transitionTimer);cancelCharge();mode='gameover';drag.pointer=null;
     ui.overlay.classList.remove('hidden');ui.panel.classList.remove('selecting','paused','confirmed');ui.panel.classList.add('gameover');
     ui.eyebrow.textContent='GAME OVER';ui.title.textContent=`討伐 ${score} 体`;
-    ui.description.textContent=grayHits>=3?'灰色状態で3回攻撃を受けました。もう一度挑戦しよう。':'行動力がなくなりました。もう一度挑戦しよう。';
+    ui.description.textContent=reason==='time'?`ラウンド ${round} の制限時間が終了しました。`:grayHits>=3?'灰色状態で3回攻撃を受けました。もう一度挑戦しよう。':'行動力がなくなりました。もう一度挑戦しよう。';
     ui.stop.disabled=false;ui.stop.textContent='もう一度遊ぶ';ui.sub.textContent='';setHud();
   }
   function checkExhausted(){
@@ -285,8 +299,12 @@
       if(len>=player.r+enemy.r+51||(!fullCircle&&len>=25&&(dx*ax+dy*ay)/len<=-.2))continue;
       enemy.hp-=damage;enemy.hit=.18;burst(enemy.x,enemy.y,enemy.color,6);
       if(enemy.hp>0)continue;
-      score++;swordCount++;unlocked=Math.min(10,unlocked+1);burst(enemy.x,enemy.y,enemy.color,11);
+      score++;roundKills++;swordCount++;unlocked=Math.min(10,unlocked+1);burst(enemy.x,enemy.y,enemy.color,11);
       enemies.splice(i,1);
+    }
+    if(roundKills>=round*10){
+      round++;roundKills=0;roundSpawned=0;roundElapsed=0;spawnTimer=0;
+      enemies.length=0;
     }
   }
   function attack(){
@@ -304,6 +322,7 @@
     setHud();checkExhausted();
   }
   function spawn(forcePurple=false){
+    if(roundSpawned>=round*10)return;
     const purple=forcePurple||elapsed>=60&&Math.random()<.15;
     const hp=purple?10:1+Math.floor(Math.random()*3),edge=Math.floor(Math.random()*4),r=purple?22:12+hp*2;
     let x,y;
@@ -312,6 +331,7 @@
     else if(edge===2){x=Math.random()*w;y=minY()-r}
     else{x=Math.random()*w;y=maxY()+r}
     enemies.push({x,y,r,hp,hpMax:hp,color:purple?'#b679e5':['#66c8ee','#74d590','#e97a83'][hp-1],speed:21+Math.random()*12+score*.3,hit:0,wobble:Math.random()*6.28});
+    roundSpawned++;
   }
   function update(dt){
     if(mode==='entry'){
@@ -322,6 +342,10 @@
     if(mode!=='play')return;
     const previousSecond=Math.floor(elapsed);
     elapsed+=dt;
+    const previousRoundSecond=Math.ceil(60-roundElapsed);
+    roundElapsed+=dt;
+    if(roundElapsed>=60){roundElapsed=60;gameOver('time');return}
+    if(Math.ceil(60-roundElapsed)!==previousRoundSecond)setHud();
     if(Math.floor(elapsed)!==previousSecond){
       const seconds=Math.floor(elapsed);
       ui.elapsedTime.textContent=`${Math.floor(seconds/60)}:${String(seconds%60).padStart(2,'0')}`;
