@@ -42,6 +42,7 @@
   let mode='select',selectionReason='start',selectionIcons=0,transitionTimer=null;
   let energy=0,moveProgress=0,unlocked=0,score=0,spawnTimer=0,invincible=0,entryGray=0,lowEnergyGray=false,swing=0,spin=0,swingAngle=0,shake=0;
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+  const MOVE_DISTANCE_PER_ENERGY=16;
   function attackDamage(count){
     if(count===111)return 20;
     return count>=11&&count<=99&&count%11===0?5:1;
@@ -213,12 +214,12 @@
     const length=Math.hypot(dx,dy);if(length<.1)return;
     player.angle=Math.atan2(dy,dx);
     if(energy<=0)return;
-    const scale=Math.min(1,(energy*8-moveProgress)/length),oldX=player.x,oldY=player.y;
+    const scale=Math.min(1,(energy*MOVE_DISTANCE_PER_ENERGY-moveProgress)/length),oldX=player.x,oldY=player.y;
     player.x=clamp(player.x+dx*scale,player.r+4,w-player.r-4);
     player.y=clamp(player.y+dy*scale,minY()+player.r,maxY()-player.r);
     moveProgress+=Math.hypot(player.x-oldX,player.y-oldY);
-    const spent=Math.floor((moveProgress+1e-6)/8);
-    if(spent>0){moveProgress=Math.max(0,moveProgress-spent*8);spendEnergy(spent,true)}
+    const spent=Math.floor((moveProgress+1e-6)/MOVE_DISTANCE_PER_ENERGY);
+    if(spent>0){moveProgress=Math.max(0,moveProgress-spent*MOVE_DISTANCE_PER_ENERGY);spendEnergy(spent,true)}
     checkExhausted();
   }
   function aimAt(clientX,clientY){
