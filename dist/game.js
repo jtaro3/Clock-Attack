@@ -40,12 +40,12 @@
   const keys=new Set();
   let w=0,h=0,dpr=1,last=performance.now(),clockOrigin=last-61/1440*3000;
   let mode='select',selectionReason='start',selectionIcons=0,transitionTimer=null;
-  let energy=0,moveProgress=0,unlocked=0,score=0,spawnTimer=0,invincible=0,entryGray=0,lowEnergyGray=false,swing=0,spin=0,swingAngle=0,shake=0;
+  let energy=0,moveProgress=0,unlocked=0,score=0,swordCount=0,spawnTimer=0,invincible=0,damageFlash=0,entryGray=0,lowEnergyGray=false,swing=0,spin=0,swingAngle=0,shake=0;
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
   const MOVE_DISTANCE_PER_ENERGY=16;
   function attackDamage(count){
-    if(count===111)return 20;
-    return count>=11&&count<=99&&count%11===0?5:1;
+    if(count>0&&count%100===0)return 20;
+    return count>0&&count%50===0?5:1;
   }
   const minY=()=>Math.max(92/VIEW_SCALE,h*.12),maxY=()=>Math.max(minY()+60,h-130/VIEW_SCALE);
 
@@ -99,8 +99,8 @@
 
   function updateClock(now){
     const phase=((now-clockOrigin)%3000+3000)%3000/3000;
-    ui.hourHand.style.transform=`rotate(${phase*720}deg)`;
-    ui.minuteHand.style.transform=`rotate(${phase*360}deg)`;
+    ui.hourHand.style.transform=`rotate(${-phase*720}deg)`;
+    ui.minuteHand.style.transform=`rotate(${-phase*360}deg)`;
   }
   function setHud(){
     ui.score.textContent=score;
@@ -108,25 +108,22 @@
     ui.energyFill.style.width=`${Math.min(100,energy)}%`;
     ui.energyBar.setAttribute('aria-valuenow',String(energy));
     ui.energyBar.setAttribute('aria-valuemax',String(Math.max(100,energy)));
-    ui.attackCount.textContent=score;
+    ui.attackCount.textContent=swordCount;
     ui.clockCount.textContent=unlocked;
     ui.clockButton.disabled=mode!=='play'||unlocked===0;
     ui.pauseButton.disabled=mode!=='play';
     ui.clockButton.classList.toggle('ready',mode==='play'&&unlocked>0);
     ui.attack.disabled=mode!=='play'||energy<=0;
     ui.attack.classList.toggle('available',mode==='play'&&energy>0);
+    ui.energyBar.classList.toggle('hit',damageFlash>0);
     for(let i=0;i<stockSlots.length;i++){
       stockSlots[i].classList.toggle('unlocked',i<unlocked);
       stockSlots[i].title=`${i+1}: ${i<unlocked?'解錠済み':'施錠中'}`;
     }
   }
-  function spendEnergy(amount,byMovement=false){
+  function spendEnergy(amount){
     const before=energy;
     energy=Math.max(0,energy-amount);
-    if(byMovement){
-      const marker=Math.floor((before-1)/100)*100;
-      if(marker>=100&&energy<=marker){invincible=Math.max(invincible,2);burst(player.x,player.y,'#fff6c9',12)}
-    }
     if(before>10&&energy<=10)lowEnergyGray=true;
     setHud();
   }
@@ -142,9 +139,9 @@
     ui.panel.classList.remove('gameover','paused','confirmed');ui.panel.classList.add('selecting');
     ui.eyebrow.textContent='3秒で一周する時計';
     ui.title.textContent=initial?'時を止めて、戦え。':'次の光を決めよう';
-    ui.description.textContent=initial?'最初の行動力は30～60の中から決まります。':`解錠した時計 ${icons} 個で、行動力を ${Math.min(100,icons*10)} 加算します。`;
+    ui.description.textContent='';
     ui.resultValue.textContent='';ui.stop.disabled=false;ui.stop.textContent='光を';ui.debug.disabled=false;
-    ui.sub.textContent='時計は止めるまで3秒ごとに回り続けます';setHud();
+    ui.sub.textContent='';setHud();
   }
   function stopClock(debug=false){
     if(mode==='gameover'){restart();return}
@@ -159,7 +156,7 @@
     ui.stop.disabled=true;ui.debug.disabled=true;ui.stop.textContent='まもなく開始';ui.sub.textContent='';setHud();
     transitionTimer=setTimeout(()=>{
       if(mode!=='confirmed')return;
-      mode=selectionReason==='start'?'entry':'play';entryGray=selectionReason==='start'?.5:0;
+      mode=selectionReason==='start'?'entry':'play';entryGray=selectionReason==='start'?2:0;
       ui.overlay.classList.add('hidden');spawnTimer=0;transitionTimer=null;last=performance.now();setHud();
     },1000);
   }
@@ -175,7 +172,7 @@
     mode='play';ui.pauseScreen.classList.add('hidden');last=performance.now();setHud();
   });
   function restart(){
-    clearTimeout(transitionTimer);energy=0;moveProgress=0;unlocked=0;score=0;lowEnergyGray=false;
+    clearTimeout(transitionTimer);energy=0;moveProgress=0;unlocked=0;score=0;swordCount=0;damageFlash=0;lowEnergyGray=false;
     ui.pauseScreen.classList.add('hidden');
     enemies.length=0;particles.length=0;
     player.x=w/2;player.y=(minY()+maxY())/2;invincible=0;entryGray=0;swing=0;spin=0;
@@ -189,15 +186,8 @@
     ui.stop.disabled=false;ui.stop.textContent='もう一度遊ぶ';ui.sub.textContent='';setHud();
   }
   function checkExhausted(){
-    if(mode!=='play'||energy>0||swing>0||spin>0)return;
-    cancelCharge();
-    if(unlocked===0){gameOver();return}
-    const icons=unlocked;unlocked=0;
-    mode='exhausted';drag.pointer=null;ui.overlay.classList.remove('hidden');
-    ui.panel.classList.remove('selecting','confirmed','gameover');ui.panel.classList.add('paused');
-    ui.eyebrow.textContent='戦闘を一時停止';ui.title.textContent='行動量を使い切りました';
-    ui.description.textContent='時計を準備しています';ui.sub.textContent='';setHud();
-    transitionTimer=setTimeout(()=>{if(mode==='exhausted')startSelection(false,icons)},650);
+    if(mode!=='play'||energy>0||swing>0||spin>0||unlocked>0)return;
+    gameOver();
   }
   function burst(x,y,color,count){
     for(let i=0;i<count;i++){
@@ -219,7 +209,7 @@
     player.y=clamp(player.y+dy*scale,minY()+player.r,maxY()-player.r);
     moveProgress+=Math.hypot(player.x-oldX,player.y-oldY);
     const spent=Math.floor((moveProgress+1e-6)/MOVE_DISTANCE_PER_ENERGY);
-    if(spent>0){moveProgress=Math.max(0,moveProgress-spent*MOVE_DISTANCE_PER_ENERGY);spendEnergy(spent,true)}
+    if(spent>0){moveProgress=Math.max(0,moveProgress-spent*MOVE_DISTANCE_PER_ENERGY);spendEnergy(spent)}
     checkExhausted();
   }
   function aimAt(clientX,clientY){
@@ -248,10 +238,10 @@
     if(mode!=='play'||energy<=0)return;
     e.preventDefault();ui.attack.setPointerCapture(e.pointerId);
     cancelCharge();charge.pointer=e.pointerId;charge.start=performance.now();
-    if(energy>=5){
+    if(swordCount>=10){
       ui.attack.classList.add('charging');
       charge.timer=setTimeout(()=>{
-        if(charge.pointer!==e.pointerId||mode!=='play'||energy<5)return;
+        if(charge.pointer!==e.pointerId||mode!=='play'||energy<=0||swordCount<10)return;
         spinAttack();cancelCharge();
       },2000);
     }
@@ -277,21 +267,21 @@
       if(len>=player.r+enemy.r+51||(!fullCircle&&len>=25&&(dx*ax+dy*ay)/len<=-.2))continue;
       enemy.hp-=damage;enemy.hit=.18;burst(enemy.x,enemy.y,enemy.color,6);
       if(enemy.hp>0)continue;
-      score++;unlocked=Math.min(10,unlocked+1);burst(enemy.x,enemy.y,enemy.color,11);
+      score++;swordCount++;unlocked=Math.min(10,unlocked+1);burst(enemy.x,enemy.y,enemy.color,11);
       enemies.splice(i,1);
     }
   }
   function attack(){
     if(mode!=='play'||energy<=0||swing>0||spin>0)return;
-    const damage=attackDamage(score);
+    const damage=attackDamage(swordCount);
     spendEnergy(1);swing=.27;swingAngle=player.angle;
     hitEnemies(damage,false);
     setHud();checkExhausted();
   }
   function spinAttack(){
-    if(mode!=='play'||energy<5||swing>0||spin>0)return;
-    const damage=Math.max(5,attackDamage(score));
-    spendEnergy(5);spin=.55;swingAngle=player.angle;
+    if(mode!=='play'||energy<=0||swordCount<10||swing>0||spin>0)return;
+    const damage=Math.max(5,attackDamage(swordCount));
+    swordCount-=10;spin=.55;swingAngle=player.angle;
     hitEnemies(damage,true);
     setHud();checkExhausted();
   }
@@ -320,13 +310,14 @@
     if(length){movePlayer(dx/length*124*dt,dy/length*124*dt);if(mode!=='play')return}
     spawnTimer+=dt;
     if(spawnTimer>Math.max(.65,1.8-score*.02)){spawnTimer=0;spawn()}
-    invincible=Math.max(0,invincible-dt);swing=Math.max(0,swing-dt);spin=Math.max(0,spin-dt);shake=Math.max(0,shake-dt);
+    invincible=Math.max(0,invincible-dt);damageFlash=Math.max(0,damageFlash-dt);ui.energyBar.classList.toggle('hit',damageFlash>0);
+    swing=Math.max(0,swing-dt);spin=Math.max(0,spin-dt);shake=Math.max(0,shake-dt);
     for(const enemy of enemies){
       enemy.wobble+=dt*5;enemy.hit=Math.max(0,enemy.hit-dt);
       const ex=player.x-enemy.x,ey=player.y-enemy.y,len=Math.hypot(ex,ey)||1;
       enemy.x+=ex/len*enemy.speed*dt;enemy.y+=ey/len*enemy.speed*dt;
       if(len<player.r+enemy.r-3&&invincible<=0){
-        spendEnergy(1);invincible=1.15;shake=.2;burst(player.x,player.y,'#fff4dc',9);
+        damageFlash=.5;spendEnergy(1);invincible=1.15;shake=.2;burst(player.x,player.y,'#fff4dc',9);
       }
     }
     for(let i=particles.length-1;i>=0;i--){
@@ -376,7 +367,7 @@
     if(sprite){
       const height=56,width=height*sprite.width/sprite.height;
       ctx.imageSmoothingEnabled=false;
-      ctx.filter=entryGray>0?'grayscale(1)':lowEnergyGray?'grayscale(.5)':'none';
+      ctx.filter=entryGray>0||energy===0&&unlocked>0?'grayscale(1)':lowEnergyGray?'grayscale(.5)':'none';
       ctx.drawImage(sprite,player.x-width/2,player.y+21-height,width,height);
       ctx.filter='none';
       ctx.imageSmoothingEnabled=true;
@@ -385,7 +376,7 @@
       ctx.fillStyle='#566d75';ctx.beginPath();ctx.arc(player.x,player.y,player.r-5,0,7);ctx.fill();
     }
     ctx.globalAlpha=1;
-    const auraDamage=attackDamage(score);
+    const auraDamage=attackDamage(swordCount);
     if(auraDamage>1){
       const color=auraDamage===20?'#ff554d':'#f7fbff';
       ctx.save();ctx.strokeStyle=color;ctx.lineWidth=auraDamage===20?4:3;
