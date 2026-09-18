@@ -7,9 +7,10 @@
   const map=tools.load();
   const sheet=new Image();
   const buttons=[];
-  const levels=[.5,.75,1,1.25,1.5];
-  let zoomIndex=innerWidth>=tools.width*tools.tileSize+260?2:innerWidth>=tools.width*tools.tileSize*.75+32?1:0;
-  let selected=0,pan=false,drag=null,changed=false;
+  const levels=[.4,.5,.75,1,1.25,1.5];
+  const availableWidth=innerWidth-32;
+  let zoomIndex=availableWidth>=tools.width*tools.tileSize?3:availableWidth>=tools.width*tools.tileSize*.75?2:availableWidth>=tools.width*tools.tileSize*.5?1:0;
+  let selected=0,pan=matchMedia('(pointer:coarse)').matches||innerWidth<=760,drag=null,changed=false;
 
   function status(text){message.textContent=text}
   function setZoom(index){
@@ -40,11 +41,16 @@
       tools.drawTile(previewCtx,sheet,id,0,0);
     }
   }
+  function updateToolUI(){
+    buttons.forEach((button,index)=>button.classList.toggle('selected',!pan&&index===selected));
+    $('pan').classList.toggle('selected',pan);
+    $('pan').setAttribute('aria-pressed',String(pan));
+    canvas.style.cursor=pan?'grab':'crosshair';
+    canvas.style.touchAction=pan?'pan-y':'none';
+  }
   function setTool(id){
-    selected=id;pan=false;
-    buttons.forEach((button,index)=>button.classList.toggle('selected',index===id));
-    $('pan').classList.remove('selected');
-    canvas.style.cursor='crosshair';
+    selected=id;pan=false;updateToolUI();
+    status(`${tools.names[id]}を選択しました。マップをタップして塗れます。`);
   }
   function save(){
     if(tools.save(map)){changed=false;status('保存しました。ゲームに戻ると反映されます。')}
@@ -67,7 +73,7 @@
 
   tools.names.forEach((name,id)=>{
     const button=document.createElement('button');
-    button.className='tile-button'+(id===0?' selected':'');
+    button.className='tile-button';
     button.type='button';button.setAttribute('aria-label',`${name}を選択`);
     const preview=document.createElement('canvas');preview.width=32;preview.height=32;
     const label=document.createElement('span');label.textContent=name;
@@ -75,20 +81,22 @@
     button.addEventListener('click',()=>setTool(id));
     $('palette').append(button);buttons.push(button);
   });
-  sheet.onload=()=>{drawPalette();draw();status('チップを選んで塗ってください。')};
+  sheet.onload=()=>{drawPalette();draw();status(pan?'移動中です。塗るときは下のチップを選んでください。':'チップを選んで塗ってください。')};
   sheet.onerror=()=>status('マップチップ画像を読み込めませんでした。');
   sheet.src=tools.tileSheet;
   setZoom(zoomIndex);
+  updateToolUI();
   draw();
 
   canvas.addEventListener('pointerdown',event=>{
-    event.preventDefault();canvas.setPointerCapture(event.pointerId);
+    if(!pan)event.preventDefault();
+    canvas.setPointerCapture(event.pointerId);
     drag={id:event.pointerId,x:event.clientX,y:event.clientY,left:viewport.scrollLeft,top:viewport.scrollTop};
     if(!pan)paint(event);
   });
   canvas.addEventListener('pointermove',event=>{
     if(!drag||drag.id!==event.pointerId)return;
-    event.preventDefault();
+    if(!pan)event.preventDefault();
     if(pan){viewport.scrollLeft=drag.left+drag.x-event.clientX;viewport.scrollTop=drag.top+drag.y-event.clientY}
     else paint(event);
   });
@@ -100,10 +108,8 @@
   canvas.addEventListener('pointercancel',endDrag);
   canvas.addEventListener('lostpointercapture',endDrag);
   $('pan').addEventListener('click',()=>{
-    pan=!pan;$('pan').classList.toggle('selected',pan);
-    canvas.style.cursor=pan?'grab':'crosshair';
-    if(pan)buttons.forEach(button=>button.classList.remove('selected'));
-    else buttons[selected].classList.add('selected');
+    pan=!pan;updateToolUI();
+    status(pan?'移動中です。塗るときは下のチップを選んでください。':'チップを選んで塗ってください。');
   });
   $('zoomOut').addEventListener('click',()=>setZoom(zoomIndex-1));
   $('zoomIn').addEventListener('click',()=>setZoom(zoomIndex+1));
