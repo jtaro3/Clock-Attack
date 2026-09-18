@@ -28,6 +28,12 @@
   });
   const swordImage=new Image();
   swordImage.src='design/sword.svg';
+  const VIEW_SCALE=.8;
+  const mapTools=window.ClockAttackMap,map=mapTools.load();
+  const tileImage=new Image();
+  let terrainCanvas=null;
+  tileImage.onload=()=>renderTerrain();
+  tileImage.src=mapTools.tileSheet;
   const enemies=[],particles=[],clocks=[],storedClocks=[];
   const clockTypes={blue:{label:'青い時計',color:'#66c8ee',effect:'移動距離が10倍'},green:{label:'緑の時計',color:'#74d590',effect:'攻撃回数が5倍'},red:{label:'赤い時計',color:'#e97a83',effect:'HP全回復・5秒無敵'}};
   const drag={pointer:null,x:0,y:0};
@@ -37,15 +43,31 @@
   let mode='select',selectionReason='start',selectedClockType=null,transitionTimer=null;
   let attacks=0,distance=0,health=3,score=0,spawnTimer=0,invincible=0,swing=0,spin=0,swingAngle=0,shake=0;
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
-  const minY=()=>Math.max(92,h*.12),maxY=()=>Math.max(minY()+60,h-130);
+  const minY=()=>Math.max(92/VIEW_SCALE,h*.12),maxY=()=>Math.max(minY()+60,h-130/VIEW_SCALE);
+
+  function renderTerrain(){
+    if(!w||!h||!tileImage.naturalWidth)return;
+    const terrain=document.createElement('canvas');
+    terrain.width=Math.ceil(w);terrain.height=Math.ceil(h);
+    const ground=terrain.getContext('2d');
+    ground.imageSmoothingEnabled=false;
+    for(let y=0;y<h;y+=mapTools.tileSize)for(let x=0;x<w;x+=mapTools.tileSize)
+      mapTools.drawTile(ground,tileImage,0,x,y);
+    const left=Math.round((w-map.width*mapTools.tileSize)/2);
+    const top=Math.round((h-map.height*mapTools.tileSize)/2);
+    for(let y=0;y<map.height;y++)for(let x=0;x<map.width;x++)
+      mapTools.drawTile(ground,tileImage,map.tiles[y*map.width+x],left+x*mapTools.tileSize,top+y*mapTools.tileSize);
+    terrainCanvas=terrain;
+  }
 
   function resize(){
     const oldW=w,oldH=h,app=$('app');
-    w=app.clientWidth;h=app.clientHeight;dpr=Math.min(devicePixelRatio||1,2);
-    canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);
-    ctx.setTransform(dpr,0,0,dpr,0,0);
+    w=app.clientWidth/VIEW_SCALE;h=app.clientHeight/VIEW_SCALE;dpr=Math.min(devicePixelRatio||1,2);
+    canvas.width=Math.round(app.clientWidth*dpr);canvas.height=Math.round(app.clientHeight*dpr);
+    ctx.setTransform(dpr*VIEW_SCALE,0,0,dpr*VIEW_SCALE,0,0);
     if(!oldW){player.x=w/2;player.y=(minY()+maxY())/2}
     else{player.x=clamp(player.x*w/oldW,18,w-18);player.y=clamp(player.y*h/oldH,minY()+18,maxY()-18)}
+    renderTerrain();
   }
   addEventListener('resize',resize);
   window.visualViewport?.addEventListener('resize',resize);
@@ -195,7 +217,7 @@
   }
   function aimAt(clientX,clientY){
     const rect=canvas.getBoundingClientRect();
-    const dx=clientX-rect.left-player.x,dy=clientY-rect.top-player.y;
+    const dx=(clientX-rect.left)/VIEW_SCALE-player.x,dy=(clientY-rect.top)/VIEW_SCALE-player.y;
     if(Math.hypot(dx,dy)>8)player.angle=Math.atan2(dy,dx);
   }
   canvas.addEventListener('pointerdown',e=>{
@@ -207,7 +229,7 @@
     if(drag.pointer!==e.pointerId)return;
     e.preventDefault();const dx=e.clientX-drag.x,dy=e.clientY-drag.y;
     drag.x=e.clientX;drag.y=e.clientY;
-    if(distance>0)movePlayer(dx*.8,dy*.8);
+    if(distance>0)movePlayer(dx*.8/VIEW_SCALE,dy*.8/VIEW_SCALE);
     else aimAt(e.clientX,e.clientY);
   });
   function endDrag(e){if(drag.pointer===e.pointerId)drag.pointer=null}
@@ -315,11 +337,8 @@
   function draw(now){
     ctx.clearRect(0,0,w,h);ctx.save();
     if(shake>0)ctx.translate((Math.random()-.5)*5,(Math.random()-.5)*5);
-    const bg=ctx.createLinearGradient(0,0,w,h);
-    bg.addColorStop(0,'#253f46');bg.addColorStop(1,'#152b38');
-    ctx.fillStyle=bg;ctx.fillRect(0,0,w,h);ctx.strokeStyle='#d6dfcf10';ctx.lineWidth=1;
-    for(let x=0;x<w;x+=32){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke()}
-    for(let y=0;y<h;y+=32){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke()}
+    if(terrainCanvas){ctx.imageSmoothingEnabled=false;ctx.drawImage(terrainCanvas,0,0);ctx.imageSmoothingEnabled=true}
+    else{ctx.fillStyle='#447a45';ctx.fillRect(0,0,w,h)}
     ctx.strokeStyle='#e7d49e55';ctx.lineWidth=2;ctx.strokeRect(8,minY(),w-16,maxY()-minY());
     for(const item of clocks){
       const y=item.y+Math.sin(now/250+item.phase)*3;
