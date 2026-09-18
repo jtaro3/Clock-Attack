@@ -2,7 +2,7 @@
   'use strict';
   const $=id=>document.getElementById(id);
   const canvas=$('field'),ctx=canvas.getContext('2d');
-  const ui={overlay:$('overlay'),panel:$('panel'),title:$('title'),eyebrow:$('eyebrow'),description:$('description'),readout:$('readout'),hourHand:$('hourHand'),minuteHand:$('minuteHand'),previewAttack:$('previewAttack'),previewMove:$('previewMove'),stop:$('stop'),debug:$('debug'),sub:$('sub'),score:$('score'),health:$('health'),attackCount:$('attackCount'),clockCount:$('clockCount'),clockButton:$('clockButton'),clockStock:$('clockStock'),attack:$('attack')};
+  const ui={overlay:$('overlay'),panel:$('panel'),title:$('title'),eyebrow:$('eyebrow'),description:$('description'),readout:$('readout'),hourHand:$('hourHand'),minuteHand:$('minuteHand'),previewAttack:$('previewAttack'),previewMove:$('previewMove'),stop:$('stop'),debug:$('debug'),sub:$('sub'),score:$('score'),health:$('health'),attackCount:$('attackCount'),clockCount:$('clockCount'),clockButton:$('clockButton'),clockStock:$('clockStock'),attack:$('attack'),pauseButton:$('pauseButton'),pauseScreen:$('pauseScreen'),resumeButton:$('resumeButton')};
   const player={x:0,y:0,r:14,angle:-Math.PI/2};
   // 上から時計回り: 背面、背面右、右、正面右、正面、正面左、左、背面左。
   const spriteBounds=[[386,362,850,928],[396,376,846,930],[432,356,812,956],[396,344,836,952],[386,350,866,946],[374,340,862,916],[394,344,828,926],[396,324,828,922]];
@@ -111,6 +111,7 @@
     ui.attackCount.textContent=attacks;
     ui.clockCount.textContent=storedClocks.length;
     ui.clockButton.disabled=mode!=='play'||storedClocks.length===0;
+    ui.pauseButton.disabled=mode!=='play';
     ui.clockButton.dataset.clock=storedClocks[0]||'';
     ui.clockButton.classList.toggle('ready',mode==='play'&&storedClocks.length>0);
     ui.attack.disabled=mode!=='play'||attacks<=0;
@@ -162,8 +163,18 @@
   }
   ui.stop.addEventListener('click',()=>stopClock());
   ui.debug.addEventListener('click',()=>stopClock(true));
+  ui.pauseButton.addEventListener('click',()=>{
+    if(mode!=='play')return;
+    mode='manual-pause';drag.pointer=null;cancelCharge();
+    ui.pauseScreen.classList.remove('hidden');setHud();
+  });
+  ui.resumeButton.addEventListener('click',()=>{
+    if(mode!=='manual-pause')return;
+    mode='play';ui.pauseScreen.classList.add('hidden');last=performance.now();setHud();
+  });
   function restart(){
     clearTimeout(transitionTimer);health=3;score=0;attacks=0;distance=0;
+    ui.pauseScreen.classList.add('hidden');
     enemies.length=0;particles.length=0;clocks.length=0;storedClocks.length=0;
     player.x=w/2;player.y=(minY()+maxY())/2;invincible=0;swing=0;spin=0;
     startSelection(true);
