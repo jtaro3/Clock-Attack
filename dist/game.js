@@ -43,6 +43,14 @@
   let mode='select',selectionReason='start',selectedClockType=null,transitionTimer=null;
   let attacks=0,distance=0,health=3,score=0,spawnTimer=0,invincible=0,swing=0,spin=0,swingAngle=0,shake=0;
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+  function attackDamage(count){
+    if(count===111)return 20;
+    return count>=11&&count<=99&&count%11===0?5:1;
+  }
+  function crossedDistanceMarker(before,after){
+    const marker=Math.floor((Math.ceil(before)-1)/100)*100;
+    return marker>=100&&Math.ceil(after)<=marker;
+  }
   const minY=()=>Math.max(92/VIEW_SCALE,h*.12),maxY=()=>Math.max(minY()+60,h-130/VIEW_SCALE);
 
   function renderTerrain(){
@@ -145,12 +153,13 @@
     const t=updateClock(performance.now()),bonus=selectionReason==='bonus';
     const gainedAttacks=debug?100:bonus&&selectedClockType==='green'?t.attack*5:t.attack;
     const gainedDistance=debug?1000:bonus&&selectedClockType==='blue'?t.minute*10:t.minute;
-    attacks=debug?100:bonus?attacks+gainedAttacks:gainedAttacks;
+    const previousAttacks=attacks;
+    attacks=Math.min(150,debug?100:bonus?attacks+gainedAttacks:gainedAttacks);
     distance=debug?1000:bonus?distance+gainedDistance:gainedDistance;
     health=Math.min(10,health+1);
     if(bonus&&selectedClockType==='red'){health=10;invincible=5}
     mode='confirmed';ui.panel.classList.remove('selecting');ui.panel.classList.add('confirmed');
-    ui.previewAttack.textContent=(bonus&&!debug?'+':'')+gainedAttacks;
+    ui.previewAttack.textContent=(bonus&&!debug?'+':'')+(bonus?attacks-previousAttacks:attacks);
     ui.previewMove.textContent=(bonus&&!debug?'+':'')+gainedDistance;
     ui.eyebrow.textContent=debug?'デバッグで確定':`${t.text} で確定`;
     ui.title.textContent=debug?'攻撃100回・移動1000':bonus?clockTypes[selectedClockType].effect:'行動量が決まりました';
@@ -219,11 +228,16 @@
     const length=Math.hypot(dx,dy);if(length<.1)return;
     player.angle=Math.atan2(dy,dx);
     if(distance<=0)return;
+    const beforeDistance=distance;
     const scale=Math.min(1,distance*8/length),oldX=player.x,oldY=player.y;
     player.x=clamp(player.x+dx*scale,player.r+4,w-player.r-4);
     player.y=clamp(player.y+dy*scale,minY()+player.r,maxY()-player.r);
     distance=Math.max(0,distance-Math.hypot(player.x-oldX,player.y-oldY)/8);
     if(distance<.999)distance=0;
+    if(crossedDistanceMarker(beforeDistance,distance)){
+      invincible=Math.max(invincible,2);
+      burst(player.x,player.y,'#fff6c9',12);
+    }
     setHud();collectClocks();checkExhausted();
   }
   function aimAt(clientX,clientY){
@@ -288,14 +302,16 @@
   }
   function attack(){
     if(mode!=='play'||attacks<=0||swing>0||spin>0)return;
+    const damage=attackDamage(attacks);
     attacks--;swing=.27;swingAngle=player.angle;
-    hitEnemies(1,false);
+    hitEnemies(damage,false);
     setHud();collectClocks();checkExhausted();
   }
   function spinAttack(){
     if(mode!=='play'||attacks<10||swing>0||spin>0)return;
+    const damage=Math.max(5,attackDamage(attacks));
     attacks-=10;spin=.55;swingAngle=player.angle;
-    hitEnemies(5,true);
+    hitEnemies(damage,true);
     setHud();collectClocks();checkExhausted();
   }
   function spawn(){
@@ -391,6 +407,17 @@
       ctx.fillStyle='#566d75';ctx.beginPath();ctx.arc(player.x,player.y,player.r-5,0,7);ctx.fill();
     }
     ctx.globalAlpha=1;
+    const auraDamage=attackDamage(attacks);
+    if(auraDamage>1){
+      const color=auraDamage===20?'#ff554d':'#f7fbff';
+      ctx.save();ctx.strokeStyle=color;ctx.lineWidth=auraDamage===20?4:3;
+      ctx.shadowColor=color;ctx.shadowBlur=18+Math.sin(now/150)*4;
+      ctx.globalAlpha=.8+Math.sin(now/180)*.13;
+      ctx.beginPath();ctx.ellipse(player.x,player.y-5,26,31,0,0,Math.PI*2);ctx.stroke();
+      ctx.globalAlpha=.3;ctx.lineWidth=2;
+      ctx.beginPath();ctx.ellipse(player.x,player.y-5,31,36,0,0,Math.PI*2);ctx.stroke();
+      ctx.restore();
+    }
     if(swing>0){
       const progress=1-swing/.27;
       drawSword(swingAngle-.95+progress*1.9,49,Math.min(1,swing/.055));
