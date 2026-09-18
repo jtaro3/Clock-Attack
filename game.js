@@ -7,6 +7,7 @@
   // 上から時計回り: 背面、背面右、右、正面右、正面、正面左、左、背面左。
   const spriteBounds=[[386,362,850,928],[396,376,846,930],[432,356,812,956],[396,344,836,952],[386,350,866,946],[374,340,862,916],[394,344,828,926],[396,324,828,922]];
   const playerSprites=Array(8).fill(null);
+  const playerSpritesGray=Array(8).fill(null);
   spriteBounds.forEach(([left,top,right,bottom],i)=>{
     const image=new Image();
     image.onload=()=>{
@@ -21,7 +22,19 @@
         if(Math.max(pixels.data[p],pixels.data[p+1],pixels.data[p+2])<=2)pixels.data[p+3]=0;
       }
       spriteContext.putImageData(pixels,0,0);
+      // 灰色版を画像データから作る。スマホの Canvas filter 対応に依存しない。
+      const gray=document.createElement('canvas');gray.width=sprite.width;gray.height=sprite.height;
+      const grayContext=gray.getContext('2d');
+      const grayPixels=grayContext.createImageData(gray.width,gray.height);
+      grayPixels.data.set(pixels.data);
+      for(let p=0;p<grayPixels.data.length;p+=4){
+        if(grayPixels.data[p+3]===0)continue;
+        const shade=Math.round(grayPixels.data[p]*.2126+grayPixels.data[p+1]*.7152+grayPixels.data[p+2]*.0722);
+        grayPixels.data[p]=shade;grayPixels.data[p+1]=shade;grayPixels.data[p+2]=shade;
+      }
+      grayContext.putImageData(grayPixels,0,0);
       playerSprites[i]=sprite;
+      playerSpritesGray[i]=gray;
       image.onload=null;
     };
     image.src=`design/man${i+1}.png`;
@@ -363,17 +376,23 @@
     ctx.globalAlpha=invincible>0&&Math.floor(now/90)%2?.4:1;
     ctx.fillStyle='#111d26aa';ctx.beginPath();ctx.ellipse(player.x,player.y+14,17,6,0,0,7);ctx.fill();
     const direction=((Math.round((player.angle+Math.PI/2)/(Math.PI/4))%8)+8)%8;
-    const sprite=playerSprites[direction];
+    const sprite=playerSprites[direction],graySprite=playerSpritesGray[direction];
     if(sprite){
       const height=56,width=height*sprite.width/sprite.height;
       ctx.imageSmoothingEnabled=false;
-      ctx.filter=entryGray>0||energy===0&&unlocked>0?'grayscale(1)':lowEnergyGray?'grayscale(.5)':'none';
-      ctx.drawImage(sprite,player.x-width/2,player.y+21-height,width,height);
-      ctx.filter='none';
+      const left=player.x-width/2,top=player.y+21-height;
+      if((entryGray>0||energy===0&&unlocked>0)&&graySprite)ctx.drawImage(graySprite,left,top,width,height);
+      else{
+        ctx.drawImage(sprite,left,top,width,height);
+        if(lowEnergyGray&&graySprite){
+          const alpha=ctx.globalAlpha;ctx.globalAlpha=alpha*.5;
+          ctx.drawImage(graySprite,left,top,width,height);ctx.globalAlpha=alpha;
+        }
+      }
       ctx.imageSmoothingEnabled=true;
     }else{
-      ctx.fillStyle='#f3eee0';ctx.beginPath();ctx.arc(player.x,player.y,player.r,0,7);ctx.fill();
-      ctx.fillStyle='#566d75';ctx.beginPath();ctx.arc(player.x,player.y,player.r-5,0,7);ctx.fill();
+      ctx.fillStyle=entryGray>0||energy===0&&unlocked>0?'#b9b9b9':'#f3eee0';ctx.beginPath();ctx.arc(player.x,player.y,player.r,0,7);ctx.fill();
+      ctx.fillStyle=entryGray>0||energy===0&&unlocked>0?'#777':'#566d75';ctx.beginPath();ctx.arc(player.x,player.y,player.r-5,0,7);ctx.fill();
     }
     ctx.globalAlpha=1;
     const auraDamage=attackDamage(swordCount);
