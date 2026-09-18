@@ -2,38 +2,23 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no">
-  <meta name="theme-color" content="#101923">
-  <title>針の刻 — 時計で戦うゲーム</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#10211e">
+  <title>針の刻</title>
   <style>
-    :root{font-family:system-ui,"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;color:#f4f1e7;background:#101923;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
-    *{box-sizing:border-box;-webkit-touch-callout:none}body{margin:0;overflow:hidden;touch-action:none;overscroll-behavior:none}button{font:inherit;touch-action:none;-webkit-tap-highlight-color:transparent}
-    #app{position:relative;width:100vw;height:100vh;height:100dvh;overflow:hidden;background:#172530}
-    canvas{display:block;width:100%;height:100%}
-    .hud{position:absolute;top:env(safe-area-inset-top);left:0;right:0;padding:12px 16px;display:flex;align-items:flex-start;justify-content:space-between;pointer-events:none;text-shadow:0 2px 8px #071016}
-    .brand{font-size:12px;letter-spacing:.2em;color:#d6c18c;font-weight:900}.score{font-size:23px;font-weight:900;line-height:1.25}.status{text-align:right;font-size:13px;line-height:1.6;font-weight:800}
-    .controls{position:absolute;left:0;right:0;bottom:calc(16px + env(safe-area-inset-bottom));height:80px;pointer-events:none}
-    .actions{position:absolute;right:18px;bottom:0;display:flex;align-items:end;gap:12px;pointer-events:auto}.action{width:78px;height:78px;border:2px solid #f6e2a4;border-radius:21px;background:#263746d9;color:#fff5db;box-shadow:0 8px 20px #0007;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:1px;font-weight:900}.action:active{transform:scale(.95);background:#7e6240}.action .icon{font-size:30px;line-height:1}.action b{font-size:18px}.action:disabled{opacity:.42}.clock-action{border-color:#9ae0df;color:#d7f4ee}.clock-action[data-clock=blue]{border-color:#66c8ee;color:#66c8ee}.clock-action[data-clock=green]{border-color:#74d590;color:#74d590}.clock-action[data-clock=red]{border-color:#e97a83;color:#e97a83}.clock-action .icon svg{display:block;width:30px;height:30px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round}.clock-action.ready{box-shadow:0 0 0 3px #9ae0df55,0 0 18px #9ae0df88}.clock-action[data-clock=green].ready{box-shadow:0 0 0 3px #74d59055,0 0 18px #74d59088}.clock-action[data-clock=red].ready{box-shadow:0 0 0 3px #e97a8355,0 0 18px #e97a8388}.attack-action.charging{background:conic-gradient(#d1a453 0 var(--charge,0%),#263746 var(--charge,0%) 100%);box-shadow:0 0 0 3px #e7c47e88}
-    .clock-stock{position:absolute;left:12px;right:196px;bottom:5px;height:68px;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));grid-template-rows:repeat(2,1fr);gap:4px}.stock-slot{display:grid;place-items:center;border:1px solid #d6d0b044;border-radius:7px;background:#20313d99;opacity:.4}.stock-slot.filled{opacity:1}.stock-slot[data-clock=blue]{color:#66c8ee;border-color:#66c8ee}.stock-slot[data-clock=green]{color:#74d590;border-color:#74d590}.stock-slot[data-clock=red]{color:#e97a83;border-color:#e97a83}.stock-slot svg{display:block;width:min(22px,90%);height:min(22px,90%);stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round}
-    .hint{position:absolute;bottom:calc(100px + env(safe-area-inset-bottom));left:12px;right:12px;text-align:center;color:#f4efdfaa;font-size:12px;pointer-events:none}
-    .overlay{position:absolute;inset:0;background:#0c1824df;display:flex;align-items:center;justify-content:center;padding:calc(12px + env(safe-area-inset-top)) 12px calc(12px + env(safe-area-inset-bottom));z-index:5}.overlay.hidden{display:none}.panel{width:min(100%,430px);max-height:100%;overflow:auto;text-align:center;border:1px solid #e6d6ac55;border-radius:24px;background:linear-gradient(155deg,#253742,#14242f);padding:22px 20px 25px;box-shadow:0 20px 65px #0008}.eyebrow{color:#dfbd73;font-size:12px;font-weight:900;letter-spacing:.18em}.panel h1{font-size:27px;margin:8px 0 4px;letter-spacing:.08em}.panel p{margin:6px 0 14px;color:#dddccf;font-size:13px;line-height:1.6}.clock{position:relative;width:min(55vw,215px);height:min(55vw,215px);margin:10px auto 12px;border-radius:50%;border:8px solid #d8bd82;background:radial-gradient(circle,#f8efd8,#ded1af);box-shadow:0 0 0 5px #8b6e46,0 12px 26px #0006}.tick{position:absolute;left:50%;top:50%;width:2px;height:8px;background:#6a5947;transform-origin:50% 0}.numeral{position:absolute;transform:translate(-50%,-50%);color:#3b4447;font-size:14px;font-weight:900}.hand{position:absolute;left:50%;top:50%;transform-origin:50% 100%;border-radius:9px}.hand.hour{width:7px;height:52px;margin-left:-3.5px;margin-top:-52px;background:#bd6453;box-shadow:0 0 3px #333}.hand.minute{width:4px;height:75px;margin-left:-2px;margin-top:-75px;background:#3d7780}.pin{position:absolute;left:50%;top:50%;width:13px;height:13px;border-radius:50%;background:#343b40;transform:translate(-50%,-50%)}.readout{font-size:32px;font-weight:900;letter-spacing:.12em;font-variant-numeric:tabular-nums}.gains{display:flex;justify-content:center;gap:10px;margin:7px 0 15px}.gain{padding:7px 13px;border-radius:10px;background:#ffffff13;font-size:13px;font-weight:800}.gain strong{font-size:20px;color:#ffdda2}.gain.move strong{color:#9ae0df}.primary{min-width:180px;padding:13px 28px;background:#e7c47e;border:0;border-radius:999px;color:#202c31;font-size:17px;font-weight:900;box-shadow:0 5px 0 #9f783e}.primary:active{transform:translateY(3px);box-shadow:0 2px 0 #9f783e}.sub{font-size:11px!important;color:#c3c9c4!important;margin:15px 0 0!important}.gameover .clock,.gameover .gains,.gameover .readout{display:none}
-    .panel.selecting .gains,.panel.paused .gains{visibility:hidden}.panel.paused .clock,.panel.paused .readout,.panel.paused #stop{display:none}.panel.bonus .clock{border-color:var(--bonus-color)}.panel.bonus .eyebrow{color:var(--bonus-color)}
-    .debug-button{display:block;margin:10px auto 0;min-width:180px;padding:9px 18px;border:1px solid #b8c7c280;border-radius:999px;background:#ffffff12;color:#e5ece8;font-size:13px;font-weight:800}.debug-button:active{background:#ffffff25}.panel:not(.selecting) .debug-button{display:none}
-    @media(max-height:650px){.panel{padding:13px}.panel p{margin:3px 0 8px}.clock{width:145px;height:145px;margin:4px auto}.hand.hour{height:37px;margin-top:-37px}.hand.minute{height:53px;margin-top:-53px}.gains{margin:2px 0 8px}.panel h1{font-size:22px}.readout{font-size:25px}}
-    @media(max-width:360px){.hud{padding:10px}.score{font-size:19px}.status{font-size:11px}.actions{right:12px;gap:8px}.action{width:68px;height:72px;border-radius:17px}.action .icon{font-size:26px}.clock-stock{left:8px;right:164px}.hint{font-size:11px}}
+    :root{font-family:system-ui,"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;color:#f5f1dc;background:#10211e}
+    *{box-sizing:border-box}body{margin:0;min-height:100vh;min-height:100dvh;display:grid;place-items:center;background:radial-gradient(circle at 50% 35%,#29493c,#10211e 70%)}
+    main{width:min(100% - 36px,390px);padding:36px 25px 42px;text-align:center;border:1px solid #d6c18c66;border-radius:23px;background:#162b28eb;box-shadow:0 18px 55px #07120d88}
+    .mark{font-size:51px;line-height:1;color:#e4c47b}h1{font-size:38px;letter-spacing:.18em;margin:14px 0 6px;text-indent:.18em}.subtitle{font-size:12px;letter-spacing:.16em;color:#bfd1bd;margin:0 0 34px}
+    nav{display:grid;gap:14px}a{display:block;padding:16px;border:1px solid #d6c18c;border-radius:13px;color:#172721;background:#e6c987;text-decoration:none;font-size:19px;font-weight:900}a:last-child{color:#eef5e8;background:#24453b;border-color:#9db898}a:active{transform:scale(.98)}
   </style>
 </head>
 <body>
-<main id="app">
-  <canvas id="field" aria-label="ゲーム盤面"></canvas>
-  <div class="hud"><div><div class="brand">針の刻</div><div class="score">討伐 <span id="score">0</span></div></div><div class="status">体力 <span id="health">3/10</span></div></div>
-  <div class="hint">ドラッグ移動・タップで向き変更・剣2秒で一回転斬り</div>
-  <div class="controls"><div id="clockStock" class="clock-stock" aria-label="獲得順の時計ストック"></div><div class="actions"><button id="clockButton" class="action clock-action" aria-label="獲得した時計を使う" disabled><span class="icon"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="13"/><path d="M16 8v8l6 3"/></svg></span><b id="clockCount">0</b></button><button id="attack" class="action attack-action" aria-label="剣で攻撃。2秒長押しで一回転斬り"><span class="icon">🗡️</span><b id="attackCount">0</b></button></div></div>
-  <div id="overlay" class="overlay"><div id="panel" class="panel selecting"><div class="eyebrow" id="eyebrow">3秒で一周する時計</div><h1 id="title">時を止めて、戦え。</h1><p id="description">短針は剣を振る回数、長針は移動できる距離。<br>好きな瞬間に時計を止めて、行動量を決めよう。</p><div class="clock" id="clock"><div class="hand hour" id="hourHand"></div><div class="hand minute" id="minuteHand"></div><div class="pin"></div></div><div id="readout" class="readout">01:01</div><div class="gains"><div class="gain">🗡 <strong id="previewAttack">1</strong> 回</div><div class="gain move">🕒 <strong id="previewMove">1</strong> 距離</div></div><button id="stop" class="primary">時計を止める</button><button id="debug" class="debug-button" type="button">デバッグ（攻撃100・移動1000）</button><p class="sub" id="sub">時計は止めるまで回り続けます</p></div></div>
-</main>
-<script src="game.js"></script>
+  <main>
+    <div class="mark" aria-hidden="true">◷</div>
+    <h1>針の刻</h1>
+    <p class="subtitle">時計で戦うゲーム</p>
+    <nav aria-label="メニュー"><a href="game.html">ゲームスタート</a><a href="editor.html">マップ編集</a></nav>
+  </main>
 </body>
 </html>
-
-
-

@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#172a28">
+  <title>草原マップ編集 — 針の刻</title>
+  <style>
+    :root{font-family:system-ui,"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;color:#edf4df;background:#10211e}
+    *{box-sizing:border-box}body{margin:0;min-height:100dvh;background:linear-gradient(135deg,#203c31,#10211e 60%)}button,a{font:inherit}button{cursor:pointer}header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 20px;border-bottom:1px solid #b5d3a433;background:#10221fdd}h1{font-size:20px;margin:0;letter-spacing:.06em}.back{padding:10px 14px;border:1px solid #acc8a1;border-radius:10px;color:#f3f5df;text-decoration:none;font-size:14px;font-weight:800}.back:hover{background:#ffffff16}
+    main{display:grid;grid-template-columns:minmax(0,1fr) 220px;gap:16px;padding:16px;max-width:1440px;margin:auto}.tools,.board{border:1px solid #a4c18a55;border-radius:16px;background:#173029d9;box-shadow:0 14px 35px #07120d55}.tools{display:flex;flex-direction:column;padding:16px}.tools h2{font-size:14px;letter-spacing:.08em;margin:0 0 12px;color:#d6e8b7}.palette{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.tile-button{min-height:86px;border:2px solid #8eae8566;border-radius:12px;background:#0e221e;color:#eaf4df;display:grid;justify-items:center;align-content:center;gap:5px;font-size:12px;font-weight:800}.tile-button canvas{width:42px;height:42px;image-rendering:pixelated;border-radius:5px}.tile-button.selected{border-color:#f5d58b;background:#42563c;box-shadow:0 0 0 2px #f5d58b55}.tool-button,.small-button{border:1px solid #a6c49888;border-radius:9px;background:#234337;color:#f2f6e6;font-weight:800}.tool-button{width:100%;padding:10px;margin-top:10px}.tool-button.selected,.pan-button.selected{background:#6b7446;border-color:#f5d58b}.divider{border:0;border-top:1px solid #a4c18a44;margin:16px 0}.actions{display:grid;gap:8px;margin-top:auto}.actions button{padding:10px}.hint{font-size:12px;line-height:1.6;color:#c4d6bf;margin:14px 0 18px}.board{min-width:0;overflow:hidden}.board-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px;border-bottom:1px solid #a4c18a44}.board-bar strong{font-size:14px}.zoom{display:flex;align-items:center;gap:6px}.small-button{width:34px;height:34px}.pan-button{width:auto;min-width:58px;padding:0 8px;white-space:nowrap}.zoom span{font-size:12px;min-width:42px;text-align:center}.viewport{height:min(76dvh,780px);overflow:auto;background:#284730;overscroll-behavior:contain}.viewport canvas{display:block;touch-action:none;image-rendering:pixelated;cursor:crosshair}.board-footer{padding:10px 14px;font-size:12px;color:#d4e2ca;border-top:1px solid #a4c18a44}#message{color:#f3d98e;font-weight:800}input[type=file]{display:none}
+    .viewport{overscroll-behavior:auto}.viewport canvas{margin:0 auto}.edit-button{width:auto;min-width:58px;padding:0 8px;white-space:nowrap}.edit-button.selected{background:#b63646;border-color:#ffc0c4;color:#fff;box-shadow:0 0 0 2px #f1748055}
+    @media(max-width:760px){header{padding:12px}h1{font-size:17px}main{display:block;padding:10px}.board{margin-bottom:10px}.tools{padding:12px}.palette{grid-template-columns:repeat(4,minmax(0,1fr))}.tile-button{min-height:72px}.tile-button canvas{width:34px;height:34px}.tools h2{margin-bottom:7px}.actions{grid-template-columns:repeat(3,minmax(0,1fr))}.actions button{font-size:12px;padding:9px 4px}.hint{margin:8px 0 12px}.divider{margin:10px 0}.viewport{height:min(54dvh,600px)}}
+    @media(max-width:390px){.board-bar{gap:4px;padding:8px}.board-bar strong{font-size:12px}.zoom{gap:4px}.small-button{width:30px;height:32px}.pan-button,.edit-button{width:auto;min-width:42px;padding:0 5px;font-size:12px}.zoom span{min-width:34px}}
+  </style>
+</head>
+<body>
+  <header><h1>草原マップ編集</h1><a class="back" href="game.html">ゲームへ</a></header>
+  <main>
+    <section class="board" aria-label="マップ編集盤面">
+      <div class="board-bar"><strong>草原 24 × 18</strong><div class="zoom"><button id="pan" class="small-button pan-button" type="button" aria-pressed="true">移動</button><button id="edit" class="small-button edit-button" type="button" aria-pressed="false">編集</button><button id="zoomOut" class="small-button" type="button" aria-label="縮小">−</button><span id="zoomValue">100%</span><button id="zoomIn" class="small-button" type="button" aria-label="拡大">＋</button></div></div>
+      <div id="viewport" class="viewport"><canvas id="map" width="768" height="576" aria-label="草原マップ"></canvas></div>
+      <div class="board-footer"><span id="message" role="status">読み込み中</span></div>
+    </section>
+    <aside class="tools">
+      <h2>マップチップ</h2>
+      <div id="palette" class="palette" aria-label="塗るチップを選択"></div>
+      <p class="hint">チップを選び、「編集」を押すと塗れます。移動中はマップをスクロールできます。編集内容はこのブラウザーに保存されます。すべてのチップを歩けます。</p>
+      <div class="actions">
+        <button id="save" class="tool-button" type="button">保存</button>
+        <button id="export" class="tool-button" type="button">書き出し</button>
+        <button id="import" class="tool-button" type="button">読み込み</button>
+      </div>
+      <input id="file" type="file" accept=".json,application/json">
+    </aside>
+  </main>
+  <script src="map-data.js"></script>
+  <script src="editor.js"></script>
+</body>
+</html>

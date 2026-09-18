@@ -2,11 +2,12 @@
   'use strict';
   const $=id=>document.getElementById(id);
   const canvas=$('field'),ctx=canvas.getContext('2d');
-  const ui={overlay:$('overlay'),panel:$('panel'),title:$('title'),eyebrow:$('eyebrow'),description:$('description'),readout:$('readout'),hourHand:$('hourHand'),minuteHand:$('minuteHand'),previewAttack:$('previewAttack'),previewMove:$('previewMove'),stop:$('stop'),debug:$('debug'),sub:$('sub'),score:$('score'),health:$('health'),attackCount:$('attackCount'),clockCount:$('clockCount'),clockButton:$('clockButton'),clockStock:$('clockStock'),attack:$('attack')};
+  const ui={overlay:$('overlay'),panel:$('panel'),title:$('title'),eyebrow:$('eyebrow'),description:$('description'),resultValue:$('resultValue'),hourHand:$('hourHand'),minuteHand:$('minuteHand'),stop:$('stop'),debug:$('debug'),sub:$('sub'),score:$('score'),roundNumber:$('roundNumber'),roundTarget:$('roundTarget'),roundTime:$('roundTime'),elapsedTime:$('elapsedTime'),energyValue:$('energyValue'),energyFill:$('energyFill'),grayDamageFill:$('grayDamageFill'),energyBar:document.querySelector('.energy-bar'),attackCount:$('attackCount'),clockCount:$('clockCount'),clockButton:$('clockButton'),clockStock:$('clockStock'),buttonHourglass:$('buttonHourglass'),sandPreview:$('sandPreview'),previewHourglass:$('previewHourglass'),previewSandCount:$('previewSandCount'),attack:$('attack'),pauseButton:$('pauseButton'),pauseScreen:$('pauseScreen'),resumeButton:$('resumeButton')};
   const player={x:0,y:0,r:14,angle:-Math.PI/2};
   // 上から時計回り: 背面、背面右、右、正面右、正面、正面左、左、背面左。
   const spriteBounds=[[386,362,850,928],[396,376,846,930],[432,356,812,956],[396,344,836,952],[386,350,866,946],[374,340,862,916],[394,344,828,926],[396,324,828,922]];
   const playerSprites=Array(8).fill(null);
+  const playerSpritesGray=Array(8).fill(null);
   spriteBounds.forEach(([left,top,right,bottom],i)=>{
     const image=new Image();
     image.onload=()=>{
@@ -21,31 +22,69 @@
         if(Math.max(pixels.data[p],pixels.data[p+1],pixels.data[p+2])<=2)pixels.data[p+3]=0;
       }
       spriteContext.putImageData(pixels,0,0);
+      // 灰色版を画像データから作る。スマホの Canvas filter 対応に依存しない。
+      const gray=document.createElement('canvas');gray.width=sprite.width;gray.height=sprite.height;
+      const grayContext=gray.getContext('2d');
+      const grayPixels=grayContext.createImageData(gray.width,gray.height);
+      grayPixels.data.set(pixels.data);
+      for(let p=0;p<grayPixels.data.length;p+=4){
+        if(grayPixels.data[p+3]===0)continue;
+        const shade=Math.round(grayPixels.data[p]*.2126+grayPixels.data[p+1]*.7152+grayPixels.data[p+2]*.0722);
+        grayPixels.data[p]=shade;grayPixels.data[p+1]=shade;grayPixels.data[p+2]=shade;
+      }
+      grayContext.putImageData(grayPixels,0,0);
       playerSprites[i]=sprite;
+      playerSpritesGray[i]=gray;
       image.onload=null;
     };
     image.src=`design/man${i+1}.png`;
   });
   const swordImage=new Image();
   swordImage.src='design/sword.svg';
-  const enemies=[],particles=[],clocks=[],storedClocks=[];
-  const clockTypes={blue:{label:'青い時計',color:'#66c8ee',effect:'移動距離が10倍'},green:{label:'緑の時計',color:'#74d590',effect:'攻撃回数が5倍'},red:{label:'赤い時計',color:'#e97a83',effect:'HP全回復・5秒無敵'}};
+  const VIEW_SCALE=.8;
+  const mapTools=window.ClockAttackMap,map=mapTools.load();
+  const tileImage=new Image();
+  let terrainCanvas=null;
+  tileImage.onload=()=>renderTerrain();
+  tileImage.src=mapTools.tileSheet;
+  const enemies=[],particles=[],explosions=[],damageNumbers=[];
   const drag={pointer:null,x:0,y:0};
   const charge={pointer:null,start:0,timer:null};
   const keys=new Set();
   let w=0,h=0,dpr=1,last=performance.now(),clockOrigin=last-61/1440*3000;
-  let mode='select',selectionReason='start',selectedClockType=null,transitionTimer=null;
-  let attacks=0,distance=0,health=3,score=0,spawnTimer=0,invincible=0,swing=0,spin=0,swingAngle=0,shake=0;
+  let mode='select',selectionReason='start',selectionIcons=0,transitionTimer=null;
+  let energy=0,moveProgress=0,unlocked=0,score=0,round=1,roundKills=0,roundSpawned=0,roundElapsed=0,swordCount=0,elapsed=0,purpleSpawned=false,spawnTimer=0,invincible=0,damageFlash=0,grayHits=0,entryGray=0,lowEnergyGray=false,swing=0,spin=0,swingAngle=0,shake=0,hitStop=0;
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
-  const minY=()=>Math.max(92,h*.12),maxY=()=>Math.max(minY()+60,h-130);
+  const MOVE_DISTANCE_PER_ENERGY=16;
+  function attackDamage(count){
+    if(count>0&&count%100===0)return 20;
+    return count>0&&count%50===0?5:1;
+  }
+  const minY=()=>Math.max(92/VIEW_SCALE,h*.12),maxY=()=>Math.max(minY()+60,h-130/VIEW_SCALE);
+
+  function renderTerrain(){
+    if(!w||!h||!tileImage.naturalWidth)return;
+    const terrain=document.createElement('canvas');
+    terrain.width=Math.ceil(w);terrain.height=Math.ceil(h);
+    const ground=terrain.getContext('2d');
+    ground.imageSmoothingEnabled=false;
+    for(let y=0;y<h;y+=mapTools.tileSize)for(let x=0;x<w;x+=mapTools.tileSize)
+      mapTools.drawTile(ground,tileImage,0,x,y);
+    const left=Math.round((w-map.width*mapTools.tileSize)/2);
+    const top=Math.round((h-map.height*mapTools.tileSize)/2);
+    for(let y=0;y<map.height;y++)for(let x=0;x<map.width;x++)
+      mapTools.drawTile(ground,tileImage,map.tiles[y*map.width+x],left+x*mapTools.tileSize,top+y*mapTools.tileSize);
+    terrainCanvas=terrain;
+  }
 
   function resize(){
     const oldW=w,oldH=h,app=$('app');
-    w=app.clientWidth;h=app.clientHeight;dpr=Math.min(devicePixelRatio||1,2);
-    canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);
-    ctx.setTransform(dpr,0,0,dpr,0,0);
+    w=app.clientWidth/VIEW_SCALE;h=app.clientHeight/VIEW_SCALE;dpr=Math.min(devicePixelRatio||1,2);
+    canvas.width=Math.round(app.clientWidth*dpr);canvas.height=Math.round(app.clientHeight*dpr);
+    ctx.setTransform(dpr*VIEW_SCALE,0,0,dpr*VIEW_SCALE,0,0);
     if(!oldW){player.x=w/2;player.y=(minY()+maxY())/2}
     else{player.x=clamp(player.x*w/oldW,18,w-18);player.y=clamp(player.y*h/oldH,minY()+18,maxY()-18)}
+    renderTerrain();
   }
   addEventListener('resize',resize);
   window.visualViewport?.addEventListener('resize',resize);
@@ -65,102 +104,150 @@
     face.insertBefore(label,ui.hourHand);
   }
   const stockSlots=[];
+  const hourglassSvg=()=>`<svg class="hourglass-svg" viewBox="0 0 32 32" aria-hidden="true"><path d="M7 2h18M7 30h18M9 3v4c0 4 7 7 7 9s-7 5-7 9v4M23 3v4c0 4-7 7-7 9s7 5 7 9v4"/>${Array.from({length:10},(_,i)=>`<rect class="sand-step" x="${10+i*.5}" y="${26-i}" width="${12-i}" height=".8"/>`).join('')}${Array.from({length:10},(_,i)=>`<rect class="sand-settled" x="${10+i*.5}" y="${5+i}" width="${12-i}" height=".8"/>`).join('')}<path class="sand-stream" d="M16 16V6"/></svg>`;
+  ui.buttonHourglass.innerHTML=hourglassSvg();
+  ui.buttonHourglass.querySelectorAll('.sand-step').forEach((step,i)=>step.classList.toggle('filled',i<5));
+  ui.previewHourglass.innerHTML=hourglassSvg();
   for(let i=0;i<10;i++){
     const slot=document.createElement('span');slot.className='stock-slot';
-    slot.innerHTML='<svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="12"/><path d="M16 9v7l5 3"/></svg>';
+    slot.innerHTML='<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M12 3h8v5l3 3v16c0 2-2 3-4 3h-6c-2 0-4-1-4-3V11l3-3z"/><path d="M11 8h10"/><path class="bottle-sand" d="M11 21h10v6H11z"/></svg>';
     ui.clockStock.appendChild(slot);stockSlots.push(slot);
   }
-
-  function timeValues(now){
-    const phase=((now-clockOrigin)%3000+3000)%3000/3000;
-    const total=Math.floor(phase*1440),hour24=Math.floor(total/60),minute=total%60;
-    return {minute,attack:hour24%12||12,text:String(hour24).padStart(2,'0')+':'+String(minute).padStart(2,'0'),phase};
+  function showSand(steps){
+    ui.previewHourglass.querySelectorAll('.sand-step').forEach((step,i)=>step.classList.toggle('filled',i<steps));
+    ui.previewHourglass.querySelectorAll('.sand-settled').forEach(step=>step.classList.remove('filled'));
+    ui.previewSandCount.textContent=`砂のビン ${steps}/10`;
   }
+
   function updateClock(now){
-    const t=timeValues(now);
-    ui.readout.textContent=t.text;
-    ui.hourHand.style.transform=`rotate(${t.phase*720}deg)`;
-    ui.minuteHand.style.transform=`rotate(${t.minute*6}deg)`;
-    return t;
+    const phase=((now-clockOrigin)%3000+3000)%3000/3000;
+    ui.hourHand.style.transform=`rotate(${-phase*720}deg)`;
+    ui.minuteHand.style.transform=`rotate(${-phase*360}deg)`;
   }
   function setHud(){
-    ui.score.textContent=score;
-    ui.health.textContent=`${health}/10`;
-    ui.attackCount.textContent=attacks;
-    ui.clockCount.textContent=storedClocks.length;
-    ui.clockButton.disabled=mode!=='play'||storedClocks.length===0;
-    ui.clockButton.dataset.clock=storedClocks[0]||'';
-    ui.clockButton.classList.toggle('ready',mode==='play'&&storedClocks.length>0);
-    ui.attack.disabled=mode!=='play'||attacks<=0;
+    ui.score.textContent=roundKills;
+    ui.roundNumber.textContent=round;
+    ui.roundTarget.textContent=round*10;
+    const secondsLeft=Math.ceil(Math.max(0,60-roundElapsed));
+    ui.roundTime.textContent=`${Math.floor(secondsLeft/60)}:${String(secondsLeft%60).padStart(2,'0')}`;
+    ui.energyValue.textContent=energy;
+    ui.energyFill.style.width=`${Math.min(100,energy)}%`;
+    ui.grayDamageFill.style.width=energy===0?`${grayHits/3*100}%`:'0%';
+    ui.energyBar.setAttribute('aria-valuenow',String(energy));
+    ui.energyBar.setAttribute('aria-valuemax',String(Math.max(100,energy)));
+    ui.energyBar.setAttribute('aria-valuetext',energy===0&&unlocked>0?`行動力0、灰色状態での被弾 ${grayHits} / 3`:`行動力 ${energy}`);
+    ui.attackCount.textContent=swordCount;
+    ui.clockCount.textContent=unlocked;
+    if(mode!=='turning'&&mode!=='confirmed')showSand(selectionReason==='refill'&&mode==='select'?selectionIcons:unlocked);
+    ui.clockButton.disabled=mode!=='play'||unlocked===0;
+    ui.pauseButton.disabled=mode!=='play';
+    ui.clockButton.classList.toggle('ready',mode==='play'&&unlocked>0);
+    ui.attack.disabled=mode!=='play'||energy<=0;
+    ui.attack.classList.toggle('available',mode==='play'&&energy>0);
+    ui.energyBar.classList.toggle('hit',damageFlash>0);
     for(let i=0;i<stockSlots.length;i++){
-      const type=storedClocks[i]||'';
-      stockSlots[i].dataset.clock=type;
-      stockSlots[i].classList.toggle('filled',!!type);
-      stockSlots[i].title=type?`${i+1}: ${clockTypes[type].label}`:'';
+      stockSlots[i].classList.toggle('unlocked',i<unlocked);
+      stockSlots[i].title=`砂のビン ${i+1}: ${i<unlocked?'砂入り':'空'}`;
     }
+  }
+  function spendEnergy(amount){
+    const before=energy;
+    energy=Math.max(0,energy-amount);
+    if(energy===0)drag.pointer=null;
+    if(before>10&&energy<=10)lowEnergyGray=true;
+    setHud();
   }
   function cancelCharge(){
     clearTimeout(charge.timer);charge.pointer=null;charge.timer=null;
     ui.attack.classList.remove('charging');ui.attack.style.setProperty('--charge','0%');
   }
-  function startSelection(initial=false,bonus=false,type=null){
+  function startSelection(initial=false,icons=0){
     clearTimeout(transitionTimer);transitionTimer=null;cancelCharge();
-    mode='select';selectionReason=initial?'start':bonus?'bonus':'refill';selectedClockType=bonus?type:null;drag.pointer=null;
+    mode='select';selectionReason=initial?'start':'refill';selectionIcons=icons;drag.pointer=null;
     clockOrigin=performance.now()-(initial?61/1440*3000:0);
     ui.overlay.classList.remove('hidden');
-    ui.panel.classList.remove('gameover','paused','confirmed','bonus');ui.panel.classList.add('selecting');
-    if(bonus){ui.panel.classList.add('bonus');ui.panel.style.setProperty('--bonus-color',clockTypes[type].color)}
-    ui.eyebrow.textContent=bonus?clockTypes[type].label:initial?'3秒で一周する時計':'戦闘を再開する時刻';
-    ui.title.textContent=bonus?'追加の時刻を決めよう':initial?'時を止めて、戦え。':'次の時刻を決めよう';
-    ui.description.innerHTML=bonus?`${clockTypes[type].effect}。<br>確定した行動力を現在の値に加算します。`:initial?'短針は剣を振る回数、長針は移動できる距離。<br>好きな瞬間に時計を止めて、行動量を決めよう。':'時計を止めると、剣と移動距離が補充されます。';
-    ui.stop.disabled=false;ui.stop.textContent='時計を止める';ui.debug.disabled=false;
-    ui.sub.textContent='時計は止めるまで3秒ごとに回り続けます';setHud();
+    ui.panel.classList.remove('gameover','paused','confirmed','refill','turning');ui.panel.classList.add('selecting');
+    ui.panel.classList.toggle('refill',!initial);
+    ui.sandPreview.classList.remove('flipped','flowing');
+    ui.eyebrow.textContent=initial?'3秒で一周する時計':'砂時計';
+    ui.title.textContent=initial?'時を止めて、戦え。':'砂時計を返そう';
+    ui.description.textContent='';
+    ui.resultValue.textContent='';ui.stop.disabled=false;ui.stop.textContent='光を';ui.debug.disabled=false;
+    ui.sub.textContent='';setHud();
   }
   function stopClock(debug=false){
     if(mode==='gameover'){restart();return}
     if(mode!=='select')return;
-    const t=updateClock(performance.now()),bonus=selectionReason==='bonus';
-    const gainedAttacks=debug?100:bonus&&selectedClockType==='green'?t.attack*5:t.attack;
-    const gainedDistance=debug?1000:bonus&&selectedClockType==='blue'?t.minute*10:t.minute;
-    attacks=debug?100:bonus?attacks+gainedAttacks:gainedAttacks;
-    distance=debug?1000:bonus?distance+gainedDistance:gainedDistance;
-    health=Math.min(10,health+1);
-    if(bonus&&selectedClockType==='red'){health=10;invincible=5}
-    mode='confirmed';ui.panel.classList.remove('selecting');ui.panel.classList.add('confirmed');
-    ui.previewAttack.textContent=(bonus&&!debug?'+':'')+gainedAttacks;
-    ui.previewMove.textContent=(bonus&&!debug?'+':'')+gainedDistance;
-    ui.eyebrow.textContent=debug?'デバッグで確定':`${t.text} で確定`;
-    ui.title.textContent=debug?'攻撃100回・移動1000':bonus?clockTypes[selectedClockType].effect:'行動量が決まりました';
-    ui.description.textContent=debug?`HP ${health}/10。1秒後に戦闘を再開します`:bonus?`剣 ${attacks} 回・移動 ${Math.ceil(distance)}・HP ${health}/10`:`HP ${health}/10。1秒後に戦闘を再開します`;
+    if(selectionReason==='refill'){
+      mode='turning';ui.stop.disabled=true;ui.debug.disabled=true;
+      ui.panel.classList.add('turning');ui.sandPreview.classList.add('flipped');setHud();
+      transitionTimer=setTimeout(()=>flowSand(debug),650);
+      return;
+    }
+    updateClock(performance.now());
+    finishClock(debug);
+  }
+  function flowSand(debug){
+    if(mode!=='turning')return;
+    ui.sandPreview.classList.add('flowing');
+    const upper=ui.previewHourglass.querySelectorAll('.sand-step');
+    const lower=ui.previewHourglass.querySelectorAll('.sand-settled');
+    let poured=0;
+    const pour=()=>{
+      if(mode!=='turning')return;
+      upper[selectionIcons-1-poured].classList.remove('filled');
+      lower[poured].classList.add('filled');
+      poured++;
+      transitionTimer=setTimeout(poured<selectionIcons?pour:()=>{
+        ui.sandPreview.classList.remove('flowing');finishClock(debug);
+      },poured<selectionIcons?800/selectionIcons:250);
+    };
+    transitionTimer=setTimeout(pour,800/selectionIcons);
+  }
+  function finishClock(debug){
+    const gained=debug||selectionReason==='start'?100:Math.min(100,selectionIcons*10);
+    energy+=gained;moveProgress=0;grayHits=0;lowEnergyGray=false;
+    mode='confirmed';ui.panel.classList.remove('selecting','turning');ui.panel.classList.add('confirmed');
+    ui.resultValue.textContent=gained;
+    ui.eyebrow.textContent='行動力を取得';ui.title.textContent=`+${gained}`;
+    ui.description.textContent=`元の値と合わせて行動力 ${energy}。1秒後に戦闘を再開します。`;
     ui.stop.disabled=true;ui.debug.disabled=true;ui.stop.textContent='まもなく開始';ui.sub.textContent='';setHud();
     transitionTimer=setTimeout(()=>{
       if(mode!=='confirmed')return;
-      mode='play';ui.overlay.classList.add('hidden');spawnTimer=0;transitionTimer=null;setHud();
+      mode=selectionReason==='start'?'entry':'play';entryGray=selectionReason==='start'?2:0;
+      if(selectionReason==='refill')invincible=Math.max(invincible,2);
+      ui.overlay.classList.add('hidden');spawnTimer=0;transitionTimer=null;last=performance.now();setHud();
     },1000);
   }
   ui.stop.addEventListener('click',()=>stopClock());
   ui.debug.addEventListener('click',()=>stopClock(true));
+  ui.pauseButton.addEventListener('click',()=>{
+    if(mode!=='play')return;
+    mode='manual-pause';drag.pointer=null;cancelCharge();
+    ui.pauseScreen.classList.remove('hidden');setHud();
+  });
+  ui.resumeButton.addEventListener('click',()=>{
+    if(mode!=='manual-pause')return;
+    mode='play';ui.pauseScreen.classList.add('hidden');last=performance.now();setHud();
+  });
   function restart(){
-    clearTimeout(transitionTimer);health=3;score=0;attacks=0;distance=0;
-    enemies.length=0;particles.length=0;clocks.length=0;storedClocks.length=0;
-    player.x=w/2;player.y=(minY()+maxY())/2;invincible=0;swing=0;spin=0;
+    clearTimeout(transitionTimer);energy=0;moveProgress=0;unlocked=0;score=0;round=1;roundKills=0;roundSpawned=0;roundElapsed=0;swordCount=0;elapsed=0;purpleSpawned=false;damageFlash=0;grayHits=0;lowEnergyGray=false;
+    ui.elapsedTime.textContent='0:00';
+    ui.pauseScreen.classList.add('hidden');
+    enemies.length=0;particles.length=0;explosions.length=0;damageNumbers.length=0;
+    player.x=w/2;player.y=(minY()+maxY())/2;invincible=0;entryGray=0;swing=0;spin=0;hitStop=0;
     startSelection(true);
   }
-  function gameOver(){
+  function gameOver(reason='energy'){
     clearTimeout(transitionTimer);cancelCharge();mode='gameover';drag.pointer=null;
-    ui.overlay.classList.remove('hidden');ui.panel.classList.remove('selecting','paused','confirmed','bonus');ui.panel.classList.add('gameover');
+    ui.overlay.classList.remove('hidden');ui.panel.classList.remove('selecting','paused','confirmed','refill','turning');ui.panel.classList.add('gameover');
     ui.eyebrow.textContent='GAME OVER';ui.title.textContent=`討伐 ${score} 体`;
-    ui.description.textContent='時計を止めるタイミングを変えて、もう一度挑戦しよう。';
+    ui.description.textContent=reason==='time'?`ラウンド ${round} の制限時間が終了しました。`:grayHits>=3?'灰色状態で3回攻撃を受けました。もう一度挑戦しよう。':'行動力がなくなりました。もう一度挑戦しよう。';
     ui.stop.disabled=false;ui.stop.textContent='もう一度遊ぶ';ui.sub.textContent='';setHud();
   }
   function checkExhausted(){
-    if(mode!=='play'||attacks>0||distance>=.999||swing>0||spin>0)return;
-    cancelCharge();
-    mode='exhausted';drag.pointer=null;ui.overlay.classList.remove('hidden');
-    ui.panel.classList.remove('selecting','confirmed','gameover');ui.panel.classList.add('paused');
-    ui.eyebrow.textContent='戦闘を一時停止';ui.title.textContent='行動量を使い切りました';
-    ui.description.textContent='時計を準備しています';ui.sub.textContent='';setHud();
-    transitionTimer=setTimeout(()=>{if(mode==='exhausted')startSelection(false)},650);
+    if(mode!=='play'||energy>0||swing>0||spin>0||unlocked>0)return;
+    gameOver();
   }
   function burst(x,y,color,count){
     for(let i=0;i<count;i++){
@@ -168,47 +255,65 @@
       particles.push({x,y,vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed,life:.25+Math.random()*.3,max:.55,color});
     }
   }
-  function collectClocks(){
-    if(mode!=='play')return;
-    for(let i=0;i<clocks.length;){
-      const item=clocks[i];
-      if(storedClocks.length>=10||Math.hypot(item.x-player.x,item.y-player.y)>player.r+16){i++;continue}
-      clocks.splice(i,1);burst(item.x,item.y,clockTypes[item.type].color,14);
-      storedClocks.push(item.type);setHud();
+  function showDamage(enemy,amount){
+    const columns=[0,-1,1,-2,2];
+    const baseY=enemy.y-enemy.r-22;
+    let x=enemy.x,y=baseY;
+    for(let slot=0;slot<30;slot++){
+      const candidateX=enemy.x+columns[slot%5]*35+(Math.random()-.5)*5;
+      const candidateY=baseY-Math.floor(slot/5)*24;
+      x=candidateX;y=candidateY;
+      if(!damageNumbers.some(number=>Math.abs(number.x-x)<33&&Math.abs(number.y-y)<22))break;
+    }
+    damageNumbers.push({x,y,amount,life:.85,max:.85});
+  }
+  function updateHitEffects(dt){
+    for(let i=particles.length-1;i>=0;i--){
+      const p=particles[i];p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt;
+      if(p.life<=0)particles.splice(i,1);
+    }
+    for(let i=explosions.length-1;i>=0;i--){
+      explosions[i].life-=dt;
+      if(explosions[i].life<=0)explosions.splice(i,1);
+    }
+    for(let i=damageNumbers.length-1;i>=0;i--){
+      const number=damageNumbers[i];number.y-=18*dt;number.life-=dt;
+      if(number.life<=0)damageNumbers.splice(i,1);
     }
   }
   function useStoredClock(){
-    if(mode!=='play'||storedClocks.length===0)return;
-    const type=storedClocks.shift();startSelection(false,true,type);
+    if(mode!=='play'||unlocked===0||hitStop>0)return;
+    const icons=unlocked;unlocked=0;setHud();startSelection(false,icons);
   }
   function movePlayer(dx,dy){
-    if(mode!=='play')return;
+    if(mode!=='play'||energy<=0||hitStop>0)return;
     const length=Math.hypot(dx,dy);if(length<.1)return;
     player.angle=Math.atan2(dy,dx);
-    if(distance<=0)return;
-    const scale=Math.min(1,distance*8/length),oldX=player.x,oldY=player.y;
+    const scale=Math.min(1,(energy*MOVE_DISTANCE_PER_ENERGY-moveProgress)/length),oldX=player.x,oldY=player.y;
     player.x=clamp(player.x+dx*scale,player.r+4,w-player.r-4);
     player.y=clamp(player.y+dy*scale,minY()+player.r,maxY()-player.r);
-    distance=Math.max(0,distance-Math.hypot(player.x-oldX,player.y-oldY)/8);
-    if(distance<.999)distance=0;
-    setHud();collectClocks();checkExhausted();
+    moveProgress+=Math.hypot(player.x-oldX,player.y-oldY);
+    const spent=Math.floor((moveProgress+1e-6)/MOVE_DISTANCE_PER_ENERGY);
+    if(spent>0){moveProgress=Math.max(0,moveProgress-spent*MOVE_DISTANCE_PER_ENERGY);spendEnergy(spent)}
+    checkExhausted();
   }
   function aimAt(clientX,clientY){
+    if(mode!=='play'||energy<=0)return;
     const rect=canvas.getBoundingClientRect();
-    const dx=clientX-rect.left-player.x,dy=clientY-rect.top-player.y;
+    const dx=(clientX-rect.left)/VIEW_SCALE-player.x,dy=(clientY-rect.top)/VIEW_SCALE-player.y;
     if(Math.hypot(dx,dy)>8)player.angle=Math.atan2(dy,dx);
   }
   canvas.addEventListener('pointerdown',e=>{
-    if(mode!=='play')return;
+    if(mode!=='play'||energy<=0||hitStop>0)return;
     e.preventDefault();canvas.setPointerCapture(e.pointerId);
     drag.pointer=e.pointerId;drag.x=e.clientX;drag.y=e.clientY;aimAt(e.clientX,e.clientY);
   });
   canvas.addEventListener('pointermove',e=>{
     if(drag.pointer!==e.pointerId)return;
+    if(mode!=='play'||energy<=0){drag.pointer=null;return}
     e.preventDefault();const dx=e.clientX-drag.x,dy=e.clientY-drag.y;
     drag.x=e.clientX;drag.y=e.clientY;
-    if(distance>0)movePlayer(dx*.8,dy*.8);
-    else aimAt(e.clientX,e.clientY);
+    movePlayer(dx*.8/VIEW_SCALE,dy*.8/VIEW_SCALE);
   });
   function endDrag(e){if(drag.pointer===e.pointerId)drag.pointer=null}
   canvas.addEventListener('pointerup',endDrag);
@@ -216,13 +321,13 @@
   canvas.addEventListener('lostpointercapture',endDrag);
   ui.clockButton.addEventListener('pointerdown',e=>{e.preventDefault();useStoredClock()});
   ui.attack.addEventListener('pointerdown',e=>{
-    if(mode!=='play'||attacks<=0)return;
+    if(mode!=='play'||energy<=0)return;
     e.preventDefault();ui.attack.setPointerCapture(e.pointerId);
     cancelCharge();charge.pointer=e.pointerId;charge.start=performance.now();
-    if(attacks>=10){
+    if(swordCount>=10){
       ui.attack.classList.add('charging');
       charge.timer=setTimeout(()=>{
-        if(charge.pointer!==e.pointerId||mode!=='play'||attacks<10)return;
+        if(charge.pointer!==e.pointerId||mode!=='play'||energy<=0||swordCount<10)return;
         spinAttack();cancelCharge();
       },2000);
     }
@@ -243,39 +348,70 @@
   addEventListener('blur',()=>{keys.clear();drag.pointer=null;cancelCharge()});
   function hitEnemies(damage,fullCircle){
     const ax=Math.cos(player.angle),ay=Math.sin(player.angle);
+    let hits=0;
     for(let i=enemies.length-1;i>=0;i--){
       const enemy=enemies[i],dx=enemy.x-player.x,dy=enemy.y-player.y,len=Math.hypot(dx,dy);
       if(len>=player.r+enemy.r+51||(!fullCircle&&len>=25&&(dx*ax+dy*ay)/len<=-.2))continue;
-      enemy.hp-=damage;enemy.hit=.18;burst(enemy.x,enemy.y,enemy.color,6);
+      const knockAngle=len>0?Math.atan2(dy,dx):player.angle;
+      enemy.x+=Math.cos(knockAngle)*4/VIEW_SCALE;enemy.y+=Math.sin(knockAngle)*4/VIEW_SCALE;
+      enemy.hp-=damage;enemy.hit=.18;hits++;
+      explosions.push({x:enemy.x,y:enemy.y,r:enemy.r,life:.45,max:.45});
+      burst(enemy.x,enemy.y,'#fff1c3',15);showDamage(enemy,damage);
       if(enemy.hp>0)continue;
-      score++;burst(enemy.x,enemy.y,enemy.color,11);
-      if(score%5===0)clocks.push({x:enemy.x,y:enemy.y,phase:Math.random()*6.28,type:['blue','green','red'][enemy.hpMax-1]});
+      score++;roundKills++;swordCount++;unlocked=Math.min(10,unlocked+1);burst(enemy.x,enemy.y,enemy.color,11);
       enemies.splice(i,1);
+    }
+    if(hits>0){hitStop=.5;drag.pointer=null}
+    if(roundKills>=round*10){
+      round++;roundKills=0;roundSpawned=0;roundElapsed=0;spawnTimer=0;
+      enemies.length=0;
     }
   }
   function attack(){
-    if(mode!=='play'||attacks<=0||swing>0||spin>0)return;
-    attacks--;swing=.27;swingAngle=player.angle;
-    hitEnemies(1,false);
-    setHud();collectClocks();checkExhausted();
+    if(mode!=='play'||energy<=0||swing>0||spin>0||hitStop>0)return;
+    const damage=attackDamage(swordCount);
+    spendEnergy(1);swing=.27;swingAngle=player.angle;
+    hitEnemies(damage,false);
+    setHud();checkExhausted();
   }
   function spinAttack(){
-    if(mode!=='play'||attacks<10||swing>0||spin>0)return;
-    attacks-=10;spin=.55;swingAngle=player.angle;
-    hitEnemies(5,true);
-    setHud();collectClocks();checkExhausted();
+    if(mode!=='play'||energy<=0||swordCount<10||swing>0||spin>0||hitStop>0)return;
+    const damage=Math.max(5,attackDamage(swordCount));
+    swordCount-=10;spin=.55;swingAngle=player.angle;
+    hitEnemies(damage,true);
+    setHud();checkExhausted();
   }
-  function spawn(){
-    const hp=1+Math.floor(Math.random()*3),edge=Math.floor(Math.random()*4),r=12+hp*2;
+  function spawn(forcePurple=false){
+    if(roundSpawned>=round*10)return;
+    const purple=forcePurple||elapsed>=60&&Math.random()<.15;
+    const hp=purple?10:1+Math.floor(Math.random()*3),edge=Math.floor(Math.random()*4),r=purple?22:12+hp*2;
     let x,y;
     if(edge===0){x=-r;y=minY()+Math.random()*(maxY()-minY())}
     else if(edge===1){x=w+r;y=minY()+Math.random()*(maxY()-minY())}
     else if(edge===2){x=Math.random()*w;y=minY()-r}
     else{x=Math.random()*w;y=maxY()+r}
-    enemies.push({x,y,r,hp,hpMax:hp,color:['#66c8ee','#74d590','#e97a83'][hp-1],speed:21+Math.random()*12+score*.3,hit:0,wobble:Math.random()*6.28});
+    enemies.push({x,y,r,hp,hpMax:hp,color:purple?'#b679e5':['#66c8ee','#74d590','#e97a83'][hp-1],speed:21+Math.random()*12+score*.3,hit:0,wobble:Math.random()*6.28});
+    roundSpawned++;
   }
   function update(dt){
+    if(mode==='entry'){
+      entryGray=Math.max(0,entryGray-dt);
+      if(entryGray===0){mode='play';setHud()}
+      return;
+    }
     if(mode!=='play')return;
+    if(hitStop>0){hitStop=Math.max(0,hitStop-dt);updateHitEffects(dt);return}
+    const previousSecond=Math.floor(elapsed);
+    elapsed+=dt;
+    const previousRoundSecond=Math.ceil(60-roundElapsed);
+    roundElapsed+=dt;
+    if(roundElapsed>=60){roundElapsed=60;gameOver('time');return}
+    if(Math.ceil(60-roundElapsed)!==previousRoundSecond)setHud();
+    if(Math.floor(elapsed)!==previousSecond){
+      const seconds=Math.floor(elapsed);
+      ui.elapsedTime.textContent=`${Math.floor(seconds/60)}:${String(seconds%60).padStart(2,'0')}`;
+    }
+    if(!purpleSpawned&&elapsed>=60){purpleSpawned=true;spawn(true)}
     let dx=0,dy=0;
     if(keys.has('ArrowLeft')||keys.has('KeyA'))dx--;
     if(keys.has('ArrowRight')||keys.has('KeyD'))dx++;
@@ -283,23 +419,27 @@
     if(keys.has('ArrowDown')||keys.has('KeyS'))dy++;
     const length=Math.hypot(dx,dy);
     if(length){movePlayer(dx/length*124*dt,dy/length*124*dt);if(mode!=='play')return}
-    collectClocks();if(mode!=='play')return;
     spawnTimer+=dt;
     if(spawnTimer>Math.max(.65,1.8-score*.02)){spawnTimer=0;spawn()}
-    invincible=Math.max(0,invincible-dt);swing=Math.max(0,swing-dt);spin=Math.max(0,spin-dt);shake=Math.max(0,shake-dt);
+    invincible=Math.max(0,invincible-dt);damageFlash=Math.max(0,damageFlash-dt);ui.energyBar.classList.toggle('hit',damageFlash>0);
+    swing=Math.max(0,swing-dt);spin=Math.max(0,spin-dt);shake=Math.max(0,shake-dt);
     for(const enemy of enemies){
       enemy.wobble+=dt*5;enemy.hit=Math.max(0,enemy.hit-dt);
       const ex=player.x-enemy.x,ey=player.y-enemy.y,len=Math.hypot(ex,ey)||1;
       enemy.x+=ex/len*enemy.speed*dt;enemy.y+=ey/len*enemy.speed*dt;
       if(len<player.r+enemy.r-3&&invincible<=0){
-        health--;invincible=1.15;shake=.2;burst(player.x,player.y,'#fff4dc',9);setHud();
-        if(health<=0){gameOver();break}
+        damageFlash=.5;
+        if(energy===0&&unlocked>0){grayHits=Math.min(3,grayHits+1);setHud()}
+        else spendEnergy(1);
+        invincible=1.15;shake=.2;burst(player.x,player.y,'#fff4dc',9);
+        if(grayHits>=3){
+          mode='defeated';drag.pointer=null;cancelCharge();setHud();
+          transitionTimer=setTimeout(()=>{if(mode==='defeated')gameOver()},450);
+          break;
+        }
       }
     }
-    for(let i=particles.length-1;i>=0;i--){
-      const p=particles[i];p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt;
-      if(p.life<=0)particles.splice(i,1);
-    }
+    updateHitEffects(dt);
     checkExhausted();
   }
   function drawSword(angle,radius,opacity){
@@ -315,20 +455,9 @@
   function draw(now){
     ctx.clearRect(0,0,w,h);ctx.save();
     if(shake>0)ctx.translate((Math.random()-.5)*5,(Math.random()-.5)*5);
-    const bg=ctx.createLinearGradient(0,0,w,h);
-    bg.addColorStop(0,'#253f46');bg.addColorStop(1,'#152b38');
-    ctx.fillStyle=bg;ctx.fillRect(0,0,w,h);ctx.strokeStyle='#d6dfcf10';ctx.lineWidth=1;
-    for(let x=0;x<w;x+=32){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke()}
-    for(let y=0;y<h;y+=32){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke()}
+    if(terrainCanvas){ctx.imageSmoothingEnabled=false;ctx.drawImage(terrainCanvas,0,0);ctx.imageSmoothingEnabled=true}
+    else{ctx.fillStyle='#447a45';ctx.fillRect(0,0,w,h)}
     ctx.strokeStyle='#e7d49e55';ctx.lineWidth=2;ctx.strokeRect(8,minY(),w-16,maxY()-minY());
-    for(const item of clocks){
-      const y=item.y+Math.sin(now/250+item.phase)*3;
-      const color=clockTypes[item.type].color;
-      ctx.globalAlpha=.2;ctx.fillStyle=color;ctx.beginPath();ctx.arc(item.x,y,23,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
-      ctx.fillStyle=color;ctx.beginPath();ctx.arc(item.x,y,15,0,Math.PI*2);ctx.fill();
-      ctx.fillStyle='#23343c';ctx.beginPath();ctx.arc(item.x,y,11,0,Math.PI*2);ctx.fill();
-      ctx.strokeStyle='#fff0b5';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(item.x,y);ctx.lineTo(item.x,y-7);ctx.moveTo(item.x,y);ctx.lineTo(item.x+5,y+2);ctx.stroke();
-    }
     for(const enemy of enemies){
       const y=enemy.y+Math.sin(enemy.wobble)*2;
       ctx.fillStyle='#0b172277';ctx.beginPath();ctx.ellipse(enemy.x,y+enemy.r*.8,enemy.r,5,0,0,Math.PI*2);ctx.fill();
@@ -336,9 +465,26 @@
       ctx.quadraticCurveTo(enemy.x+enemy.r,y+enemy.r*.85,enemy.x,y+enemy.r*.7);
       ctx.quadraticCurveTo(enemy.x-enemy.r,y+enemy.r*.85,enemy.x-enemy.r,y);ctx.fill();
       ctx.fillStyle='#24333b';ctx.beginPath();ctx.arc(enemy.x-5,y-2,2,0,7);ctx.arc(enemy.x+5,y-2,2,0,7);ctx.fill();
+      const barW=Math.max(34,enemy.r*2),barX=enemy.x-barW/2,barY=y-enemy.r-12;
+      ctx.fillStyle='#17242adf';ctx.fillRect(barX-2,barY-2,barW+4,8);
+      ctx.fillStyle='#642d35';ctx.fillRect(barX,barY,barW,4);
+      ctx.fillStyle=enemy.hp/enemy.hpMax>.5?'#80d98a':enemy.hp/enemy.hpMax>.25?'#f1c66b':'#f07773';
+      ctx.fillRect(barX,barY,barW*Math.max(0,enemy.hp/enemy.hpMax),4);
     }
     for(const p of particles){ctx.globalAlpha=clamp(p.life/p.max,0,1);ctx.fillStyle=p.color;ctx.fillRect(p.x-2,p.y-2,4,4)}
     ctx.globalAlpha=1;
+    for(const explosion of explosions){
+      const progress=1-explosion.life/explosion.max;
+      ctx.save();ctx.globalAlpha=1-progress;ctx.strokeStyle='#fff4ca';ctx.lineWidth=4-progress*3;
+      ctx.shadowColor='#ffb646';ctx.shadowBlur=14;
+      ctx.beginPath();ctx.arc(explosion.x,explosion.y,6+progress*(explosion.r+18),0,Math.PI*2);ctx.stroke();
+      for(let ray=0;ray<8;ray++){
+        const angle=ray*Math.PI/4+progress*.3,inner=explosion.r*.45+progress*8,outer=inner+8+progress*13;
+        ctx.beginPath();ctx.moveTo(explosion.x+Math.cos(angle)*inner,explosion.y+Math.sin(angle)*inner);
+        ctx.lineTo(explosion.x+Math.cos(angle)*outer,explosion.y+Math.sin(angle)*outer);ctx.stroke();
+      }
+      ctx.restore();
+    }
     if(swing>0){ctx.strokeStyle=`rgba(255,224,158,${swing/.27})`;ctx.lineWidth=12;ctx.lineCap='round';ctx.beginPath();ctx.arc(player.x,player.y,49,swingAngle-.95,swingAngle+.95);ctx.stroke()}
     if(spin>0){
       const progress=1-spin/.55,angle=swingAngle+progress*Math.PI*2;
@@ -350,17 +496,36 @@
     ctx.globalAlpha=invincible>0&&Math.floor(now/90)%2?.4:1;
     ctx.fillStyle='#111d26aa';ctx.beginPath();ctx.ellipse(player.x,player.y+14,17,6,0,0,7);ctx.fill();
     const direction=((Math.round((player.angle+Math.PI/2)/(Math.PI/4))%8)+8)%8;
-    const sprite=playerSprites[direction];
+    const sprite=playerSprites[direction],graySprite=playerSpritesGray[direction];
     if(sprite){
       const height=56,width=height*sprite.width/sprite.height;
       ctx.imageSmoothingEnabled=false;
-      ctx.drawImage(sprite,player.x-width/2,player.y+21-height,width,height);
+      const left=player.x-width/2,top=player.y+21-height;
+      if((entryGray>0||energy===0&&unlocked>0)&&graySprite)ctx.drawImage(graySprite,left,top,width,height);
+      else{
+        ctx.drawImage(sprite,left,top,width,height);
+        if(lowEnergyGray&&graySprite){
+          const alpha=ctx.globalAlpha;ctx.globalAlpha=alpha*.5;
+          ctx.drawImage(graySprite,left,top,width,height);ctx.globalAlpha=alpha;
+        }
+      }
       ctx.imageSmoothingEnabled=true;
     }else{
-      ctx.fillStyle='#f3eee0';ctx.beginPath();ctx.arc(player.x,player.y,player.r,0,7);ctx.fill();
-      ctx.fillStyle='#566d75';ctx.beginPath();ctx.arc(player.x,player.y,player.r-5,0,7);ctx.fill();
+      ctx.fillStyle=entryGray>0||energy===0&&unlocked>0?'#b9b9b9':'#f3eee0';ctx.beginPath();ctx.arc(player.x,player.y,player.r,0,7);ctx.fill();
+      ctx.fillStyle=entryGray>0||energy===0&&unlocked>0?'#777':'#566d75';ctx.beginPath();ctx.arc(player.x,player.y,player.r-5,0,7);ctx.fill();
     }
     ctx.globalAlpha=1;
+    const auraDamage=attackDamage(swordCount);
+    if(auraDamage>1){
+      const color=auraDamage===20?'#ff554d':'#f7fbff';
+      ctx.save();ctx.strokeStyle=color;ctx.lineWidth=auraDamage===20?4:3;
+      ctx.shadowColor=color;ctx.shadowBlur=18+Math.sin(now/150)*4;
+      ctx.globalAlpha=.8+Math.sin(now/180)*.13;
+      ctx.beginPath();ctx.ellipse(player.x,player.y-5,26,31,0,0,Math.PI*2);ctx.stroke();
+      ctx.globalAlpha=.3;ctx.lineWidth=2;
+      ctx.beginPath();ctx.ellipse(player.x,player.y-5,31,36,0,0,Math.PI*2);ctx.stroke();
+      ctx.restore();
+    }
     if(swing>0){
       const progress=1-swing/.27;
       drawSword(swingAngle-.95+progress*1.9,49,Math.min(1,swing/.055));
@@ -369,12 +534,14 @@
       const progress=1-spin/.55;
       drawSword(swingAngle+progress*Math.PI*2,53,Math.min(1,spin/.075));
     }
-    const label=String(Math.ceil(distance)),labelY=player.y-55;
-    ctx.font='bold 15px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';
-    const labelW=Math.max(42,ctx.measureText(label).width+20);
-    ctx.fillStyle='#102c39dd';ctx.fillRect(player.x-labelW/2,labelY-12,labelW,24);
-    ctx.strokeStyle='#9ae0df';ctx.lineWidth=1;ctx.strokeRect(player.x-labelW/2,labelY-12,labelW,24);
-    ctx.fillStyle='#c8f8ee';ctx.fillText(label,player.x,labelY);
+    ctx.save();ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='900 21px system-ui, sans-serif';ctx.lineWidth=4;ctx.strokeStyle='#182126';
+    for(const number of damageNumbers){
+      ctx.globalAlpha=clamp(number.life/number.max*1.6,0,1);
+      ctx.fillStyle=number.amount>=20?'#ff7266':number.amount>=5?'#ffe284':'#fff8ec';
+      ctx.strokeText(String(number.amount),number.x,number.y);
+      ctx.fillText(String(number.amount),number.x,number.y);
+    }
+    ctx.restore();
     ctx.restore();
   }
   function frame(now){
