@@ -47,13 +47,13 @@
   let terrainCanvas=null;
   tileImage.onload=()=>renderTerrain();
   tileImage.src=mapTools.tileSheet;
-  const enemies=[],particles=[];
+  const enemies=[],particles=[],explosions=[],damageNumbers=[];
   const drag={pointer:null,x:0,y:0};
   const charge={pointer:null,start:0,timer:null};
   const keys=new Set();
   let w=0,h=0,dpr=1,last=performance.now(),clockOrigin=last-61/1440*3000;
   let mode='select',selectionReason='start',selectionIcons=0,transitionTimer=null;
-  let energy=0,moveProgress=0,unlocked=0,score=0,round=1,roundKills=0,roundSpawned=0,roundElapsed=0,swordCount=0,elapsed=0,purpleSpawned=false,spawnTimer=0,invincible=0,damageFlash=0,grayHits=0,entryGray=0,lowEnergyGray=false,swing=0,spin=0,swingAngle=0,shake=0;
+  let energy=0,moveProgress=0,unlocked=0,score=0,round=1,roundKills=0,roundSpawned=0,roundElapsed=0,swordCount=0,elapsed=0,purpleSpawned=false,spawnTimer=0,invincible=0,damageFlash=0,grayHits=0,entryGray=0,lowEnergyGray=false,swing=0,spin=0,swingAngle=0,shake=0,hitStop=0;
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
   const MOVE_DISTANCE_PER_ENERGY=16;
   function attackDamage(count){
@@ -234,8 +234,8 @@
     clearTimeout(transitionTimer);energy=0;moveProgress=0;unlocked=0;score=0;round=1;roundKills=0;roundSpawned=0;roundElapsed=0;swordCount=0;elapsed=0;purpleSpawned=false;damageFlash=0;grayHits=0;lowEnergyGray=false;
     ui.elapsedTime.textContent='0:00';
     ui.pauseScreen.classList.add('hidden');
-    enemies.length=0;particles.length=0;
-    player.x=w/2;player.y=(minY()+maxY())/2;invincible=0;entryGray=0;swing=0;spin=0;
+    enemies.length=0;particles.length=0;explosions.length=0;damageNumbers.length=0;
+    player.x=w/2;player.y=(minY()+maxY())/2;invincible=0;entryGray=0;swing=0;spin=0;hitStop=0;
     startSelection(true);
   }
   function gameOver(reason='energy'){
@@ -255,12 +255,38 @@
       particles.push({x,y,vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed,life:.25+Math.random()*.3,max:.55,color});
     }
   }
+  function showDamage(enemy,amount){
+    const columns=[0,-1,1,-2,2];
+    const baseY=enemy.y-enemy.r-22;
+    let x=enemy.x,y=baseY;
+    for(let slot=0;slot<30;slot++){
+      const candidateX=enemy.x+columns[slot%5]*35+(Math.random()-.5)*5;
+      const candidateY=baseY-Math.floor(slot/5)*24;
+      x=candidateX;y=candidateY;
+      if(!damageNumbers.some(number=>Math.abs(number.x-x)<33&&Math.abs(number.y-y)<22))break;
+    }
+    damageNumbers.push({x,y,amount,life:.85,max:.85});
+  }
+  function updateHitEffects(dt){
+    for(let i=particles.length-1;i>=0;i--){
+      const p=particles[i];p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt;
+      if(p.life<=0)particles.splice(i,1);
+    }
+    for(let i=explosions.length-1;i>=0;i--){
+      explosions[i].life-=dt;
+      if(explosions[i].life<=0)explosions.splice(i,1);
+    }
+    for(let i=damageNumbers.length-1;i>=0;i--){
+      const number=damageNumbers[i];number.y-=18*dt;number.life-=dt;
+      if(number.life<=0)damageNumbers.splice(i,1);
+    }
+  }
   function useStoredClock(){
-    if(mode!=='play'||unlocked===0)return;
+    if(mode!=='play'||unlocked===0||hitStop>0)return;
     const icons=unlocked;unlocked=0;setHud();startSelection(false,icons);
   }
   function movePlayer(dx,dy){
-    if(mode!=='play'||energy<=0)return;
+    if(mode!=='play'||energy<=0||hitStop>0)return;
     const length=Math.hypot(dx,dy);if(length<.1)return;
     player.angle=Math.atan2(dy,dx);
     const scale=Math.min(1,(energy*MOVE_DISTANCE_PER_ENERGY-moveProgress)/length),oldX=player.x,oldY=player.y;
@@ -278,7 +304,7 @@
     if(Math.hypot(dx,dy)>8)player.angle=Math.atan2(dy,dx);
   }
   canvas.addEventListener('pointerdown',e=>{
-    if(mode!=='play'||energy<=0)return;
+    if(mode!=='play'||energy<=0||hitStop>0)return;
     e.preventDefault();canvas.setPointerCapture(e.pointerId);
     drag.pointer=e.pointerId;drag.x=e.clientX;drag.y=e.clientY;aimAt(e.clientX,e.clientY);
   });
@@ -322,28 +348,34 @@
   addEventListener('blur',()=>{keys.clear();drag.pointer=null;cancelCharge()});
   function hitEnemies(damage,fullCircle){
     const ax=Math.cos(player.angle),ay=Math.sin(player.angle);
+    let hits=0;
     for(let i=enemies.length-1;i>=0;i--){
       const enemy=enemies[i],dx=enemy.x-player.x,dy=enemy.y-player.y,len=Math.hypot(dx,dy);
       if(len>=player.r+enemy.r+51||(!fullCircle&&len>=25&&(dx*ax+dy*ay)/len<=-.2))continue;
-      enemy.hp-=damage;enemy.hit=.18;burst(enemy.x,enemy.y,enemy.color,6);
+      const knockAngle=len>0?Math.atan2(dy,dx):player.angle;
+      enemy.x+=Math.cos(knockAngle)*4/VIEW_SCALE;enemy.y+=Math.sin(knockAngle)*4/VIEW_SCALE;
+      enemy.hp-=damage;enemy.hit=.18;hits++;
+      explosions.push({x:enemy.x,y:enemy.y,r:enemy.r,life:.45,max:.45});
+      burst(enemy.x,enemy.y,'#fff1c3',15);showDamage(enemy,damage);
       if(enemy.hp>0)continue;
       score++;roundKills++;swordCount++;unlocked=Math.min(10,unlocked+1);burst(enemy.x,enemy.y,enemy.color,11);
       enemies.splice(i,1);
     }
+    if(hits>0){hitStop=.5;drag.pointer=null}
     if(roundKills>=round*10){
       round++;roundKills=0;roundSpawned=0;roundElapsed=0;spawnTimer=0;
       enemies.length=0;
     }
   }
   function attack(){
-    if(mode!=='play'||energy<=0||swing>0||spin>0)return;
+    if(mode!=='play'||energy<=0||swing>0||spin>0||hitStop>0)return;
     const damage=attackDamage(swordCount);
     spendEnergy(1);swing=.27;swingAngle=player.angle;
     hitEnemies(damage,false);
     setHud();checkExhausted();
   }
   function spinAttack(){
-    if(mode!=='play'||energy<=0||swordCount<10||swing>0||spin>0)return;
+    if(mode!=='play'||energy<=0||swordCount<10||swing>0||spin>0||hitStop>0)return;
     const damage=Math.max(5,attackDamage(swordCount));
     swordCount-=10;spin=.55;swingAngle=player.angle;
     hitEnemies(damage,true);
@@ -368,6 +400,7 @@
       return;
     }
     if(mode!=='play')return;
+    if(hitStop>0){hitStop=Math.max(0,hitStop-dt);updateHitEffects(dt);return}
     const previousSecond=Math.floor(elapsed);
     elapsed+=dt;
     const previousRoundSecond=Math.ceil(60-roundElapsed);
@@ -406,10 +439,7 @@
         }
       }
     }
-    for(let i=particles.length-1;i>=0;i--){
-      const p=particles[i];p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt;
-      if(p.life<=0)particles.splice(i,1);
-    }
+    updateHitEffects(dt);
     checkExhausted();
   }
   function drawSword(angle,radius,opacity){
@@ -443,6 +473,18 @@
     }
     for(const p of particles){ctx.globalAlpha=clamp(p.life/p.max,0,1);ctx.fillStyle=p.color;ctx.fillRect(p.x-2,p.y-2,4,4)}
     ctx.globalAlpha=1;
+    for(const explosion of explosions){
+      const progress=1-explosion.life/explosion.max;
+      ctx.save();ctx.globalAlpha=1-progress;ctx.strokeStyle='#fff4ca';ctx.lineWidth=4-progress*3;
+      ctx.shadowColor='#ffb646';ctx.shadowBlur=14;
+      ctx.beginPath();ctx.arc(explosion.x,explosion.y,6+progress*(explosion.r+18),0,Math.PI*2);ctx.stroke();
+      for(let ray=0;ray<8;ray++){
+        const angle=ray*Math.PI/4+progress*.3,inner=explosion.r*.45+progress*8,outer=inner+8+progress*13;
+        ctx.beginPath();ctx.moveTo(explosion.x+Math.cos(angle)*inner,explosion.y+Math.sin(angle)*inner);
+        ctx.lineTo(explosion.x+Math.cos(angle)*outer,explosion.y+Math.sin(angle)*outer);ctx.stroke();
+      }
+      ctx.restore();
+    }
     if(swing>0){ctx.strokeStyle=`rgba(255,224,158,${swing/.27})`;ctx.lineWidth=12;ctx.lineCap='round';ctx.beginPath();ctx.arc(player.x,player.y,49,swingAngle-.95,swingAngle+.95);ctx.stroke()}
     if(spin>0){
       const progress=1-spin/.55,angle=swingAngle+progress*Math.PI*2;
@@ -492,6 +534,14 @@
       const progress=1-spin/.55;
       drawSword(swingAngle+progress*Math.PI*2,53,Math.min(1,spin/.075));
     }
+    ctx.save();ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='900 21px system-ui, sans-serif';ctx.lineWidth=4;ctx.strokeStyle='#182126';
+    for(const number of damageNumbers){
+      ctx.globalAlpha=clamp(number.life/number.max*1.6,0,1);
+      ctx.fillStyle=number.amount>=20?'#ff7266':number.amount>=5?'#ffe284':'#fff8ec';
+      ctx.strokeText(String(number.amount),number.x,number.y);
+      ctx.fillText(String(number.amount),number.x,number.y);
+    }
+    ctx.restore();
     ctx.restore();
   }
   function frame(now){
