@@ -137,6 +137,7 @@
   function spendEnergy(amount){
     const before=energy;
     energy=Math.max(0,energy-amount);
+    if(energy===0)drag.pointer=null;
     if(before>10&&energy<=10)lowEnergyGray=true;
     setHud();
   }
@@ -170,6 +171,7 @@
     transitionTimer=setTimeout(()=>{
       if(mode!=='confirmed')return;
       mode=selectionReason==='start'?'entry':'play';entryGray=selectionReason==='start'?2:0;
+      if(selectionReason==='refill')invincible=Math.max(invincible,2);
       ui.overlay.classList.add('hidden');spawnTimer=0;transitionTimer=null;last=performance.now();setHud();
     },1000);
   }
@@ -213,10 +215,9 @@
     const icons=unlocked;unlocked=0;setHud();startSelection(false,icons);
   }
   function movePlayer(dx,dy){
-    if(mode!=='play')return;
+    if(mode!=='play'||energy<=0)return;
     const length=Math.hypot(dx,dy);if(length<.1)return;
     player.angle=Math.atan2(dy,dx);
-    if(energy<=0)return;
     const scale=Math.min(1,(energy*MOVE_DISTANCE_PER_ENERGY-moveProgress)/length),oldX=player.x,oldY=player.y;
     player.x=clamp(player.x+dx*scale,player.r+4,w-player.r-4);
     player.y=clamp(player.y+dy*scale,minY()+player.r,maxY()-player.r);
@@ -226,21 +227,22 @@
     checkExhausted();
   }
   function aimAt(clientX,clientY){
+    if(mode!=='play'||energy<=0)return;
     const rect=canvas.getBoundingClientRect();
     const dx=(clientX-rect.left)/VIEW_SCALE-player.x,dy=(clientY-rect.top)/VIEW_SCALE-player.y;
     if(Math.hypot(dx,dy)>8)player.angle=Math.atan2(dy,dx);
   }
   canvas.addEventListener('pointerdown',e=>{
-    if(mode!=='play')return;
+    if(mode!=='play'||energy<=0)return;
     e.preventDefault();canvas.setPointerCapture(e.pointerId);
     drag.pointer=e.pointerId;drag.x=e.clientX;drag.y=e.clientY;aimAt(e.clientX,e.clientY);
   });
   canvas.addEventListener('pointermove',e=>{
     if(drag.pointer!==e.pointerId)return;
+    if(mode!=='play'||energy<=0){drag.pointer=null;return}
     e.preventDefault();const dx=e.clientX-drag.x,dy=e.clientY-drag.y;
     drag.x=e.clientX;drag.y=e.clientY;
-    if(energy>0)movePlayer(dx*.8/VIEW_SCALE,dy*.8/VIEW_SCALE);
-    else aimAt(e.clientX,e.clientY);
+    movePlayer(dx*.8/VIEW_SCALE,dy*.8/VIEW_SCALE);
   });
   function endDrag(e){if(drag.pointer===e.pointerId)drag.pointer=null}
   canvas.addEventListener('pointerup',endDrag);
