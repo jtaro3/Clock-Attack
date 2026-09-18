@@ -104,7 +104,7 @@
     face.insertBefore(label,ui.hourHand);
   }
   const stockSlots=[];
-  const hourglassSvg=()=>`<svg class="hourglass-svg" viewBox="0 0 32 32" aria-hidden="true"><path d="M7 2h18M7 30h18M9 3v4c0 4 7 7 7 9s-7 5-7 9v4M23 3v4c0 4-7 7-7 9s7 5 7 9v4"/>${Array.from({length:10},(_,i)=>`<rect class="sand-step" x="${10+i*.5}" y="${26-i}" width="${12-i}" height=".8"/>`).join('')}</svg>`;
+  const hourglassSvg=()=>`<svg class="hourglass-svg" viewBox="0 0 32 32" aria-hidden="true"><path d="M7 2h18M7 30h18M9 3v4c0 4 7 7 7 9s-7 5-7 9v4M23 3v4c0 4-7 7-7 9s7 5 7 9v4"/>${Array.from({length:10},(_,i)=>`<rect class="sand-step" x="${10+i*.5}" y="${26-i}" width="${12-i}" height=".8"/>`).join('')}${Array.from({length:10},(_,i)=>`<rect class="sand-settled" x="${10+i*.5}" y="${5+i}" width="${12-i}" height=".8"/>`).join('')}<path class="sand-stream" d="M16 16V6"/></svg>`;
   ui.buttonHourglass.innerHTML=hourglassSvg();
   ui.buttonHourglass.querySelectorAll('.sand-step').forEach((step,i)=>step.classList.toggle('filled',i<5));
   ui.previewHourglass.innerHTML=hourglassSvg();
@@ -115,6 +115,7 @@
   }
   function showSand(steps){
     ui.previewHourglass.querySelectorAll('.sand-step').forEach((step,i)=>step.classList.toggle('filled',i<steps));
+    ui.previewHourglass.querySelectorAll('.sand-settled').forEach(step=>step.classList.remove('filled'));
     ui.previewSandCount.textContent=`砂のビン ${steps}/10`;
   }
 
@@ -137,7 +138,7 @@
     ui.energyBar.setAttribute('aria-valuetext',energy===0&&unlocked>0?`行動力0、灰色状態での被弾 ${grayHits} / 3`:`行動力 ${energy}`);
     ui.attackCount.textContent=swordCount;
     ui.clockCount.textContent=unlocked;
-    showSand(selectionReason==='refill'&&['select','turning','confirmed'].includes(mode)?selectionIcons:unlocked);
+    if(mode!=='turning'&&mode!=='confirmed')showSand(selectionReason==='refill'&&mode==='select'?selectionIcons:unlocked);
     ui.clockButton.disabled=mode!=='play'||unlocked===0;
     ui.pauseButton.disabled=mode!=='play';
     ui.clockButton.classList.toggle('ready',mode==='play'&&unlocked>0);
@@ -167,7 +168,7 @@
     ui.overlay.classList.remove('hidden');
     ui.panel.classList.remove('gameover','paused','confirmed','refill','turning');ui.panel.classList.add('selecting');
     ui.panel.classList.toggle('refill',!initial);
-    ui.sandPreview.classList.remove('flipped');
+    ui.sandPreview.classList.remove('flipped','flowing');
     ui.eyebrow.textContent=initial?'3秒で一周する時計':'砂時計';
     ui.title.textContent=initial?'時を止めて、戦え。':'砂時計を返そう';
     ui.description.textContent='';
@@ -180,11 +181,28 @@
     if(selectionReason==='refill'){
       mode='turning';ui.stop.disabled=true;ui.debug.disabled=true;
       ui.panel.classList.add('turning');ui.sandPreview.classList.add('flipped');setHud();
-      transitionTimer=setTimeout(()=>finishClock(debug),650);
+      transitionTimer=setTimeout(()=>flowSand(debug),650);
       return;
     }
     updateClock(performance.now());
     finishClock(debug);
+  }
+  function flowSand(debug){
+    if(mode!=='turning')return;
+    ui.sandPreview.classList.add('flowing');
+    const upper=ui.previewHourglass.querySelectorAll('.sand-step');
+    const lower=ui.previewHourglass.querySelectorAll('.sand-settled');
+    let poured=0;
+    const pour=()=>{
+      if(mode!=='turning')return;
+      upper[selectionIcons-1-poured].classList.remove('filled');
+      lower[poured].classList.add('filled');
+      poured++;
+      transitionTimer=setTimeout(poured<selectionIcons?pour:()=>{
+        ui.sandPreview.classList.remove('flowing');finishClock(debug);
+      },poured<selectionIcons?1200/selectionIcons:250);
+    };
+    transitionTimer=setTimeout(pour,1200/selectionIcons);
   }
   function finishClock(debug){
     const gained=debug||selectionReason==='start'?100:Math.min(100,selectionIcons*10);
@@ -222,7 +240,7 @@
   }
   function gameOver(reason='energy'){
     clearTimeout(transitionTimer);cancelCharge();mode='gameover';drag.pointer=null;
-    ui.overlay.classList.remove('hidden');ui.panel.classList.remove('selecting','paused','confirmed');ui.panel.classList.add('gameover');
+    ui.overlay.classList.remove('hidden');ui.panel.classList.remove('selecting','paused','confirmed','refill','turning');ui.panel.classList.add('gameover');
     ui.eyebrow.textContent='GAME OVER';ui.title.textContent=`討伐 ${score} 体`;
     ui.description.textContent=reason==='time'?`ラウンド ${round} の制限時間が終了しました。`:grayHits>=3?'灰色状態で3回攻撃を受けました。もう一度挑戦しよう。':'行動力がなくなりました。もう一度挑戦しよう。';
     ui.stop.disabled=false;ui.stop.textContent='もう一度遊ぶ';ui.sub.textContent='';setHud();
