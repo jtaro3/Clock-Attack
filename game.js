@@ -200,9 +200,9 @@
       poured++;
       transitionTimer=setTimeout(poured<selectionIcons?pour:()=>{
         ui.sandPreview.classList.remove('flowing');finishClock(debug);
-      },poured<selectionIcons?1200/selectionIcons:250);
+      },poured<selectionIcons?800/selectionIcons:250);
     };
-    transitionTimer=setTimeout(pour,1200/selectionIcons);
+    transitionTimer=setTimeout(pour,800/selectionIcons);
   }
   function finishClock(debug){
     const gained=debug||selectionReason==='start'?100:Math.min(100,selectionIcons*10);
