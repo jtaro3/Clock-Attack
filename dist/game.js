@@ -134,8 +134,10 @@
     ui.clockButton.disabled=mode!=='play'||unlocked===0;
     ui.pauseButton.disabled=mode!=='play';
     ui.clockButton.classList.toggle('ready',mode==='play'&&unlocked>0);
+    ui.clockButton.classList.toggle('stock-full',unlocked>=10);
     ui.attack.disabled=mode!=='play'||energy<=0;
     ui.attack.classList.toggle('available',mode==='play'&&energy>0);
+    ui.attack.classList.toggle('spin-ready',swordCount>=10);
     ui.energyBar.classList.toggle('hit',damageFlash>0);
     for(let i=0;i<stockSlots.length;i++){
       stockSlots[i].classList.toggle('unlocked',i<unlocked);
@@ -195,7 +197,7 @@
     ui.resultValue.textContent=gained;
     ui.eyebrow.textContent='行動力を取得';ui.title.textContent=`+${gained}`;
     ui.description.textContent=`元の値と合わせて行動力 ${energy}。1秒後に戦闘を再開します。`;
-    ui.stop.disabled=true;ui.debug.disabled=true;ui.stop.textContent='まもなく開始';ui.sub.textContent='';setHud();
+    ui.stop.disabled=true;ui.debug.disabled=true;ui.stop.textContent='';ui.sub.textContent='まもなく開始';setHud();
     transitionTimer=setTimeout(()=>{
       if(mode!=='confirmed')return;
       mode=selectionReason==='start'?'entry':'play';entryGray=selectionReason==='start'?2:0;
