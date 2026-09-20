@@ -52,8 +52,9 @@
   const charge={pointer:null,start:0,timer:null};
   const keys=new Set();
   let w=0,h=0,dpr=1,last=performance.now(),clockOrigin=last-61/1440*3000;
-  let mode='select',selectionReason='start',selectionIcons=0,selectionKills=0,transitionTimer=null;
+  let mode='select',selectionReason='start',selectionIcons=0,selectionRecovery=0,transitionTimer=null;
   let energy=0,moveProgress=0,unlocked=0,score=0,round=1,roundKills=0,roundSpawned=0,swordCount=0,elapsed=0,timeSinceKill=0,purpleSpawned=false,spawnTimer=0,invincible=0,damageFlash=0,grayHits=0,entryGray=0,lowEnergyGray=false,swing=0,spin=0,swingAngle=0,shake=0,hitStop=0;
+  const sandBottles=[];
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
   const MOVE_DISTANCE_PER_ENERGY=16;
   const SLIME_TYPES={
@@ -146,8 +147,10 @@
     ui.attack.classList.toggle('spin-ready',swordCount>=10);
     ui.energyBar.classList.toggle('hit',damageFlash>0);
     for(let i=0;i<stockSlots.length;i++){
-      stockSlots[i].classList.toggle('unlocked',i<unlocked);
-      stockSlots[i].title=`砂のビン ${i+1}: ${i<unlocked?'砂入り':'空'}`;
+      const bottle=sandBottles[i];
+      stockSlots[i].classList.toggle('unlocked',Boolean(bottle));
+      stockSlots[i].style.setProperty('--bottle-color',bottle?.color||'#fff9e8');
+      stockSlots[i].title=`砂のビン ${i+1}: ${bottle?`${bottle.kind}・回復${bottle.recovery}`:'空'}`;
     }
   }
   function spendEnergy(amount){
@@ -161,9 +164,9 @@
     clearTimeout(charge.timer);charge.pointer=null;charge.timer=null;
     ui.attack.classList.remove('charging');ui.attack.style.setProperty('--charge','0%');
   }
-  function startSelection(initial=false,icons=0){
+  function startSelection(initial=false,icons=0,recovery=0){
     clearTimeout(transitionTimer);transitionTimer=null;cancelCharge();
-    mode='select';selectionReason=initial?'start':'refill';selectionIcons=icons;selectionKills=initial?0:score;drag.pointer=null;shake=0;
+    mode='select';selectionReason=initial?'start':'refill';selectionIcons=icons;selectionRecovery=initial?100:recovery;drag.pointer=null;shake=0;
     clockOrigin=performance.now()-(initial?61/1440*3000:0);
     ui.overlay.classList.remove('hidden');
     ui.killWarning.classList.add('hidden');
@@ -198,7 +201,7 @@
     },533);
   }
   function finishClock(debug){
-    const gained=debug||selectionReason==='start'?100:Math.floor(selectionIcons*10*(1+selectionKills/100));
+    const gained=debug||selectionReason==='start'?100:selectionRecovery;
     energy+=gained;moveProgress=0;grayHits=0;lowEnergyGray=false;
     mode='confirmed';ui.panel.classList.remove('selecting','turning');ui.panel.classList.add('confirmed');
     ui.resultValue.textContent=gained;
@@ -224,7 +227,7 @@
     mode='play';ui.pauseScreen.classList.add('hidden');last=performance.now();setHud();
   });
   function restart(){
-    clearTimeout(transitionTimer);energy=0;moveProgress=0;unlocked=0;score=0;round=1;roundKills=0;roundSpawned=0;swordCount=0;elapsed=0;timeSinceKill=0;purpleSpawned=false;damageFlash=0;grayHits=0;lowEnergyGray=false;
+    clearTimeout(transitionTimer);energy=0;moveProgress=0;unlocked=0;sandBottles.length=0;score=0;round=1;roundKills=0;roundSpawned=0;swordCount=0;elapsed=0;timeSinceKill=0;purpleSpawned=false;damageFlash=0;grayHits=0;lowEnergyGray=false;
     ui.elapsedTime.textContent='0:00';
     ui.pauseScreen.classList.add('hidden');
     ui.killWarning.classList.add('hidden');
@@ -282,7 +285,8 @@
   }
   function useStoredClock(){
     if(mode!=='play'||unlocked===0||hitStop>0)return;
-    const icons=unlocked;unlocked=0;setHud();startSelection(false,icons);
+    const icons=unlocked,recovery=sandBottles.reduce((total,bottle)=>total+bottle.recovery,0);
+    sandBottles.length=0;unlocked=0;setHud();startSelection(false,icons,recovery);
   }
   function movePlayer(dx,dy){
     if(mode!=='play'||energy<=0||hitStop>0)return;
@@ -358,7 +362,9 @@
       burst(enemy.x,enemy.y,'#fff1c3',15);showDamage(enemy,damage);
       if(enemy.hp>0)continue;
       defeated=true;deadEnemies.push({...enemy,deathTime:.45});
-      score++;roundKills++;swordCount++;unlocked=Math.min(10,unlocked+1);timeSinceKill=0;ui.killWarning.classList.add('hidden');burst(enemy.x,enemy.y,enemy.color,11);
+      score++;roundKills++;swordCount++;
+      if(sandBottles.length<10)sandBottles.push({kind:enemy.kind,color:enemy.color,recovery:enemy.hpMax*10});
+      unlocked=sandBottles.length;timeSinceKill=0;ui.killWarning.classList.add('hidden');burst(enemy.x,enemy.y,enemy.color,11);
       enemies.splice(i,1);
     }
     if(defeated){hitStop=.1;drag.pointer=null}
