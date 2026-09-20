@@ -2,7 +2,7 @@
   'use strict';
   const $=id=>document.getElementById(id);
   const canvas=$('field'),ctx=canvas.getContext('2d');
-  const ui={overlay:$('overlay'),panel:$('panel'),title:$('title'),eyebrow:$('eyebrow'),description:$('description'),resultValue:$('resultValue'),hourHand:$('hourHand'),minuteHand:$('minuteHand'),stop:$('stop'),debug:$('debug'),sub:$('sub'),score:$('score'),roundNumber:$('roundNumber'),roundTarget:$('roundTarget'),roundTime:$('roundTime'),elapsedTime:$('elapsedTime'),energyValue:$('energyValue'),energyFill:$('energyFill'),grayDamageFill:$('grayDamageFill'),energyBar:document.querySelector('.energy-bar'),attackCount:$('attackCount'),clockCount:$('clockCount'),clockButton:$('clockButton'),clockStock:$('clockStock'),buttonHourglass:$('buttonHourglass'),sandPreview:$('sandPreview'),previewHourglass:$('previewHourglass'),previewSandCount:$('previewSandCount'),attack:$('attack'),pauseButton:$('pauseButton'),pauseScreen:$('pauseScreen'),resumeButton:$('resumeButton')};
+  const ui={overlay:$('overlay'),panel:$('panel'),title:$('title'),eyebrow:$('eyebrow'),description:$('description'),resultValue:$('resultValue'),hourHand:$('hourHand'),minuteHand:$('minuteHand'),stop:$('stop'),debug:$('debug'),sub:$('sub'),score:$('score'),roundNumber:$('roundNumber'),roundTarget:$('roundTarget'),elapsedTime:$('elapsedTime'),energyValue:$('energyValue'),energyFill:$('energyFill'),grayDamageFill:$('grayDamageFill'),energyBar:document.querySelector('.energy-bar'),attackCount:$('attackCount'),clockCount:$('clockCount'),clockButton:$('clockButton'),clockStock:$('clockStock'),buttonHourglass:$('buttonHourglass'),sandPreview:$('sandPreview'),previewSandCount:$('previewSandCount'),previewHourglass:$('previewHourglass'),killWarning:$('killWarning'),killCountdown:$('killCountdown'),attack:$('attack'),pauseButton:$('pauseButton'),pauseScreen:$('pauseScreen'),resumeButton:$('resumeButton')};
   const player={x:0,y:0,r:14,angle:-Math.PI/2};
   // 上から時計回り: 背面、背面右、右、正面右、正面、正面左、左、背面左。
   const spriteBounds=[[386,362,850,928],[396,376,846,930],[432,356,812,956],[396,344,836,952],[386,350,866,946],[374,340,862,916],[394,344,828,926],[396,324,828,922]];
@@ -47,15 +47,23 @@
   let terrainCanvas=null;
   tileImage.onload=()=>renderTerrain();
   tileImage.src=mapTools.tileSheet;
-  const enemies=[],particles=[],explosions=[],damageNumbers=[];
+  const enemies=[],deadEnemies=[],particles=[],explosions=[],damageNumbers=[];
   const drag={pointer:null,x:0,y:0};
   const charge={pointer:null,start:0,timer:null};
   const keys=new Set();
   let w=0,h=0,dpr=1,last=performance.now(),clockOrigin=last-61/1440*3000;
-  let mode='select',selectionReason='start',selectionIcons=0,transitionTimer=null;
-  let energy=0,moveProgress=0,unlocked=0,score=0,round=1,roundKills=0,roundSpawned=0,roundElapsed=0,swordCount=0,elapsed=0,purpleSpawned=false,spawnTimer=0,invincible=0,damageFlash=0,grayHits=0,entryGray=0,lowEnergyGray=false,swing=0,spin=0,swingAngle=0,shake=0,hitStop=0;
+  let mode='select',selectionReason='start',selectionIcons=0,selectionKills=0,transitionTimer=null;
+  let energy=0,moveProgress=0,unlocked=0,score=0,round=1,roundKills=0,roundSpawned=0,swordCount=0,elapsed=0,timeSinceKill=0,purpleSpawned=false,spawnTimer=0,invincible=0,damageFlash=0,grayHits=0,entryGray=0,lowEnergyGray=false,swing=0,spin=0,swingAngle=0,shake=0,hitStop=0;
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
   const MOVE_DISTANCE_PER_ENERGY=16;
+  const SLIME_TYPES={
+    blue:{kind:'blue',hp:1,attack:1,color:'#66c8ee',radius:14},
+    green:{kind:'green',hp:2,attack:1,color:'#74d590',radius:16},
+    red:{kind:'red',hp:3,attack:1,color:'#e97a83',radius:18},
+    purple:{kind:'purple',hp:10,attack:5,color:'#b679e5',radius:22},
+    black:{kind:'black',hp:20,attack:10,color:'#171a20',radius:24,knockback:false},
+    metal:{kind:'metal',hp:50,attack:20,color:'#bec8d1',radius:26}
+  };
   function attackDamage(count){
     if(count>0&&count%100===0)return 20;
     return count>0&&count%50===0?5:1;
@@ -96,15 +104,8 @@
     tick.className='tick';tick.style.transform=`translate(-50%,-50%) translate(${Math.sin(angle)*r}px,${-Math.cos(angle)*r}px) rotate(${i*6}deg)`;
     tick.style.height=i%5?'5px':'10px';face.insertBefore(tick,ui.hourHand);
   }
-  for(let n=1;n<=12;n++){
-    const label=document.createElement('span'),angle=n*Math.PI/6,r=face.offsetWidth*.35;
-    label.className='numeral';label.textContent=n;
-    label.style.left=`calc(50% + ${Math.sin(angle)*r}px)`;
-    label.style.top=`calc(50% - ${Math.cos(angle)*r}px)`;
-    face.insertBefore(label,ui.hourHand);
-  }
   const stockSlots=[];
-  const hourglassSvg=()=>`<svg class="hourglass-svg" viewBox="0 0 32 32" aria-hidden="true"><path d="M7 2h18M7 30h18M9 3v4c0 4 7 7 7 9s-7 5-7 9v4M23 3v4c0 4-7 7-7 9s7 5 7 9v4"/>${Array.from({length:10},(_,i)=>`<rect class="sand-step" x="${10+i*.5}" y="${26-i}" width="${12-i}" height=".8"/>`).join('')}${Array.from({length:10},(_,i)=>`<rect class="sand-settled" x="${10+i*.5}" y="${5+i}" width="${12-i}" height=".8"/>`).join('')}<path class="sand-stream" d="M16 16V6"/></svg>`;
+  const hourglassSvg=()=>`<svg class="hourglass-svg" viewBox="0 0 32 32" aria-hidden="true"><path d="M7 2h18M7 30h18M9 3v4c0 4 7 7 7 9s-7 5-7 9v4M23 3v4c0 4-7 7-7 9s7 5 7 9v4"/>${Array.from({length:10},(_,i)=>`<rect class="sand-step" x="${10+i*.5}" y="${26-i}" width="${12-i}" height=".8"/>`).join('')}<path class="sand-source" d="M16 16.5 22 27H10Z"/><path class="sand-target" d="M10 5H22L16 12Z"/><path class="sand-stream" d="M16 16V6"/></svg>`;
   ui.buttonHourglass.innerHTML=hourglassSvg();
   ui.buttonHourglass.querySelectorAll('.sand-step').forEach((step,i)=>step.classList.toggle('filled',i<5));
   ui.previewHourglass.innerHTML=hourglassSvg();
@@ -114,8 +115,7 @@
     ui.clockStock.appendChild(slot);stockSlots.push(slot);
   }
   function showSand(steps){
-    ui.previewHourglass.querySelectorAll('.sand-step').forEach((step,i)=>step.classList.toggle('filled',i<steps));
-    ui.previewHourglass.querySelectorAll('.sand-settled').forEach(step=>step.classList.remove('filled'));
+    ui.previewHourglass.style.setProperty('--sand-level',String(steps/10));
     ui.previewSandCount.textContent=`砂のビン ${steps}/10`;
   }
 
@@ -128,8 +128,6 @@
     ui.score.textContent=roundKills;
     ui.roundNumber.textContent=round;
     ui.roundTarget.textContent=round*10;
-    const secondsLeft=Math.ceil(Math.max(0,60-roundElapsed));
-    ui.roundTime.textContent=`${Math.floor(secondsLeft/60)}:${String(secondsLeft%60).padStart(2,'0')}`;
     ui.energyValue.textContent=energy;
     ui.energyFill.style.width=`${Math.min(100,energy)}%`;
     ui.grayDamageFill.style.width=energy===0?`${grayHits/3*100}%`:'0%';
@@ -142,8 +140,10 @@
     ui.clockButton.disabled=mode!=='play'||unlocked===0;
     ui.pauseButton.disabled=mode!=='play';
     ui.clockButton.classList.toggle('ready',mode==='play'&&unlocked>0);
+    ui.clockButton.classList.toggle('stock-full',unlocked>=10);
     ui.attack.disabled=mode!=='play'||energy<=0;
     ui.attack.classList.toggle('available',mode==='play'&&energy>0);
+    ui.attack.classList.toggle('spin-ready',swordCount>=10);
     ui.energyBar.classList.toggle('hit',damageFlash>0);
     for(let i=0;i<stockSlots.length;i++){
       stockSlots[i].classList.toggle('unlocked',i<unlocked);
@@ -163,13 +163,14 @@
   }
   function startSelection(initial=false,icons=0){
     clearTimeout(transitionTimer);transitionTimer=null;cancelCharge();
-    mode='select';selectionReason=initial?'start':'refill';selectionIcons=icons;drag.pointer=null;
+    mode='select';selectionReason=initial?'start':'refill';selectionIcons=icons;selectionKills=initial?0:score;drag.pointer=null;shake=0;
     clockOrigin=performance.now()-(initial?61/1440*3000:0);
     ui.overlay.classList.remove('hidden');
+    ui.killWarning.classList.add('hidden');
     ui.panel.classList.remove('gameover','paused','confirmed','refill','turning');ui.panel.classList.add('selecting');
     ui.panel.classList.toggle('refill',!initial);
-    ui.sandPreview.classList.remove('flipped','flowing');
-    ui.eyebrow.textContent=initial?'3秒で一周する時計':'砂時計';
+    ui.sandPreview.classList.remove('flipped','flowing','flowed');
+    ui.eyebrow.textContent=initial?'':'砂時計';
     ui.title.textContent=initial?'時を止めて、戦え。':'砂時計を返そう';
     ui.description.textContent='';
     ui.resultValue.textContent='';ui.stop.disabled=false;ui.stop.textContent='光を';ui.debug.disabled=false;
@@ -181,7 +182,7 @@
     if(selectionReason==='refill'){
       mode='turning';ui.stop.disabled=true;ui.debug.disabled=true;
       ui.panel.classList.add('turning');ui.sandPreview.classList.add('flipped');setHud();
-      transitionTimer=setTimeout(()=>flowSand(debug),650);
+      transitionTimer=setTimeout(()=>flowSand(debug),433);
       return;
     }
     updateClock(performance.now());
@@ -190,33 +191,25 @@
   function flowSand(debug){
     if(mode!=='turning')return;
     ui.sandPreview.classList.add('flowing');
-    const upper=ui.previewHourglass.querySelectorAll('.sand-step');
-    const lower=ui.previewHourglass.querySelectorAll('.sand-settled');
-    let poured=0;
-    const pour=()=>{
+    transitionTimer=setTimeout(()=>{
       if(mode!=='turning')return;
-      upper[selectionIcons-1-poured].classList.remove('filled');
-      lower[poured].classList.add('filled');
-      poured++;
-      transitionTimer=setTimeout(poured<selectionIcons?pour:()=>{
-        ui.sandPreview.classList.remove('flowing');finishClock(debug);
-      },poured<selectionIcons?800/selectionIcons:250);
-    };
-    transitionTimer=setTimeout(pour,800/selectionIcons);
+      ui.sandPreview.classList.remove('flowing');ui.sandPreview.classList.add('flowed');
+      transitionTimer=setTimeout(()=>finishClock(debug),167);
+    },533);
   }
   function finishClock(debug){
-    const gained=debug||selectionReason==='start'?100:Math.min(100,selectionIcons*10);
+    const gained=debug||selectionReason==='start'?100:Math.floor(selectionIcons*10*(1+selectionKills/100));
     energy+=gained;moveProgress=0;grayHits=0;lowEnergyGray=false;
     mode='confirmed';ui.panel.classList.remove('selecting','turning');ui.panel.classList.add('confirmed');
     ui.resultValue.textContent=gained;
     ui.eyebrow.textContent='行動力を取得';ui.title.textContent=`+${gained}`;
     ui.description.textContent=`元の値と合わせて行動力 ${energy}。1秒後に戦闘を再開します。`;
-    ui.stop.disabled=true;ui.debug.disabled=true;ui.stop.textContent='まもなく開始';ui.sub.textContent='';setHud();
+    ui.stop.disabled=true;ui.debug.disabled=true;ui.stop.textContent='';ui.sub.textContent='まもなく開始';setHud();
     transitionTimer=setTimeout(()=>{
       if(mode!=='confirmed')return;
       mode=selectionReason==='start'?'entry':'play';entryGray=selectionReason==='start'?2:0;
       if(selectionReason==='refill')invincible=Math.max(invincible,2);
-      ui.overlay.classList.add('hidden');spawnTimer=0;transitionTimer=null;last=performance.now();setHud();
+      ui.overlay.classList.add('hidden');spawnTimer=0;shake=0;transitionTimer=null;last=performance.now();setHud();
     },1000);
   }
   ui.stop.addEventListener('click',()=>stopClock());
@@ -231,18 +224,20 @@
     mode='play';ui.pauseScreen.classList.add('hidden');last=performance.now();setHud();
   });
   function restart(){
-    clearTimeout(transitionTimer);energy=0;moveProgress=0;unlocked=0;score=0;round=1;roundKills=0;roundSpawned=0;roundElapsed=0;swordCount=0;elapsed=0;purpleSpawned=false;damageFlash=0;grayHits=0;lowEnergyGray=false;
+    clearTimeout(transitionTimer);energy=0;moveProgress=0;unlocked=0;score=0;round=1;roundKills=0;roundSpawned=0;swordCount=0;elapsed=0;timeSinceKill=0;purpleSpawned=false;damageFlash=0;grayHits=0;lowEnergyGray=false;
     ui.elapsedTime.textContent='0:00';
     ui.pauseScreen.classList.add('hidden');
-    enemies.length=0;particles.length=0;explosions.length=0;damageNumbers.length=0;
+    ui.killWarning.classList.add('hidden');
+    enemies.length=0;deadEnemies.length=0;particles.length=0;explosions.length=0;damageNumbers.length=0;
     player.x=w/2;player.y=(minY()+maxY())/2;invincible=0;entryGray=0;swing=0;spin=0;hitStop=0;
     startSelection(true);
   }
   function gameOver(reason='energy'){
     clearTimeout(transitionTimer);cancelCharge();mode='gameover';drag.pointer=null;
+    ui.killWarning.classList.add('hidden');
     ui.overlay.classList.remove('hidden');ui.panel.classList.remove('selecting','paused','confirmed','refill','turning');ui.panel.classList.add('gameover');
     ui.eyebrow.textContent='GAME OVER';ui.title.textContent=`討伐 ${score} 体`;
-    ui.description.textContent=reason==='time'?`ラウンド ${round} の制限時間が終了しました。`:grayHits>=3?'灰色状態で3回攻撃を受けました。もう一度挑戦しよう。':'行動力がなくなりました。もう一度挑戦しよう。';
+    ui.description.textContent=reason==='no-kill'?'一定時間、敵を倒せませんでした。もう一度挑戦しよう。':grayHits>=3?'灰色状態で3回攻撃を受けました。もう一度挑戦しよう。':'行動力がなくなりました。もう一度挑戦しよう。';
     ui.stop.disabled=false;ui.stop.textContent='もう一度遊ぶ';ui.sub.textContent='';setHud();
   }
   function checkExhausted(){
@@ -268,6 +263,10 @@
     damageNumbers.push({x,y,amount,life:.85,max:.85});
   }
   function updateHitEffects(dt){
+    for(let i=deadEnemies.length-1;i>=0;i--){
+      deadEnemies[i].deathTime-=dt;
+      if(deadEnemies[i].deathTime<=0)deadEnemies.splice(i,1);
+    }
     for(let i=particles.length-1;i>=0;i--){
       const p=particles[i];p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt;
       if(p.life<=0)particles.splice(i,1);
@@ -348,22 +347,23 @@
   addEventListener('blur',()=>{keys.clear();drag.pointer=null;cancelCharge()});
   function hitEnemies(damage,fullCircle){
     const ax=Math.cos(player.angle),ay=Math.sin(player.angle);
-    let hits=0;
+    let defeated=false;
     for(let i=enemies.length-1;i>=0;i--){
       const enemy=enemies[i],dx=enemy.x-player.x,dy=enemy.y-player.y,len=Math.hypot(dx,dy);
       if(len>=player.r+enemy.r+51||(!fullCircle&&len>=25&&(dx*ax+dy*ay)/len<=-.2))continue;
       const knockAngle=len>0?Math.atan2(dy,dx):player.angle;
-      enemy.x+=Math.cos(knockAngle)*4/VIEW_SCALE;enemy.y+=Math.sin(knockAngle)*4/VIEW_SCALE;
-      enemy.hp-=damage;enemy.hit=.18;hits++;
+      if(enemy.knockback){enemy.x+=Math.cos(knockAngle)*15/VIEW_SCALE;enemy.y+=Math.sin(knockAngle)*15/VIEW_SCALE}
+      enemy.hp-=damage;enemy.hit=.18;
       explosions.push({x:enemy.x,y:enemy.y,r:enemy.r,life:.45,max:.45});
       burst(enemy.x,enemy.y,'#fff1c3',15);showDamage(enemy,damage);
       if(enemy.hp>0)continue;
-      score++;roundKills++;swordCount++;unlocked=Math.min(10,unlocked+1);burst(enemy.x,enemy.y,enemy.color,11);
+      defeated=true;deadEnemies.push({...enemy,deathTime:.45});
+      score++;roundKills++;swordCount++;unlocked=Math.min(10,unlocked+1);timeSinceKill=0;ui.killWarning.classList.add('hidden');burst(enemy.x,enemy.y,enemy.color,11);
       enemies.splice(i,1);
     }
-    if(hits>0){hitStop=.5;drag.pointer=null}
+    if(defeated){hitStop=.1;drag.pointer=null}
     if(roundKills>=round*10){
-      round++;roundKills=0;roundSpawned=0;roundElapsed=0;spawnTimer=0;
+      round++;roundKills=0;roundSpawned=0;spawnTimer=0;
       enemies.length=0;
     }
   }
@@ -384,13 +384,16 @@
   function spawn(forcePurple=false){
     if(roundSpawned>=round*10)return;
     const purple=forcePurple||elapsed>=60&&Math.random()<.15;
-    const hp=purple?10:1+Math.floor(Math.random()*3),edge=Math.floor(Math.random()*4),r=purple?22:12+hp*2;
+    const normalTypes=round>=4?[SLIME_TYPES.green,SLIME_TYPES.red,SLIME_TYPES.black]:[SLIME_TYPES.blue,SLIME_TYPES.green,SLIME_TYPES.red];
+    if(round>=5&&!enemies.some(enemy=>enemy.kind==='metal'))normalTypes.push(SLIME_TYPES.metal);
+    const type=purple?SLIME_TYPES.purple:normalTypes[Math.floor(Math.random()*normalTypes.length)];
+    const hp=type.hp,edge=Math.floor(Math.random()*4),r=type.radius;
     let x,y;
     if(edge===0){x=-r;y=minY()+Math.random()*(maxY()-minY())}
     else if(edge===1){x=w+r;y=minY()+Math.random()*(maxY()-minY())}
     else if(edge===2){x=Math.random()*w;y=minY()-r}
     else{x=Math.random()*w;y=maxY()+r}
-    enemies.push({x,y,r,hp,hpMax:hp,color:purple?'#b679e5':['#66c8ee','#74d590','#e97a83'][hp-1],speed:21+Math.random()*12+score*.3,hit:0,wobble:Math.random()*6.28});
+    enemies.push({x,y,r,hp,hpMax:hp,kind:type.kind,attack:type.attack,knockback:type.knockback!==false,color:type.color,speed:21+Math.random()*12+score*.3,hit:0,wobble:Math.random()*6.28});
     roundSpawned++;
   }
   function update(dt){
@@ -403,10 +406,13 @@
     if(hitStop>0){hitStop=Math.max(0,hitStop-dt);updateHitEffects(dt);return}
     const previousSecond=Math.floor(elapsed);
     elapsed+=dt;
-    const previousRoundSecond=Math.ceil(60-roundElapsed);
-    roundElapsed+=dt;
-    if(roundElapsed>=60){roundElapsed=60;gameOver('time');return}
-    if(Math.ceil(60-roundElapsed)!==previousRoundSecond)setHud();
+    if(score>0)timeSinceKill+=dt;
+    if(score>0&&timeSinceKill>=60){
+      const countdown=Math.ceil(65-timeSinceKill);
+      if(countdown<=0){gameOver('no-kill');return}
+      ui.killCountdown.textContent=countdown;
+      ui.killWarning.classList.remove('hidden');
+    }
     if(Math.floor(elapsed)!==previousSecond){
       const seconds=Math.floor(elapsed);
       ui.elapsedTime.textContent=`${Math.floor(seconds/60)}:${String(seconds%60).padStart(2,'0')}`;
@@ -429,8 +435,10 @@
       enemy.x+=ex/len*enemy.speed*dt;enemy.y+=ey/len*enemy.speed*dt;
       if(len<player.r+enemy.r-3&&invincible<=0){
         damageFlash=.5;
+        player.x=clamp(player.x+ex/len*4/VIEW_SCALE,player.r+4,w-player.r-4);
+        player.y=clamp(player.y+ey/len*4/VIEW_SCALE,minY()+player.r,maxY()-player.r);
         if(energy===0&&unlocked>0){grayHits=Math.min(3,grayHits+1);setHud()}
-        else spendEnergy(1);
+        else spendEnergy(enemy.attack*round);
         invincible=1.15;shake=.2;burst(player.x,player.y,'#fff4dc',9);
         if(grayHits>=3){
           mode='defeated';drag.pointer=null;cancelCharge();setHud();
@@ -458,13 +466,16 @@
     if(terrainCanvas){ctx.imageSmoothingEnabled=false;ctx.drawImage(terrainCanvas,0,0);ctx.imageSmoothingEnabled=true}
     else{ctx.fillStyle='#447a45';ctx.fillRect(0,0,w,h)}
     ctx.strokeStyle='#e7d49e55';ctx.lineWidth=2;ctx.strokeRect(8,minY(),w-16,maxY()-minY());
-    for(const enemy of enemies){
+    for(const enemy of [...enemies,...deadEnemies]){
+      const dying=enemy.deathTime!==undefined;
+      if(dying&&Math.floor(now/55)%2===0)continue;
       const y=enemy.y+Math.sin(enemy.wobble)*2;
       ctx.fillStyle='#0b172277';ctx.beginPath();ctx.ellipse(enemy.x,y+enemy.r*.8,enemy.r,5,0,0,Math.PI*2);ctx.fill();
       ctx.fillStyle=enemy.hit>0?'#fff':enemy.color;ctx.beginPath();ctx.arc(enemy.x,y,enemy.r,Math.PI,0);
       ctx.quadraticCurveTo(enemy.x+enemy.r,y+enemy.r*.85,enemy.x,y+enemy.r*.7);
       ctx.quadraticCurveTo(enemy.x-enemy.r,y+enemy.r*.85,enemy.x-enemy.r,y);ctx.fill();
       ctx.fillStyle='#24333b';ctx.beginPath();ctx.arc(enemy.x-5,y-2,2,0,7);ctx.arc(enemy.x+5,y-2,2,0,7);ctx.fill();
+      if(dying)continue;
       const barW=Math.max(34,enemy.r*2),barX=enemy.x-barW/2,barY=y-enemy.r-12;
       ctx.fillStyle='#17242adf';ctx.fillRect(barX-2,barY-2,barW+4,8);
       ctx.fillStyle='#642d35';ctx.fillRect(barX,barY,barW,4);
