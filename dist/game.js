@@ -60,8 +60,8 @@
     blue:{hp:1,attack:1,color:'#66c8ee',radius:14},
     green:{hp:2,attack:1,color:'#74d590',radius:16},
     red:{hp:3,attack:1,color:'#e97a83',radius:18},
-    purple:{hp:10,attack:3,color:'#b679e5',radius:22},
-    black:{hp:20,attack:4,color:'#171a20',radius:24,knockback:false}
+    purple:{hp:10,attack:5,color:'#b679e5',radius:22},
+    black:{hp:20,attack:10,color:'#171a20',radius:24,knockback:false}
   };
   function attackDamage(count){
     if(count>0&&count%100===0)return 20;
