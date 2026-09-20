@@ -60,7 +60,8 @@
     blue:{hp:1,attack:1,color:'#66c8ee',radius:14},
     green:{hp:2,attack:1,color:'#74d590',radius:16},
     red:{hp:3,attack:1,color:'#e97a83',radius:18},
-    purple:{hp:10,attack:3,color:'#b679e5',radius:22}
+    purple:{hp:10,attack:3,color:'#b679e5',radius:22},
+    black:{hp:20,attack:4,color:'#171a20',radius:24,knockback:false}
   };
   function attackDamage(count){
     if(count>0&&count%100===0)return 20;
@@ -349,7 +350,7 @@
       const enemy=enemies[i],dx=enemy.x-player.x,dy=enemy.y-player.y,len=Math.hypot(dx,dy);
       if(len>=player.r+enemy.r+51||(!fullCircle&&len>=25&&(dx*ax+dy*ay)/len<=-.2))continue;
       const knockAngle=len>0?Math.atan2(dy,dx):player.angle;
-      enemy.x+=Math.cos(knockAngle)*8/VIEW_SCALE;enemy.y+=Math.sin(knockAngle)*8/VIEW_SCALE;
+      if(enemy.knockback){enemy.x+=Math.cos(knockAngle)*8/VIEW_SCALE;enemy.y+=Math.sin(knockAngle)*8/VIEW_SCALE}
       enemy.hp-=damage;enemy.hit=.18;
       explosions.push({x:enemy.x,y:enemy.y,r:enemy.r,life:.45,max:.45});
       burst(enemy.x,enemy.y,'#fff1c3',15);showDamage(enemy,damage);
@@ -381,14 +382,15 @@
   function spawn(forcePurple=false){
     if(roundSpawned>=round*10)return;
     const purple=forcePurple||elapsed>=60&&Math.random()<.15;
-    const type=purple?SLIME_TYPES.purple:[SLIME_TYPES.blue,SLIME_TYPES.green,SLIME_TYPES.red][Math.floor(Math.random()*3)];
+    const normalTypes=round>=4?[SLIME_TYPES.green,SLIME_TYPES.red,SLIME_TYPES.black]:[SLIME_TYPES.blue,SLIME_TYPES.green,SLIME_TYPES.red];
+    const type=purple?SLIME_TYPES.purple:normalTypes[Math.floor(Math.random()*normalTypes.length)];
     const hp=type.hp,edge=Math.floor(Math.random()*4),r=type.radius;
     let x,y;
     if(edge===0){x=-r;y=minY()+Math.random()*(maxY()-minY())}
     else if(edge===1){x=w+r;y=minY()+Math.random()*(maxY()-minY())}
     else if(edge===2){x=Math.random()*w;y=minY()-r}
     else{x=Math.random()*w;y=maxY()+r}
-    enemies.push({x,y,r,hp,hpMax:hp,attack:type.attack,color:type.color,speed:21+Math.random()*12+score*.3,hit:0,wobble:Math.random()*6.28});
+    enemies.push({x,y,r,hp,hpMax:hp,attack:type.attack,knockback:type.knockback!==false,color:type.color,speed:21+Math.random()*12+score*.3,hit:0,wobble:Math.random()*6.28});
     roundSpawned++;
   }
   function update(dt){
