@@ -56,6 +56,12 @@
   let energy=0,moveProgress=0,unlocked=0,score=0,round=1,roundKills=0,roundSpawned=0,roundElapsed=0,swordCount=0,elapsed=0,purpleSpawned=false,spawnTimer=0,invincible=0,damageFlash=0,grayHits=0,entryGray=0,lowEnergyGray=false,swing=0,spin=0,swingAngle=0,shake=0,hitStop=0;
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
   const MOVE_DISTANCE_PER_ENERGY=16;
+  const SLIME_TYPES={
+    blue:{hp:1,attack:1,color:'#66c8ee',radius:14},
+    green:{hp:2,attack:1,color:'#74d590',radius:16},
+    red:{hp:3,attack:1,color:'#e97a83',radius:18},
+    purple:{hp:10,attack:3,color:'#b679e5',radius:22}
+  };
   function attackDamage(count){
     if(count>0&&count%100===0)return 20;
     return count>0&&count%50===0?5:1;
@@ -375,13 +381,14 @@
   function spawn(forcePurple=false){
     if(roundSpawned>=round*10)return;
     const purple=forcePurple||elapsed>=60&&Math.random()<.15;
-    const hp=purple?10:1+Math.floor(Math.random()*3),edge=Math.floor(Math.random()*4),r=purple?22:12+hp*2;
+    const type=purple?SLIME_TYPES.purple:[SLIME_TYPES.blue,SLIME_TYPES.green,SLIME_TYPES.red][Math.floor(Math.random()*3)];
+    const hp=type.hp,edge=Math.floor(Math.random()*4),r=type.radius;
     let x,y;
     if(edge===0){x=-r;y=minY()+Math.random()*(maxY()-minY())}
     else if(edge===1){x=w+r;y=minY()+Math.random()*(maxY()-minY())}
     else if(edge===2){x=Math.random()*w;y=minY()-r}
     else{x=Math.random()*w;y=maxY()+r}
-    enemies.push({x,y,r,hp,hpMax:hp,color:purple?'#b679e5':['#66c8ee','#74d590','#e97a83'][hp-1],speed:21+Math.random()*12+score*.3,hit:0,wobble:Math.random()*6.28});
+    enemies.push({x,y,r,hp,hpMax:hp,attack:type.attack,color:type.color,speed:21+Math.random()*12+score*.3,hit:0,wobble:Math.random()*6.28});
     roundSpawned++;
   }
   function update(dt){
@@ -423,7 +430,7 @@
         player.x=clamp(player.x+ex/len*4/VIEW_SCALE,player.r+4,w-player.r-4);
         player.y=clamp(player.y+ey/len*4/VIEW_SCALE,minY()+player.r,maxY()-player.r);
         if(energy===0&&unlocked>0){grayHits=Math.min(3,grayHits+1);setHud()}
-        else spendEnergy(1);
+        else spendEnergy(enemy.attack*round);
         invincible=1.15;shake=.2;burst(player.x,player.y,'#fff4dc',9);
         if(grayHits>=3){
           mode='defeated';drag.pointer=null;cancelCharge();setHud();
