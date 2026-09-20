@@ -97,7 +97,7 @@
     tick.style.height=i%5?'5px':'10px';face.insertBefore(tick,ui.hourHand);
   }
   const stockSlots=[];
-  const hourglassSvg=()=>`<svg class="hourglass-svg" viewBox="0 0 32 32" aria-hidden="true"><path d="M7 2h18M7 30h18M9 3v4c0 4 7 7 7 9s-7 5-7 9v4M23 3v4c0 4-7 7-7 9s7 5 7 9v4"/>${Array.from({length:10},(_,i)=>`<rect class="sand-step" x="${10+i*.5}" y="${26-i}" width="${12-i}" height=".8"/>`).join('')}<path class="sand-source" d="M16 16.5 22 27H10Z"/><path class="sand-target" d="M16 15.5 22 5H10Z"/><path class="sand-stream" d="M16 16V6"/></svg>`;
+  const hourglassSvg=()=>`<svg class="hourglass-svg" viewBox="0 0 32 32" aria-hidden="true"><path d="M7 2h18M7 30h18M9 3v4c0 4 7 7 7 9s-7 5-7 9v4M23 3v4c0 4-7 7-7 9s7 5 7 9v4"/>${Array.from({length:10},(_,i)=>`<rect class="sand-step" x="${10+i*.5}" y="${26-i}" width="${12-i}" height=".8"/>`).join('')}<path class="sand-source" d="M16 16.5 22 27H10Z"/><path class="sand-target" d="M10 5H22L16 12Z"/><path class="sand-stream" d="M16 16V6"/></svg>`;
   ui.buttonHourglass.innerHTML=hourglassSvg();
   ui.buttonHourglass.querySelectorAll('.sand-step').forEach((step,i)=>step.classList.toggle('filled',i<5));
   ui.previewHourglass.innerHTML=hourglassSvg();
@@ -341,7 +341,7 @@
       const enemy=enemies[i],dx=enemy.x-player.x,dy=enemy.y-player.y,len=Math.hypot(dx,dy);
       if(len>=player.r+enemy.r+51||(!fullCircle&&len>=25&&(dx*ax+dy*ay)/len<=-.2))continue;
       const knockAngle=len>0?Math.atan2(dy,dx):player.angle;
-      enemy.x+=Math.cos(knockAngle)*4/VIEW_SCALE;enemy.y+=Math.sin(knockAngle)*4/VIEW_SCALE;
+      enemy.x+=Math.cos(knockAngle)*8/VIEW_SCALE;enemy.y+=Math.sin(knockAngle)*8/VIEW_SCALE;
       enemy.hp-=damage;enemy.hit=.18;
       explosions.push({x:enemy.x,y:enemy.y,r:enemy.r,life:.45,max:.45});
       burst(enemy.x,enemy.y,'#fff1c3',15);showDamage(enemy,damage);
@@ -418,6 +418,8 @@
       enemy.x+=ex/len*enemy.speed*dt;enemy.y+=ey/len*enemy.speed*dt;
       if(len<player.r+enemy.r-3&&invincible<=0){
         damageFlash=.5;
+        player.x=clamp(player.x+ex/len*4/VIEW_SCALE,player.r+4,w-player.r-4);
+        player.y=clamp(player.y+ey/len*4/VIEW_SCALE,minY()+player.r,maxY()-player.r);
         if(energy===0&&unlocked>0){grayHits=Math.min(3,grayHits+1);setHud()}
         else spendEnergy(1);
         invincible=1.15;shake=.2;burst(player.x,player.y,'#fff4dc',9);
