@@ -2,7 +2,7 @@
   'use strict';
   const $=id=>document.getElementById(id);
   const canvas=$('field'),ctx=canvas.getContext('2d');
-  const ui={overlay:$('overlay'),panel:$('panel'),title:$('title'),eyebrow:$('eyebrow'),description:$('description'),resultValue:$('resultValue'),hourHand:$('hourHand'),minuteHand:$('minuteHand'),stop:$('stop'),debug:$('debug'),sub:$('sub'),score:$('score'),roundNumber:$('roundNumber'),roundTarget:$('roundTarget'),elapsedTime:$('elapsedTime'),energyValue:$('energyValue'),energyFill:$('energyFill'),grayDamageFill:$('grayDamageFill'),energyBar:document.querySelector('.energy-bar'),attackCount:$('attackCount'),clockCount:$('clockCount'),clockButton:$('clockButton'),clockStock:$('clockStock'),buttonHourglass:$('buttonHourglass'),sandPreview:$('sandPreview'),previewHourglass:$('previewHourglass'),previewSandCount:$('previewSandCount'),attack:$('attack'),pauseButton:$('pauseButton'),pauseScreen:$('pauseScreen'),resumeButton:$('resumeButton')};
+  const ui={overlay:$('overlay'),panel:$('panel'),title:$('title'),eyebrow:$('eyebrow'),description:$('description'),resultValue:$('resultValue'),hourHand:$('hourHand'),minuteHand:$('minuteHand'),stop:$('stop'),debug:$('debug'),sub:$('sub'),score:$('score'),roundNumber:$('roundNumber'),roundTarget:$('roundTarget'),elapsedTime:$('elapsedTime'),energyValue:$('energyValue'),energyFill:$('energyFill'),grayDamageFill:$('grayDamageFill'),energyBar:document.querySelector('.energy-bar'),attackCount:$('attackCount'),clockCount:$('clockCount'),clockButton:$('clockButton'),clockStock:$('clockStock'),buttonHourglass:$('buttonHourglass'),sandPreview:$('sandPreview'),previewSandCount:$('previewSandCount'),previewHourglass:$('previewHourglass'),killWarning:$('killWarning'),killCountdown:$('killCountdown'),attack:$('attack'),pauseButton:$('pauseButton'),pauseScreen:$('pauseScreen'),resumeButton:$('resumeButton')};
   const player={x:0,y:0,r:14,angle:-Math.PI/2};
   // 上から時計回り: 背面、背面右、右、正面右、正面、正面左、左、背面左。
   const spriteBounds=[[386,362,850,928],[396,376,846,930],[432,356,812,956],[396,344,836,952],[386,350,866,946],[374,340,862,916],[394,344,828,926],[396,324,828,922]];
@@ -53,7 +53,7 @@
   const keys=new Set();
   let w=0,h=0,dpr=1,last=performance.now(),clockOrigin=last-61/1440*3000;
   let mode='select',selectionReason='start',selectionIcons=0,selectionKills=0,transitionTimer=null;
-  let energy=0,moveProgress=0,unlocked=0,score=0,round=1,roundKills=0,roundSpawned=0,swordCount=0,elapsed=0,purpleSpawned=false,spawnTimer=0,invincible=0,damageFlash=0,grayHits=0,entryGray=0,lowEnergyGray=false,swing=0,spin=0,swingAngle=0,shake=0,hitStop=0;
+  let energy=0,moveProgress=0,unlocked=0,score=0,round=1,roundKills=0,roundSpawned=0,swordCount=0,elapsed=0,timeSinceKill=0,purpleSpawned=false,spawnTimer=0,invincible=0,damageFlash=0,grayHits=0,entryGray=0,lowEnergyGray=false,swing=0,spin=0,swingAngle=0,shake=0,hitStop=0;
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
   const MOVE_DISTANCE_PER_ENERGY=16;
   const SLIME_TYPES={
@@ -165,6 +165,7 @@
     mode='select';selectionReason=initial?'start':'refill';selectionIcons=icons;selectionKills=initial?0:score;drag.pointer=null;shake=0;
     clockOrigin=performance.now()-(initial?61/1440*3000:0);
     ui.overlay.classList.remove('hidden');
+    ui.killWarning.classList.add('hidden');
     ui.panel.classList.remove('gameover','paused','confirmed','refill','turning');ui.panel.classList.add('selecting');
     ui.panel.classList.toggle('refill',!initial);
     ui.sandPreview.classList.remove('flipped','flowing','flowed');
@@ -222,18 +223,20 @@
     mode='play';ui.pauseScreen.classList.add('hidden');last=performance.now();setHud();
   });
   function restart(){
-    clearTimeout(transitionTimer);energy=0;moveProgress=0;unlocked=0;score=0;round=1;roundKills=0;roundSpawned=0;swordCount=0;elapsed=0;purpleSpawned=false;damageFlash=0;grayHits=0;lowEnergyGray=false;
+    clearTimeout(transitionTimer);energy=0;moveProgress=0;unlocked=0;score=0;round=1;roundKills=0;roundSpawned=0;swordCount=0;elapsed=0;timeSinceKill=0;purpleSpawned=false;damageFlash=0;grayHits=0;lowEnergyGray=false;
     ui.elapsedTime.textContent='0:00';
     ui.pauseScreen.classList.add('hidden');
+    ui.killWarning.classList.add('hidden');
     enemies.length=0;deadEnemies.length=0;particles.length=0;explosions.length=0;damageNumbers.length=0;
     player.x=w/2;player.y=(minY()+maxY())/2;invincible=0;entryGray=0;swing=0;spin=0;hitStop=0;
     startSelection(true);
   }
-  function gameOver(){
+  function gameOver(reason='energy'){
     clearTimeout(transitionTimer);cancelCharge();mode='gameover';drag.pointer=null;
+    ui.killWarning.classList.add('hidden');
     ui.overlay.classList.remove('hidden');ui.panel.classList.remove('selecting','paused','confirmed','refill','turning');ui.panel.classList.add('gameover');
     ui.eyebrow.textContent='GAME OVER';ui.title.textContent=`討伐 ${score} 体`;
-    ui.description.textContent=grayHits>=3?'灰色状態で3回攻撃を受けました。もう一度挑戦しよう。':'行動力がなくなりました。もう一度挑戦しよう。';
+    ui.description.textContent=reason==='no-kill'?'一定時間、敵を倒せませんでした。もう一度挑戦しよう。':grayHits>=3?'灰色状態で3回攻撃を受けました。もう一度挑戦しよう。':'行動力がなくなりました。もう一度挑戦しよう。';
     ui.stop.disabled=false;ui.stop.textContent='もう一度遊ぶ';ui.sub.textContent='';setHud();
   }
   function checkExhausted(){
@@ -354,7 +357,7 @@
       burst(enemy.x,enemy.y,'#fff1c3',15);showDamage(enemy,damage);
       if(enemy.hp>0)continue;
       defeated=true;deadEnemies.push({...enemy,deathTime:.45});
-      score++;roundKills++;swordCount++;unlocked=Math.min(10,unlocked+1);burst(enemy.x,enemy.y,enemy.color,11);
+      score++;roundKills++;swordCount++;unlocked=Math.min(10,unlocked+1);timeSinceKill=0;ui.killWarning.classList.add('hidden');burst(enemy.x,enemy.y,enemy.color,11);
       enemies.splice(i,1);
     }
     if(defeated){hitStop=.1;drag.pointer=null}
@@ -401,6 +404,13 @@
     if(hitStop>0){hitStop=Math.max(0,hitStop-dt);updateHitEffects(dt);return}
     const previousSecond=Math.floor(elapsed);
     elapsed+=dt;
+    if(score>0)timeSinceKill+=dt;
+    if(score>0&&timeSinceKill>=60){
+      const countdown=Math.ceil(65-timeSinceKill);
+      if(countdown<=0){gameOver('no-kill');return}
+      ui.killCountdown.textContent=countdown;
+      ui.killWarning.classList.remove('hidden');
+    }
     if(Math.floor(elapsed)!==previousSecond){
       const seconds=Math.floor(elapsed);
       ui.elapsedTime.textContent=`${Math.floor(seconds/60)}:${String(seconds%60).padStart(2,'0')}`;
