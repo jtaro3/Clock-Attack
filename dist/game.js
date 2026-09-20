@@ -97,7 +97,7 @@
     tick.style.height=i%5?'5px':'10px';face.insertBefore(tick,ui.hourHand);
   }
   const stockSlots=[];
-  const hourglassSvg=()=>`<svg class="hourglass-svg" viewBox="0 0 32 32" aria-hidden="true"><path d="M7 2h18M7 30h18M9 3v4c0 4 7 7 7 9s-7 5-7 9v4M23 3v4c0 4-7 7-7 9s7 5 7 9v4"/>${Array.from({length:10},(_,i)=>`<rect class="sand-step" x="${10+i*.5}" y="${26-i}" width="${12-i}" height=".8"/>`).join('')}${Array.from({length:10},(_,i)=>`<rect class="sand-settled" x="${10+i*.5}" y="${5+i}" width="${12-i}" height=".8"/>`).join('')}<path class="sand-stream" d="M16 16V6"/></svg>`;
+  const hourglassSvg=()=>`<svg class="hourglass-svg" viewBox="0 0 32 32" aria-hidden="true"><path d="M7 2h18M7 30h18M9 3v4c0 4 7 7 7 9s-7 5-7 9v4M23 3v4c0 4-7 7-7 9s7 5 7 9v4"/>${Array.from({length:10},(_,i)=>`<rect class="sand-step" x="${10+i*.5}" y="${26-i}" width="${12-i}" height=".8"/>`).join('')}<path class="sand-source" d="M16 16.5 22 27H10Z"/><path class="sand-target" d="M16 15.5 22 5H10Z"/><path class="sand-stream" d="M16 16V6"/></svg>`;
   ui.buttonHourglass.innerHTML=hourglassSvg();
   ui.buttonHourglass.querySelectorAll('.sand-step').forEach((step,i)=>step.classList.toggle('filled',i<5));
   ui.previewHourglass.innerHTML=hourglassSvg();
@@ -107,8 +107,7 @@
     ui.clockStock.appendChild(slot);stockSlots.push(slot);
   }
   function showSand(steps){
-    ui.previewHourglass.querySelectorAll('.sand-step').forEach((step,i)=>step.classList.toggle('filled',i<steps));
-    ui.previewHourglass.querySelectorAll('.sand-settled').forEach(step=>step.classList.remove('filled'));
+    ui.previewHourglass.style.setProperty('--sand-level',String(steps/10));
     ui.previewSandCount.textContent=`砂のビン ${steps}/10`;
   }
 
@@ -161,7 +160,7 @@
     ui.overlay.classList.remove('hidden');
     ui.panel.classList.remove('gameover','paused','confirmed','refill','turning');ui.panel.classList.add('selecting');
     ui.panel.classList.toggle('refill',!initial);
-    ui.sandPreview.classList.remove('flipped','flowing');
+    ui.sandPreview.classList.remove('flipped','flowing','flowed');
     ui.eyebrow.textContent=initial?'':'砂時計';
     ui.title.textContent=initial?'時を止めて、戦え。':'砂時計を返そう';
     ui.description.textContent='';
@@ -174,7 +173,7 @@
     if(selectionReason==='refill'){
       mode='turning';ui.stop.disabled=true;ui.debug.disabled=true;
       ui.panel.classList.add('turning');ui.sandPreview.classList.add('flipped');setHud();
-      transitionTimer=setTimeout(()=>flowSand(debug),650);
+      transitionTimer=setTimeout(()=>flowSand(debug),433);
       return;
     }
     updateClock(performance.now());
@@ -183,19 +182,11 @@
   function flowSand(debug){
     if(mode!=='turning')return;
     ui.sandPreview.classList.add('flowing');
-    const upper=ui.previewHourglass.querySelectorAll('.sand-step');
-    const lower=ui.previewHourglass.querySelectorAll('.sand-settled');
-    let poured=0;
-    const pour=()=>{
+    transitionTimer=setTimeout(()=>{
       if(mode!=='turning')return;
-      upper[selectionIcons-1-poured].classList.remove('filled');
-      lower[poured].classList.add('filled');
-      poured++;
-      transitionTimer=setTimeout(poured<selectionIcons?pour:()=>{
-        ui.sandPreview.classList.remove('flowing');finishClock(debug);
-      },poured<selectionIcons?800/selectionIcons:250);
-    };
-    transitionTimer=setTimeout(pour,800/selectionIcons);
+      ui.sandPreview.classList.remove('flowing');ui.sandPreview.classList.add('flowed');
+      transitionTimer=setTimeout(()=>finishClock(debug),167);
+    },533);
   }
   function finishClock(debug){
     const gained=debug||selectionReason==='start'?100:Math.floor(selectionIcons*10*(1+selectionKills/100));
