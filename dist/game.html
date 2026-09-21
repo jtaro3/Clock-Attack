@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no">
   <meta name="theme-color" content="#101923">
-  <title>針の刻 v0.38 — 時計で戦うゲーム</title>
+  <title>針の刻 v0.39 — 時計で戦うゲーム</title>
   <style>
     :root{font-family:system-ui,"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;color:#f4f1e7;background:#101923;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
     *{box-sizing:border-box;-webkit-touch-callout:none}body{margin:0;overflow:hidden;touch-action:none;overscroll-behavior:none}button{font:inherit;touch-action:none;-webkit-tap-highlight-color:transparent}
@@ -27,7 +27,7 @@
     .kill-warning{position:absolute;z-index:4;left:50%;top:30%;transform:translate(-50%,-50%);min-width:190px;padding:13px 24px;text-align:center;border:3px solid #ff665f;border-radius:18px;background:#281311e8;color:#fff4db;box-shadow:0 0 28px #ff3b30aa;pointer-events:none;animation:warning-pulse .45s ease-in-out infinite alternate}.kill-warning.hidden{display:none}.kill-warning span{display:block;font-size:15px;font-weight:900;letter-spacing:.15em}.kill-warning b{display:block;margin-top:2px;color:#ffdf6b;font-size:62px;line-height:1}@keyframes warning-pulse{from{filter:brightness(.8);transform:translate(-50%,-50%) scale(.97)}to{filter:brightness(1.25);transform:translate(-50%,-50%) scale(1.03)}}
     @media(max-height:650px){.panel{padding:13px}.panel p{margin:3px 0 8px}.clock{width:145px;height:145px;margin:4px auto}.hand.hour{height:37px;margin-top:-37px}.hand.minute{height:53px;margin-top:-53px}.gains{margin:2px 0 8px}.panel h1{font-size:22px}.readout{font-size:25px}}
     @media(max-width:360px){.hud{padding:10px}.score{font-size:19px}.status{font-size:11px}.actions{right:12px;gap:8px}.action{width:68px;height:72px;border-radius:17px}.action .icon{font-size:26px}.clock-stock{left:8px;right:164px}.hint{font-size:11px}}
-    .sand-preview{position:relative}.powder-fall{position:absolute;left:50%;top:61px;width:66px;height:76px;transform:translateX(-50%);pointer-events:none}.powder-fall i{position:absolute;left:calc(50% + var(--grain-x));top:4px;width:var(--grain-size);height:var(--grain-size);border-radius:50%;background:#fff9e8;box-shadow:0 0 4px #fff;opacity:0}.sand-preview.flowing .powder-fall i{animation:powder-drop .42s linear var(--grain-delay) infinite}@keyframes powder-drop{0%{opacity:0;transform:translateY(0) scale(.6)}15%{opacity:1}85%{opacity:.9}100%{opacity:0;transform:translateY(54px) scale(1.15)}}
+    .sand-preview{position:relative}.hourglass-svg .sand-source{transform-origin:center bottom}.powder-fall{position:absolute;left:50%;top:61px;width:66px;height:76px;transform:translateX(-50%);pointer-events:none}.powder-fall i{position:absolute;left:calc(50% + var(--grain-x));top:4px;width:var(--grain-size);height:var(--grain-size);border-radius:50%;background:#fff9e8;box-shadow:0 0 4px #fff;opacity:0}.sand-preview.flowing .powder-fall i{animation:powder-drop .42s linear var(--grain-delay) infinite}@keyframes powder-drop{0%{opacity:0;transform:translateY(0) scale(.6)}15%{opacity:1}85%{opacity:.9}100%{opacity:0;transform:translateY(54px) scale(1.15)}}
   </style>
 </head>
 <body>
