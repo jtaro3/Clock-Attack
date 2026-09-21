@@ -108,7 +108,7 @@
   const stockSlots=[];
   const hourglassSvg=(colors=[],gradientId='mixedSand')=>{
     const stops=colors.length?colors.map((color,i)=>`<stop offset="${colors.length===1?0:i/(colors.length-1)*100}%" stop-color="${color}"/>`).join(''):'<stop offset="0" stop-color="#fff9e8"/>';
-    return `<svg class="hourglass-svg" viewBox="0 0 32 32" aria-hidden="true"><defs><linearGradient id="${gradientId}" x1="0" y1="0" x2="1" y2="1">${stops}</linearGradient></defs><path d="M7 2h18M7 30h18M9 3v4c0 4 7 7 7 9s-7 5-7 9v4M23 3v4c0 4-7 7-7 9s7 5 7 9v4"/>${Array.from({length:10},(_,i)=>`<rect class="sand-step" x="${10+i*.5}" y="${26-i}" width="${12-i}" height=".8"/>`).join('')}<path class="sand-source" d="M16 16.5 22 27H10Z"/><path class="sand-target" d="M10 5H22L16 12Z"/><path class="sand-stream" d="M16 16V6"/></svg>`;
+    return `<svg class="hourglass-svg" viewBox="0 0 32 32" aria-hidden="true"><defs><linearGradient id="${gradientId}" x1="0" y1="0" x2="1" y2="1">${stops}</linearGradient></defs><path d="M7 2h18M7 30h18M9 3v4c0 4 7 7 7 9s-7 5-7 9v4M23 3v4c0 4-7 7-7 9s7 5 7 9v4"/>${Array.from({length:10},(_,i)=>`<rect class="sand-step" x="${10+i*.5}" y="${26-i}" width="${12-i}" height=".8"/>`).join('')}<path class="sand-source" d="M10 24Q16 21 22 24V28H10Z"/><path class="sand-target" d="M10 4H22V8Q16 11 10 8Z"/><path class="sand-stream" d="M16 16V6"/></svg>`;
   };
   ui.buttonHourglass.innerHTML=hourglassSvg([],'buttonSand');
   ui.buttonHourglass.querySelectorAll('.sand-step').forEach((step,i)=>step.classList.toggle('filled',i<5));
@@ -135,8 +135,8 @@
       item.innerHTML='<svg viewBox="0 0 32 42" aria-hidden="true"><path d="M12 2h8v6l4 4v24c0 3-2 4-5 4h-6c-3 0-5-1-5-4V12l4-4z"/><path d="M10 9h12"/><path class="bottle-fill" d="M10 25h12v11H10z"/></svg>';
       ui.mergeBottles.appendChild(item);
     });
-    ui.previewHourglass.innerHTML=hourglassSvg(bottles.map(bottle=>bottle.color),'previewSand');
-    ui.sandPreview.style.setProperty('--sand-color','url(#previewSand)');
+    ui.previewHourglass.innerHTML=hourglassSvg([],'previewSand');
+    ui.sandPreview.style.setProperty('--sand-color','#fff9e8');
     ui.panel.classList.add('merging');
     ui.stop.disabled=true;ui.debug.disabled=true;
     requestAnimationFrame(()=>requestAnimationFrame(()=>ui.mergeStage.classList.add('collapsing')));
