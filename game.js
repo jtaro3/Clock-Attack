@@ -2,7 +2,7 @@
   'use strict';
   const $=id=>document.getElementById(id);
   const canvas=$('field'),ctx=canvas.getContext('2d');
-  const ui={overlay:$('overlay'),panel:$('panel'),title:$('title'),eyebrow:$('eyebrow'),description:$('description'),resultValue:$('resultValue'),hourHand:$('hourHand'),minuteHand:$('minuteHand'),stop:$('stop'),debug:$('debug'),sub:$('sub'),score:$('score'),roundNumber:$('roundNumber'),roundTarget:$('roundTarget'),elapsedTime:$('elapsedTime'),energyValue:$('energyValue'),energyFill:$('energyFill'),grayDamageFill:$('grayDamageFill'),energyBar:document.querySelector('.energy-bar'),attackCount:$('attackCount'),clockCount:$('clockCount'),clockButton:$('clockButton'),clockStock:$('clockStock'),buttonHourglass:$('buttonHourglass'),sandPreview:$('sandPreview'),previewSandCount:$('previewSandCount'),previewHourglass:$('previewHourglass'),killWarning:$('killWarning'),killCountdown:$('killCountdown'),attack:$('attack'),pauseButton:$('pauseButton'),pauseScreen:$('pauseScreen'),resumeButton:$('resumeButton')};
+  const ui={overlay:$('overlay'),panel:$('panel'),title:$('title'),eyebrow:$('eyebrow'),description:$('description'),resultValue:$('resultValue'),hourHand:$('hourHand'),minuteHand:$('minuteHand'),stop:$('stop'),debug:$('debug'),sub:$('sub'),score:$('score'),roundNumber:$('roundNumber'),roundTarget:$('roundTarget'),elapsedTime:$('elapsedTime'),energyValue:$('energyValue'),energyFill:$('energyFill'),grayDamageFill:$('grayDamageFill'),energyBar:document.querySelector('.energy-bar'),attackCount:$('attackCount'),clockCount:$('clockCount'),clockButton:$('clockButton'),clockStock:$('clockStock'),buttonHourglass:$('buttonHourglass'),mergeStage:$('mergeStage'),mergeBottles:$('mergeBottles'),sandPreview:$('sandPreview'),previewSandCount:$('previewSandCount'),previewHourglass:$('previewHourglass'),killWarning:$('killWarning'),killCountdown:$('killCountdown'),attack:$('attack'),pauseButton:$('pauseButton'),pauseScreen:$('pauseScreen'),resumeButton:$('resumeButton')};
   const player={x:0,y:0,r:14,angle:-Math.PI/2};
   // 上から時計回り: 背面、背面右、右、正面右、正面、正面左、左、背面左。
   const spriteBounds=[[386,362,850,928],[396,376,846,930],[432,356,812,956],[396,344,836,952],[386,350,866,946],[374,340,862,916],[394,344,828,926],[396,324,828,922]];
@@ -52,8 +52,9 @@
   const charge={pointer:null,start:0,timer:null};
   const keys=new Set();
   let w=0,h=0,dpr=1,last=performance.now(),clockOrigin=last-61/1440*3000;
-  let mode='select',selectionReason='start',selectionIcons=0,selectionKills=0,transitionTimer=null;
+  let mode='select',selectionReason='start',selectionIcons=0,selectionRecovery=0,selectionBottles=[],transitionTimer=null;
   let energy=0,moveProgress=0,unlocked=0,score=0,round=1,roundKills=0,roundSpawned=0,swordCount=0,elapsed=0,timeSinceKill=0,purpleSpawned=false,spawnTimer=0,invincible=0,damageFlash=0,grayHits=0,entryGray=0,lowEnergyGray=false,swing=0,spin=0,swingAngle=0,shake=0,hitStop=0;
+  const sandBottles=[];
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
   const MOVE_DISTANCE_PER_ENERGY=16;
   const SLIME_TYPES={
@@ -105,10 +106,13 @@
     tick.style.height=i%5?'5px':'10px';face.insertBefore(tick,ui.hourHand);
   }
   const stockSlots=[];
-  const hourglassSvg=()=>`<svg class="hourglass-svg" viewBox="0 0 32 32" aria-hidden="true"><path d="M7 2h18M7 30h18M9 3v4c0 4 7 7 7 9s-7 5-7 9v4M23 3v4c0 4-7 7-7 9s7 5 7 9v4"/>${Array.from({length:10},(_,i)=>`<rect class="sand-step" x="${10+i*.5}" y="${26-i}" width="${12-i}" height=".8"/>`).join('')}<path class="sand-source" d="M16 16.5 22 27H10Z"/><path class="sand-target" d="M10 5H22L16 12Z"/><path class="sand-stream" d="M16 16V6"/></svg>`;
-  ui.buttonHourglass.innerHTML=hourglassSvg();
+  const hourglassSvg=(colors=[],gradientId='mixedSand')=>{
+    const stops=colors.length?colors.map((color,i)=>`<stop offset="${colors.length===1?0:i/(colors.length-1)*100}%" stop-color="${color}"/>`).join(''):'<stop offset="0" stop-color="#fff9e8"/>';
+    return `<svg class="hourglass-svg" viewBox="0 0 32 32" aria-hidden="true"><defs><linearGradient id="${gradientId}" x1="0" y1="0" x2="1" y2="1">${stops}</linearGradient></defs><path d="M7 2h18M7 30h18M9 3v4c0 4 7 7 7 9s-7 5-7 9v4M23 3v4c0 4-7 7-7 9s7 5 7 9v4"/>${Array.from({length:10},(_,i)=>`<rect class="sand-step" x="${10+i*.5}" y="${26-i}" width="${12-i}" height=".8"/>`).join('')}<path class="sand-source" d="M10 24Q16 21 22 24V28H10Z"/><path class="sand-target" d="M10 4H22V8Q16 11 10 8Z"/><path class="sand-stream" d="M16 16V6"/></svg>`;
+  };
+  ui.buttonHourglass.innerHTML=hourglassSvg([],'buttonSand');
   ui.buttonHourglass.querySelectorAll('.sand-step').forEach((step,i)=>step.classList.toggle('filled',i<5));
-  ui.previewHourglass.innerHTML=hourglassSvg();
+  ui.previewHourglass.innerHTML=hourglassSvg([],'previewSand');
   for(let i=0;i<10;i++){
     const slot=document.createElement('span');slot.className='stock-slot';
     slot.innerHTML='<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M12 3h8v5l3 3v16c0 2-2 3-4 3h-6c-2 0-4-1-4-3V11l3-3z"/><path d="M11 8h10"/><path class="bottle-sand" d="M11 21h10v6H11z"/></svg>';
@@ -117,6 +121,29 @@
   function showSand(steps){
     ui.previewHourglass.style.setProperty('--sand-level',String(steps/10));
     ui.previewSandCount.textContent=`砂のビン ${steps}/10`;
+  }
+  function showBottleMerge(bottles){
+    ui.mergeBottles.innerHTML='';
+    bottles.forEach((bottle,i)=>{
+      const item=document.createElement('span'),columns=Math.min(5,bottles.length),column=i%5,row=Math.floor(i/5);
+      const center=(Math.min(columns,bottles.length-row*5)-1)/2;
+      item.className='merge-bottle';
+      item.style.setProperty('--bottle-color',bottle.color);
+      item.style.setProperty('--start-x',`${(column-center)*64}px`);
+      item.style.setProperty('--start-y',`${row*66-(bottles.length>5?33:0)}px`);
+      item.style.setProperty('--merge-rotate',`${(i%2?1:-1)*(18+i*5)}deg`);
+      item.innerHTML='<svg viewBox="0 0 32 42" aria-hidden="true"><path d="M12 2h8v6l4 4v24c0 3-2 4-5 4h-6c-3 0-5-1-5-4V12l4-4z"/><path d="M10 9h12"/><path class="bottle-fill" d="M10 25h12v11H10z"/></svg>';
+      ui.mergeBottles.appendChild(item);
+    });
+    ui.previewHourglass.innerHTML=hourglassSvg([],'previewSand');
+    ui.sandPreview.style.setProperty('--sand-color','#fff9e8');
+    ui.panel.classList.add('merging');
+    ui.stop.disabled=true;ui.debug.disabled=true;
+    requestAnimationFrame(()=>requestAnimationFrame(()=>ui.mergeStage.classList.add('collapsing')));
+    transitionTimer=setTimeout(()=>{
+      ui.panel.classList.remove('merging');ui.mergeStage.classList.remove('collapsing');
+      ui.stop.disabled=false;ui.debug.disabled=false;transitionTimer=null;
+    },1050);
   }
 
   function updateClock(now){
@@ -146,8 +173,10 @@
     ui.attack.classList.toggle('spin-ready',swordCount>=10);
     ui.energyBar.classList.toggle('hit',damageFlash>0);
     for(let i=0;i<stockSlots.length;i++){
-      stockSlots[i].classList.toggle('unlocked',i<unlocked);
-      stockSlots[i].title=`砂のビン ${i+1}: ${i<unlocked?'砂入り':'空'}`;
+      const bottle=sandBottles[i];
+      stockSlots[i].classList.toggle('unlocked',Boolean(bottle));
+      stockSlots[i].style.setProperty('--bottle-color',bottle?.color||'#fff9e8');
+      stockSlots[i].title=`砂のビン ${i+1}: ${bottle?`${bottle.kind}・回復${bottle.recovery}`:'空'}`;
     }
   }
   function spendEnergy(amount){
@@ -161,20 +190,21 @@
     clearTimeout(charge.timer);charge.pointer=null;charge.timer=null;
     ui.attack.classList.remove('charging');ui.attack.style.setProperty('--charge','0%');
   }
-  function startSelection(initial=false,icons=0){
+  function startSelection(initial=false,icons=0,recovery=0,bottles=[]){
     clearTimeout(transitionTimer);transitionTimer=null;cancelCharge();
-    mode='select';selectionReason=initial?'start':'refill';selectionIcons=icons;selectionKills=initial?0:score;drag.pointer=null;shake=0;
+    mode='select';selectionReason=initial?'start':'refill';selectionIcons=icons;selectionRecovery=initial?100:recovery;selectionBottles=bottles;drag.pointer=null;shake=0;
     clockOrigin=performance.now()-(initial?61/1440*3000:0);
     ui.overlay.classList.remove('hidden');
     ui.killWarning.classList.add('hidden');
-    ui.panel.classList.remove('gameover','paused','confirmed','refill','turning');ui.panel.classList.add('selecting');
+    ui.panel.classList.remove('gameover','paused','confirmed','refill','turning','merging');ui.panel.classList.add('selecting');
     ui.panel.classList.toggle('refill',!initial);
-    ui.sandPreview.classList.remove('flipped','flowing','flowed');
+    ui.sandPreview.classList.remove('flipped','flowing','flowed');ui.mergeStage.classList.remove('collapsing');
     ui.eyebrow.textContent=initial?'':'砂時計';
     ui.title.textContent=initial?'時を止めて、戦え。':'砂時計を返そう';
     ui.description.textContent='';
     ui.resultValue.textContent='';ui.stop.disabled=false;ui.stop.textContent='光を';ui.debug.disabled=false;
     ui.sub.textContent='';setHud();
+    if(!initial)showBottleMerge(selectionBottles);
   }
   function stopClock(debug=false){
     if(mode==='gameover'){restart();return}
@@ -198,7 +228,7 @@
     },533);
   }
   function finishClock(debug){
-    const gained=debug||selectionReason==='start'?100:Math.floor(selectionIcons*10*(1+selectionKills/100));
+    const gained=debug||selectionReason==='start'?100:selectionRecovery;
     energy+=gained;moveProgress=0;grayHits=0;lowEnergyGray=false;
     mode='confirmed';ui.panel.classList.remove('selecting','turning');ui.panel.classList.add('confirmed');
     ui.resultValue.textContent=gained;
@@ -224,7 +254,7 @@
     mode='play';ui.pauseScreen.classList.add('hidden');last=performance.now();setHud();
   });
   function restart(){
-    clearTimeout(transitionTimer);energy=0;moveProgress=0;unlocked=0;score=0;round=1;roundKills=0;roundSpawned=0;swordCount=0;elapsed=0;timeSinceKill=0;purpleSpawned=false;damageFlash=0;grayHits=0;lowEnergyGray=false;
+    clearTimeout(transitionTimer);energy=0;moveProgress=0;unlocked=0;sandBottles.length=0;score=0;round=1;roundKills=0;roundSpawned=0;swordCount=0;elapsed=0;timeSinceKill=0;purpleSpawned=false;damageFlash=0;grayHits=0;lowEnergyGray=false;
     ui.elapsedTime.textContent='0:00';
     ui.pauseScreen.classList.add('hidden');
     ui.killWarning.classList.add('hidden');
@@ -282,7 +312,8 @@
   }
   function useStoredClock(){
     if(mode!=='play'||unlocked===0||hitStop>0)return;
-    const icons=unlocked;unlocked=0;setHud();startSelection(false,icons);
+    const icons=unlocked,bottles=sandBottles.map(bottle=>({...bottle})),recovery=bottles.reduce((total,bottle)=>total+bottle.recovery,0);
+    sandBottles.length=0;unlocked=0;setHud();startSelection(false,icons,recovery,bottles);
   }
   function movePlayer(dx,dy){
     if(mode!=='play'||energy<=0||hitStop>0)return;
@@ -358,7 +389,9 @@
       burst(enemy.x,enemy.y,'#fff1c3',15);showDamage(enemy,damage);
       if(enemy.hp>0)continue;
       defeated=true;deadEnemies.push({...enemy,deathTime:.45});
-      score++;roundKills++;swordCount++;unlocked=Math.min(10,unlocked+1);timeSinceKill=0;ui.killWarning.classList.add('hidden');burst(enemy.x,enemy.y,enemy.color,11);
+      score++;roundKills++;swordCount++;
+      if(sandBottles.length<10)sandBottles.push({kind:enemy.kind,color:enemy.color,recovery:enemy.hpMax*10});
+      unlocked=sandBottles.length;timeSinceKill=0;ui.killWarning.classList.add('hidden');burst(enemy.x,enemy.y,enemy.color,11);
       enemies.splice(i,1);
     }
     if(defeated){hitStop=.1;drag.pointer=null}
@@ -561,5 +594,10 @@
     if(charge.pointer!==null&&charge.timer!==null)ui.attack.style.setProperty('--charge',`${Math.min(100,(now-charge.start)/20)}%`);
     update(dt);draw(now);requestAnimationFrame(frame);
   }
-  setHud();requestAnimationFrame(frame);
+  if(new URLSearchParams(location.search).has('effectPreview')){
+    const previewKinds=['blue','blue','green','red','purple'];
+    const previewBottles=previewKinds.map(kind=>({kind,color:SLIME_TYPES[kind].color,recovery:SLIME_TYPES[kind].hp*10}));
+    startSelection(false,previewBottles.length,previewBottles.reduce((total,bottle)=>total+bottle.recovery,0),previewBottles);
+  }else setHud();
+  requestAnimationFrame(frame);
 })();
