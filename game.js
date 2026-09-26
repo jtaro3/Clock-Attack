@@ -144,7 +144,7 @@
     ui.mergeHourglass.classList.toggle('empty',energy===0);
     ui.previewHourglass.innerHTML=hourglassSvg([],'previewSand');
     ui.sandPreview.style.setProperty('--sand-color','#fff9e8');
-    ui.sandPreview.style.setProperty('--sand-level',String(finalLevel));
+    ui.previewHourglass.style.setProperty('--sand-level',String(finalLevel));
     ui.panel.classList.add('merging');
     ui.stop.disabled=true;ui.debug.disabled=true;
     requestAnimationFrame(()=>requestAnimationFrame(()=>{
