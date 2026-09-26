@@ -2,7 +2,7 @@
   'use strict';
   const $=id=>document.getElementById(id);
   const canvas=$('field'),ctx=canvas.getContext('2d');
-  const ui={overlay:$('overlay'),panel:$('panel'),title:$('title'),eyebrow:$('eyebrow'),description:$('description'),resultValue:$('resultValue'),hourHand:$('hourHand'),minuteHand:$('minuteHand'),stop:$('stop'),debug:$('debug'),sub:$('sub'),score:$('score'),roundNumber:$('roundNumber'),roundTarget:$('roundTarget'),elapsedTime:$('elapsedTime'),energyValue:$('energyValue'),energyFill:$('energyFill'),grayDamageFill:$('grayDamageFill'),energyBar:document.querySelector('.energy-bar'),attackCount:$('attackCount'),clockCount:$('clockCount'),clockButton:$('clockButton'),clockStock:$('clockStock'),buttonHourglass:$('buttonHourglass'),mergeStage:$('mergeStage'),mergeBottles:$('mergeBottles'),sandPreview:$('sandPreview'),previewSandCount:$('previewSandCount'),previewHourglass:$('previewHourglass'),killWarning:$('killWarning'),killCountdown:$('killCountdown'),attack:$('attack'),pauseButton:$('pauseButton'),pauseScreen:$('pauseScreen'),resumeButton:$('resumeButton')};
+  const ui={overlay:$('overlay'),panel:$('panel'),title:$('title'),eyebrow:$('eyebrow'),description:$('description'),resultValue:$('resultValue'),hourHand:$('hourHand'),minuteHand:$('minuteHand'),stop:$('stop'),debug:$('debug'),sub:$('sub'),score:$('score'),roundNumber:$('roundNumber'),roundTarget:$('roundTarget'),elapsedTime:$('elapsedTime'),energyValue:$('energyValue'),energyFill:$('energyFill'),grayDamageFill:$('grayDamageFill'),energyBar:document.querySelector('.energy-bar'),attackCount:$('attackCount'),clockCount:$('clockCount'),clockButton:$('clockButton'),clockStock:$('clockStock'),buttonHourglass:$('buttonHourglass'),mergeStage:$('mergeStage'),mergeBottles:$('mergeBottles'),sandPreview:$('sandPreview'),previewSandCount:$('previewSandCount'),previewHourglass:$('previewHourglass'),killWarning:$('killWarning'),killCountdown:$('killCountdown'),attack:$('attack'),pauseButton:$('pauseButton'),pauseScreen:$('pauseScreen'),resumeButton:$('resumeButton'),gridToggle:$('gridToggle')};
   const player={x:0,y:0,r:14,angle:-Math.PI/2};
   // 上から時計回り: 背面、背面右、右、正面右、正面、正面左、左、背面左。
   const spriteBounds=[[386,362,850,928],[396,376,846,930],[432,356,812,956],[396,344,836,952],[386,350,866,946],[374,340,862,916],[394,344,828,926],[396,324,828,922]];
@@ -54,6 +54,7 @@
   let w=0,h=0,dpr=1,last=performance.now(),clockOrigin=last-61/1440*3000;
   let mode='select',selectionReason='start',selectionIcons=0,selectionRecovery=0,selectionBottles=[],transitionTimer=null;
   let energy=0,moveProgress=0,unlocked=0,score=0,round=1,roundKills=0,roundSpawned=0,swordCount=0,elapsed=0,timeSinceKill=0,purpleSpawned=false,spawnTimer=0,invincible=0,damageFlash=0,grayHits=0,entryGray=0,lowEnergyGray=false,swing=0,spin=0,swingAngle=0,shake=0,hitStop=0;
+  let showGrid=localStorage.getItem('clock-attack-grid')==='1';
   const sandBottles=[];
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
   const MOVE_DISTANCE_PER_ENERGY=16;
@@ -171,6 +172,8 @@
     ui.attack.disabled=mode!=='play'||energy<=0;
     ui.attack.classList.toggle('available',mode==='play'&&energy>0);
     ui.attack.classList.toggle('spin-ready',swordCount>=10);
+    ui.gridToggle.setAttribute('aria-pressed',String(showGrid));
+    ui.gridToggle.textContent=`グリッド表示：${showGrid?'ON':'OFF'}`;
     ui.energyBar.classList.toggle('hit',damageFlash>0);
     for(let i=0;i<stockSlots.length;i++){
       const bottle=sandBottles[i];
@@ -252,6 +255,11 @@
   ui.resumeButton.addEventListener('click',()=>{
     if(mode!=='manual-pause')return;
     mode='play';ui.pauseScreen.classList.add('hidden');last=performance.now();setHud();
+  });
+  ui.gridToggle.addEventListener('click',()=>{
+    showGrid=!showGrid;
+    localStorage.setItem('clock-attack-grid',showGrid?'1':'0');
+    setHud();
   });
   function restart(){
     clearTimeout(transitionTimer);energy=0;moveProgress=0;unlocked=0;sandBottles.length=0;score=0;round=1;roundKills=0;roundSpawned=0;swordCount=0;elapsed=0;timeSinceKill=0;purpleSpawned=false;damageFlash=0;grayHits=0;lowEnergyGray=false;
@@ -498,6 +506,13 @@
     if(shake>0)ctx.translate((Math.random()-.5)*5,(Math.random()-.5)*5);
     if(terrainCanvas){ctx.imageSmoothingEnabled=false;ctx.drawImage(terrainCanvas,0,0);ctx.imageSmoothingEnabled=true}
     else{ctx.fillStyle='#447a45';ctx.fillRect(0,0,w,h)}
+    if(showGrid){
+      const size=mapTools.tileSize,left=Math.round((w-map.width*size)/2),top=Math.round((h-map.height*size)/2);
+      ctx.save();ctx.strokeStyle='#f6f1d399';ctx.lineWidth=1/VIEW_SCALE;ctx.beginPath();
+      for(let x=0;x<=map.width;x++){const px=left+x*size;ctx.moveTo(px,top);ctx.lineTo(px,top+map.height*size)}
+      for(let y=0;y<=map.height;y++){const py=top+y*size;ctx.moveTo(left,py);ctx.lineTo(left+map.width*size,py)}
+      ctx.stroke();ctx.restore();
+    }
     ctx.strokeStyle='#e7d49e55';ctx.lineWidth=2;ctx.strokeRect(8,minY(),w-16,maxY()-minY());
     for(const enemy of [...enemies,...deadEnemies]){
       const dying=enemy.deathTime!==undefined;
