@@ -2,7 +2,7 @@
   'use strict';
   const $=id=>document.getElementById(id);
   const canvas=$('field'),ctx=canvas.getContext('2d');
-  const ui={overlay:$('overlay'),panel:$('panel'),title:$('title'),eyebrow:$('eyebrow'),description:$('description'),resultValue:$('resultValue'),hourHand:$('hourHand'),minuteHand:$('minuteHand'),stop:$('stop'),debug:$('debug'),sub:$('sub'),score:$('score'),roundNumber:$('roundNumber'),roundTarget:$('roundTarget'),elapsedTime:$('elapsedTime'),energyValue:$('energyValue'),energyFill:$('energyFill'),grayDamageFill:$('grayDamageFill'),energyBar:document.querySelector('.energy-bar'),attackCount:$('attackCount'),clockCount:$('clockCount'),clockButton:$('clockButton'),clockStock:$('clockStock'),buttonHourglass:$('buttonHourglass'),mergeStage:$('mergeStage'),mergeBottles:$('mergeBottles'),sandPreview:$('sandPreview'),previewSandCount:$('previewSandCount'),previewHourglass:$('previewHourglass'),killWarning:$('killWarning'),killCountdown:$('killCountdown'),attack:$('attack'),pauseButton:$('pauseButton'),pauseScreen:$('pauseScreen'),resumeButton:$('resumeButton'),gridToggle:$('gridToggle')};
+  const ui={overlay:$('overlay'),panel:$('panel'),title:$('title'),eyebrow:$('eyebrow'),description:$('description'),resultValue:$('resultValue'),hourHand:$('hourHand'),minuteHand:$('minuteHand'),stop:$('stop'),debug:$('debug'),sub:$('sub'),score:$('score'),roundNumber:$('roundNumber'),roundTarget:$('roundTarget'),elapsedTime:$('elapsedTime'),energyValue:$('energyValue'),energyFill:$('energyFill'),grayDamageFill:$('grayDamageFill'),energyBar:document.querySelector('.energy-bar'),attackCount:$('attackCount'),clockCount:$('clockCount'),clockButton:$('clockButton'),clockStock:$('clockStock'),buttonHourglass:$('buttonHourglass'),mergeStage:$('mergeStage'),mergeBottles:$('mergeBottles'),mergeHourglass:$('mergeHourglass'),sandPreview:$('sandPreview'),previewSandCount:$('previewSandCount'),previewHourglass:$('previewHourglass'),killWarning:$('killWarning'),killCountdown:$('killCountdown'),attack:$('attack'),pauseButton:$('pauseButton'),pauseScreen:$('pauseScreen'),resumeButton:$('resumeButton'),gridToggle:$('gridToggle')};
   const player={x:0,y:0,r:14,angle:-Math.PI/2};
   // 上から時計回り: 背面、背面右、右、正面右、正面、正面左、左、背面左。
   const spriteBounds=[[386,362,850,928],[396,376,846,930],[432,356,812,956],[396,344,836,952],[386,350,866,946],[374,340,862,916],[394,344,828,926],[396,324,828,922]];
@@ -136,13 +136,24 @@
       item.innerHTML='<svg viewBox="0 0 32 42" aria-hidden="true"><path d="M12 2h8v6l4 4v24c0 3-2 4-5 4h-6c-3 0-5-1-5-4V12l4-4z"/><path d="M10 9h12"/><path class="bottle-fill" d="M10 25h12v11H10z"/></svg>';
       ui.mergeBottles.appendChild(item);
     });
+    const totalAfter=energy+selectionRecovery;
+    const initialLevel=energy>0&&totalAfter>0?clamp(energy/totalAfter,.08,.88):0;
+    ui.mergeHourglass.innerHTML=hourglassSvg([],'mergeSand');
+    ui.mergeHourglass.style.setProperty('--sand-level',String(initialLevel));
+    ui.mergeHourglass.style.setProperty('--sand-color','#fff9e8');
+    ui.mergeHourglass.classList.toggle('empty',energy===0);
     ui.previewHourglass.innerHTML=hourglassSvg([],'previewSand');
     ui.sandPreview.style.setProperty('--sand-color','#fff9e8');
+    ui.sandPreview.style.setProperty('--sand-level','1');
     ui.panel.classList.add('merging');
     ui.stop.disabled=true;ui.debug.disabled=true;
-    requestAnimationFrame(()=>requestAnimationFrame(()=>ui.mergeStage.classList.add('collapsing')));
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{
+      ui.mergeStage.classList.add('collapsing','absorbing');
+      ui.mergeHourglass.classList.remove('empty');
+      ui.mergeHourglass.style.setProperty('--sand-level','1');
+    }));
     transitionTimer=setTimeout(()=>{
-      ui.panel.classList.remove('merging');ui.mergeStage.classList.remove('collapsing');
+      ui.panel.classList.remove('merging');ui.mergeStage.classList.remove('collapsing','absorbing');
       ui.stop.disabled=false;ui.debug.disabled=false;transitionTimer=null;
     },1050);
   }
@@ -201,7 +212,7 @@
     ui.killWarning.classList.add('hidden');
     ui.panel.classList.remove('gameover','paused','confirmed','refill','turning','merging');ui.panel.classList.add('selecting');
     ui.panel.classList.toggle('refill',!initial);
-    ui.sandPreview.classList.remove('flipped','flowing','flowed');ui.mergeStage.classList.remove('collapsing');
+    ui.sandPreview.classList.remove('flipped','flowing','flowed');ui.mergeStage.classList.remove('collapsing','absorbing');
     ui.eyebrow.textContent=initial?'':'砂時計';
     ui.title.textContent=initial?'時を止めて、戦え。':'砂時計を返そう';
     ui.description.textContent='';
