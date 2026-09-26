@@ -136,21 +136,21 @@
       item.innerHTML='<svg viewBox="0 0 32 42" aria-hidden="true"><path d="M12 2h8v6l4 4v24c0 3-2 4-5 4h-6c-3 0-5-1-5-4V12l4-4z"/><path d="M10 9h12"/><path class="bottle-fill" d="M10 25h12v11H10z"/></svg>';
       ui.mergeBottles.appendChild(item);
     });
-    const totalAfter=energy+selectionRecovery;
-    const initialLevel=energy>0&&totalAfter>0?clamp(energy/totalAfter,.08,.88):0;
+    const initialLevel=clamp(energy/1000,0,1);
+    const finalLevel=clamp((energy+selectionRecovery)/1000,0,1);
     ui.mergeHourglass.innerHTML=hourglassSvg([],'mergeSand');
     ui.mergeHourglass.style.setProperty('--sand-level',String(initialLevel));
     ui.mergeHourglass.style.setProperty('--sand-color','#fff9e8');
     ui.mergeHourglass.classList.toggle('empty',energy===0);
     ui.previewHourglass.innerHTML=hourglassSvg([],'previewSand');
     ui.sandPreview.style.setProperty('--sand-color','#fff9e8');
-    ui.sandPreview.style.setProperty('--sand-level','1');
+    ui.sandPreview.style.setProperty('--sand-level',String(finalLevel));
     ui.panel.classList.add('merging');
     ui.stop.disabled=true;ui.debug.disabled=true;
     requestAnimationFrame(()=>requestAnimationFrame(()=>{
       ui.mergeStage.classList.add('collapsing','absorbing');
       ui.mergeHourglass.classList.remove('empty');
-      ui.mergeHourglass.style.setProperty('--sand-level','1');
+      ui.mergeHourglass.style.setProperty('--sand-level',String(finalLevel));
     }));
     transitionTimer=setTimeout(()=>{
       ui.panel.classList.remove('merging');ui.mergeStage.classList.remove('collapsing','absorbing');
