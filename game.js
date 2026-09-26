@@ -476,8 +476,8 @@
       enemy.x+=ex/len*enemy.speed*dt;enemy.y+=ey/len*enemy.speed*dt;
       if(len<player.r+enemy.r-3&&invincible<=0){
         damageFlash=.5;
-        player.x=clamp(player.x+ex/len*4/VIEW_SCALE,player.r+4,w-player.r-4);
-        player.y=clamp(player.y+ey/len*4/VIEW_SCALE,minY()+player.r,maxY()-player.r);
+        player.x=clamp(player.x+ex/len*8/VIEW_SCALE,player.r+4,w-player.r-4);
+        player.y=clamp(player.y+ey/len*8/VIEW_SCALE,minY()+player.r,maxY()-player.r);
         if(energy===0&&unlocked>0){grayHits=Math.min(3,grayHits+1);setHud()}
         else spendEnergy(enemy.attack*round);
         invincible=1.15;shake=.2;burst(player.x,player.y,'#fff4dc',9);
