@@ -1,0 +1,306 @@
+{
+    "schema_version":  1,
+    "generated_at":  "2026-09-28T03:04:08.9735480+09:00",
+    "general":  {
+                    "start_energy":  100,
+                    "max_enemies":  20,
+                    "max_particles":  200,
+                    "idle_warning_seconds":  60,
+                    "game_over_countdown_seconds":  5,
+                    "recovery_invincible_seconds":  2,
+                    "battle_start_delay_seconds":  2,
+                    "max_hourglass_stock":  10,
+                    "max_sand_display":  1000
+                },
+    "player":  {
+                   "sword_scale":  1,
+                   "player_scale":  1,
+                   "move_distance_per_energy":  16,
+                   "base_attack_damage":  1,
+                   "white_aura_damage":  5,
+                   "red_aura_damage":  20,
+                   "spin_sword_cost":  10,
+                   "spin_min_damage":  5,
+                   "max_sword_count":  150,
+                   "white_aura_interval":  50,
+                   "red_aura_interval":  100,
+                   "spin_charge_seconds":  2,
+                   "normal_attack_effect_scale":  1,
+                   "white_attack_effect_scale":  1.5,
+                   "red_attack_effect_scale":  2
+               },
+    "enemies":  {
+                    "slime_blue":  {
+                                       "description":  "青スライム",
+                                       "family":  "slime",
+                                       "variant":  "blue",
+                                       "hp":  1,
+                                       "attack":  1,
+                                       "super_armor":  false,
+                                       "ai_type":  "chase",
+                                       "sand_type":  "blue",
+                                       "death_hit_stop_seconds":  0.1
+                                   },
+                    "slime_green":  {
+                                        "description":  "緑スライム",
+                                        "family":  "slime",
+                                        "variant":  "green",
+                                        "hp":  2,
+                                        "attack":  1,
+                                        "super_armor":  false,
+                                        "ai_type":  "chase",
+                                        "sand_type":  "green",
+                                        "death_hit_stop_seconds":  0.1
+                                    },
+                    "slime_red":  {
+                                      "description":  "赤スライム",
+                                      "family":  "slime",
+                                      "variant":  "red",
+                                      "hp":  3,
+                                      "attack":  1,
+                                      "super_armor":  false,
+                                      "ai_type":  "chase",
+                                      "sand_type":  "red",
+                                      "death_hit_stop_seconds":  0.1
+                                  },
+                    "slime_purple":  {
+                                         "description":  "紫スライム",
+                                         "family":  "slime",
+                                         "variant":  "purple",
+                                         "hp":  10,
+                                         "attack":  5,
+                                         "super_armor":  false,
+                                         "ai_type":  "chase",
+                                         "sand_type":  "purple",
+                                         "death_hit_stop_seconds":  0.1
+                                     },
+                    "slime_black":  {
+                                        "description":  "黒スライム",
+                                        "family":  "slime",
+                                        "variant":  "black",
+                                        "hp":  20,
+                                        "attack":  10,
+                                        "super_armor":  true,
+                                        "ai_type":  "chase",
+                                        "sand_type":  "black",
+                                        "death_hit_stop_seconds":  0.3
+                                    },
+                    "slime_metal":  {
+                                        "description":  "金属スライム",
+                                        "family":  "slime",
+                                        "variant":  "metal",
+                                        "hp":  50,
+                                        "attack":  20,
+                                        "super_armor":  false,
+                                        "ai_type":  "chase",
+                                        "sand_type":  "white",
+                                        "death_hit_stop_seconds":  0.3
+                                    }
+                },
+    "rounds":  {
+                   "1":  {
+                             "kill_target":  10,
+                             "enemy_hp_multiplier":  1,
+                             "enemy_attack_multiplier":  1,
+                             "enemy_speed_multiplier":  1,
+                             "spawn_interval_seconds":  1,
+                             "spawns":  [
+                                            {
+                                                "enemy_key":  "slime_blue",
+                                                "spawn_weight":  45,
+                                                "max_alive":  0,
+                                                "max_per_round":  0,
+                                                "start_elapsed_seconds":  0,
+                                                "guaranteed_once":  false
+                                            },
+                                            {
+                                                "enemy_key":  "slime_green",
+                                                "spawn_weight":  35,
+                                                "max_alive":  0,
+                                                "max_per_round":  0,
+                                                "start_elapsed_seconds":  0,
+                                                "guaranteed_once":  false
+                                            },
+                                            {
+                                                "enemy_key":  "slime_red",
+                                                "spawn_weight":  20,
+                                                "max_alive":  0,
+                                                "max_per_round":  0,
+                                                "start_elapsed_seconds":  0,
+                                                "guaranteed_once":  false
+                                            }
+                                        ]
+                         },
+                   "2":  {
+                             "kill_target":  20,
+                             "enemy_hp_multiplier":  1,
+                             "enemy_attack_multiplier":  3,
+                             "enemy_speed_multiplier":  1,
+                             "spawn_interval_seconds":  1,
+                             "spawns":  [
+                                            {
+                                                "enemy_key":  "slime_blue",
+                                                "spawn_weight":  20,
+                                                "max_alive":  0,
+                                                "max_per_round":  0,
+                                                "start_elapsed_seconds":  0,
+                                                "guaranteed_once":  false
+                                            },
+                                            {
+                                                "enemy_key":  "slime_green",
+                                                "spawn_weight":  30,
+                                                "max_alive":  0,
+                                                "max_per_round":  0,
+                                                "start_elapsed_seconds":  0,
+                                                "guaranteed_once":  false
+                                            },
+                                            {
+                                                "enemy_key":  "slime_red",
+                                                "spawn_weight":  35,
+                                                "max_alive":  0,
+                                                "max_per_round":  0,
+                                                "start_elapsed_seconds":  0,
+                                                "guaranteed_once":  false
+                                            },
+                                            {
+                                                "enemy_key":  "slime_purple",
+                                                "spawn_weight":  15,
+                                                "max_alive":  0,
+                                                "max_per_round":  0,
+                                                "start_elapsed_seconds":  0,
+                                                "guaranteed_once":  false
+                                            }
+                                        ]
+                         },
+                   "3":  {
+                             "kill_target":  30,
+                             "enemy_hp_multiplier":  1,
+                             "enemy_attack_multiplier":  5,
+                             "enemy_speed_multiplier":  1,
+                             "spawn_interval_seconds":  1,
+                             "spawns":  [
+                                            {
+                                                "enemy_key":  "slime_green",
+                                                "spawn_weight":  25,
+                                                "max_alive":  0,
+                                                "max_per_round":  0,
+                                                "start_elapsed_seconds":  0,
+                                                "guaranteed_once":  false
+                                            },
+                                            {
+                                                "enemy_key":  "slime_red",
+                                                "spawn_weight":  50,
+                                                "max_alive":  0,
+                                                "max_per_round":  0,
+                                                "start_elapsed_seconds":  0,
+                                                "guaranteed_once":  false
+                                            },
+                                            {
+                                                "enemy_key":  "slime_purple",
+                                                "spawn_weight":  25,
+                                                "max_alive":  0,
+                                                "max_per_round":  0,
+                                                "start_elapsed_seconds":  0,
+                                                "guaranteed_once":  false
+                                            }
+                                        ]
+                         }
+               },
+    "assets":  [
+                   {
+                       "asset_key":  "player_back",
+                       "asset_type":  "player",
+                       "owner_key":  "player",
+                       "description":  "背面",
+                       "direction":  "back",
+                       "sprite_scale":  1,
+                       "sprite_file":  "man1.png"
+                   },
+                   {
+                       "asset_key":  "player_back_right",
+                       "asset_type":  "player",
+                       "owner_key":  "player",
+                       "description":  "背面右向き",
+                       "direction":  "back_right",
+                       "sprite_scale":  1,
+                       "sprite_file":  "man2.png"
+                   },
+                   {
+                       "asset_key":  "player_right",
+                       "asset_type":  "player",
+                       "owner_key":  "player",
+                       "description":  "右向き",
+                       "direction":  "right",
+                       "sprite_scale":  1,
+                       "sprite_file":  "man3.png"
+                   },
+                   {
+                       "asset_key":  "player_front_right",
+                       "asset_type":  "player",
+                       "owner_key":  "player",
+                       "description":  "正面右向き",
+                       "direction":  "front_right",
+                       "sprite_scale":  1,
+                       "sprite_file":  "man4.png"
+                   },
+                   {
+                       "asset_key":  "player_front",
+                       "asset_type":  "player",
+                       "owner_key":  "player",
+                       "description":  "正面",
+                       "direction":  "front",
+                       "sprite_scale":  1,
+                       "sprite_file":  "man5.png"
+                   },
+                   {
+                       "asset_key":  "player_front_left",
+                       "asset_type":  "player",
+                       "owner_key":  "player",
+                       "description":  "正面左向き",
+                       "direction":  "front_left",
+                       "sprite_scale":  1,
+                       "sprite_file":  "man6.png"
+                   },
+                   {
+                       "asset_key":  "player_left",
+                       "asset_type":  "player",
+                       "owner_key":  "player",
+                       "description":  "左向き",
+                       "direction":  "left",
+                       "sprite_scale":  1,
+                       "sprite_file":  "man7.png"
+                   },
+                   {
+                       "asset_key":  "player_back_left",
+                       "asset_type":  "player",
+                       "owner_key":  "player",
+                       "description":  "背面左向き",
+                       "direction":  "back_left",
+                       "sprite_scale":  1,
+                       "sprite_file":  "man8.png"
+                   },
+                   {
+                       "asset_key":  "sword_default",
+                       "asset_type":  "sword",
+                       "owner_key":  "player",
+                       "description":  "剣1",
+                       "direction":  "",
+                       "sprite_scale":  1,
+                       "sprite_file":  "sword.svg"
+                   }
+               ],
+    "difficulties":  {
+                         "easy":  {
+                                      "description":  "イージー",
+                                      "max_round":  3
+                                  },
+                         "normal":  {
+                                        "description":  "ノーマル",
+                                        "max_round":  6
+                                    },
+                         "hard":  {
+                                      "description":  "ハード",
+                                      "max_round":  10
+                                  }
+                     }
+}
