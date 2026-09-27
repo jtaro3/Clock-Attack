@@ -2,10 +2,20 @@
 
 ' LibreOffice Calc: export to a temporary folder, validate, then publish CSV and JSON.
 Sub ExportAllSheetsToCSV
+    ExportSheetsToCSV False
+End Sub
+
+Sub ExportCurrentSheetToCSV
+    ExportSheetsToCSV True
+End Sub
+
+Sub ExportSheetsToCSV(currentOnly As Boolean)
     Dim doc As Object, files As Object
     Dim sourcePath As String, parentPath As String, pendingPath As String
     Dim separator As String, projectPath As String, scriptPath As String
     Dim arguments As String, i As Long, resultPath As String, resultText As String
+    Dim sheetName As String, outputPath As String
+    Dim sheetNumber As Long
     Dim powerShellPath As String, inputStream As Object, textStream As Object
     Dim executor As Object
     Dim options(2) As New com.sun.star.beans.PropertyValue
@@ -33,6 +43,22 @@ Sub ExportAllSheetsToCSV
     pendingPath = parentPath & "CSV.__pending"
     scriptPath = parentPath & "publish-csv-folder.ps1"
     resultPath = parentPath & "CSV_EXPORT_RESULT.txt"
+    If currentOnly Then
+        sheetName = doc.CurrentController.ActiveSheet.Name
+        For i = 0 To doc.Sheets.Count - 1
+            If doc.Sheets.getByIndex(i).Name = sheetName Then
+                sheetNumber = i + 1
+                Exit For
+            End If
+        Next i
+        If sheetName = "" Then
+            MsgBox "出力するシートを選択してください。", 48, "CSV・JSON出力"
+            Exit Sub
+        End If
+        outputPath = pendingPath & separator & "sheet.csv"
+    Else
+        outputPath = pendingPath & separator & "sheet.csv"
+    End If
     files = CreateUnoService("com.sun.star.ucb.SimpleFileAccess")
     If files.exists(ConvertToURL(resultPath)) Then files.kill(ConvertToURL(resultPath))
     ResetFolder files, pendingPath
@@ -41,15 +67,20 @@ Sub ExportAllSheetsToCSV
     options(0).Value = "Text - txt - csv (StarCalc)"
     options(1).Name = "FilterOptions"
     ' Comma, double quote, UTF-8, displayed values, all sheets, BOM.
-    options(1).Value = "44,34,76,1,,0,false,true,true,false,false,-1,false,true"
+    If currentOnly Then
+        options(1).Value = "44,34,76,1,,0,false,true,true,false,false," & CStr(sheetNumber) & ",false,true"
+    Else
+        options(1).Value = "44,34,76,1,,0,false,true,true,false,false,-1,false,true"
+    End If
     options(2).Name = "Overwrite"
     options(2).Value = True
-    doc.storeToURL(ConvertToURL(pendingPath & separator & "sheet.csv"), options())
+    doc.storeToURL(ConvertToURL(outputPath), options())
 
     powerShellPath = Environ("SystemRoot") & "\System32\WindowsPowerShell\v1.0\powershell.exe"
     arguments = "-NoProfile -ExecutionPolicy Bypass -File " & Q(scriptPath) & _
         " -SourceCsvFolder " & Q(pendingPath) & " -ProjectFolder " & Q(projectPath) & _
         " -ResultFile " & Q(resultPath) & " -Silent"
+    If currentOnly Then arguments = arguments & " -SheetName " & Q(sheetName)
     If Not files.exists(ConvertToURL(powerShellPath)) Then
         MsgBox "PowerShellが見つかりません。" & Chr(10) & powerShellPath, 16, "CSV・JSON出力エラー"
         Exit Sub
