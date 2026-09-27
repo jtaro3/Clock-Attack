@@ -1,5 +1,5 @@
 ﻿key,description,value,type,min,max,unit,notes,notes_spellcheck
-start_energy,スタート時の行動力 ,110,integer,1,150,point,,0
+start_energy,スタート時の行動力 ,111,integer,1,150,point,,0
 max_enemies,同時に出現できる敵の最大数,20,integer,1,20,count,,0
 max_particles,パーティクル最大数,200,integer,0,300,count,,0
 idle_warning_seconds,敵を倒してから警告が出るまでの秒数,25,integer,1,60,seconds,,0
