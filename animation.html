@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="theme-color" content="#101923">
+  <title>砂時計の演出確認 — 針の刻 v0.52</title>
+  <style>
+    :root{font-family:system-ui,"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;color:#f5f1dc;background:#101923}
+    *{box-sizing:border-box}body{margin:0;height:100vh;height:100dvh;overflow:hidden;background:#101923}.toolbar{height:68px;padding:10px max(12px,env(safe-area-inset-right)) 10px max(12px,env(safe-area-inset-left));display:flex;align-items:center;gap:8px;background:#142a28;border-bottom:1px solid #d6c18c55}.back,.preset{border:1px solid #9db898;border-radius:10px;background:#24453b;color:#eef5e8;text-decoration:none;font-size:13px;font-weight:900}.back{padding:10px 12px;white-space:nowrap}.presets{display:flex;gap:6px;overflow-x:auto}.preset{min-width:48px;padding:10px 8px;cursor:pointer}.preset.active{background:#e6c987;color:#172721;border-color:#e6c987}iframe{display:block;width:100%;height:calc(100% - 68px);border:0;background:#172530}
+  </style>
+</head>
+<body>
+  <header class="toolbar"><a class="back" href="index.html">タイトルへ</a><div class="presets" aria-label="瓶の数"><button class="preset" data-stock="1">1個</button><button class="preset active" data-stock="5">5個</button><button class="preset" data-stock="7">7個</button><button class="preset" data-stock="10">10個</button></div></header>
+  <iframe id="preview" title="砂時計の回復演出" src="game.html?effectPreview=1&amp;stock=5"></iframe>
+  <script>
+    const frame=document.getElementById('preview');
+    document.querySelectorAll('.preset').forEach(button=>button.addEventListener('click',()=>{
+      document.querySelectorAll('.preset').forEach(item=>item.classList.toggle('active',item===button));
+      frame.src=`game.html?effectPreview=1&stock=${button.dataset.stock}`;
+    }));
+  </script>
+</body>
+</html>

@@ -2,6 +2,7 @@
   'use strict';
   const $=id=>document.getElementById(id);
   const canvas=$('field'),ctx=canvas.getContext('2d');
+  const effectPreviewMode=new URLSearchParams(location.search).has('effectPreview');
   const ui={overlay:$('overlay'),panel:$('panel'),title:$('title'),eyebrow:$('eyebrow'),description:$('description'),resultValue:$('resultValue'),hourHand:$('hourHand'),minuteHand:$('minuteHand'),stop:$('stop'),sub:$('sub'),score:$('score'),roundNumber:$('roundNumber'),roundTarget:$('roundTarget'),elapsedTime:$('elapsedTime'),energyValue:$('energyValue'),energyFill:$('energyFill'),grayDamageFill:$('grayDamageFill'),energyBar:document.querySelector('.energy-bar'),swordCounter:$('swordCounter'),attackCount:$('attackCount'),clockCount:$('clockCount'),clockButton:$('clockButton'),clockStock:$('clockStock'),buttonHourglass:$('buttonHourglass'),mergeStage:$('mergeStage'),mergeBottles:$('mergeBottles'),mergeHourglass:$('mergeHourglass'),sandPreview:$('sandPreview'),previewSandCount:$('previewSandCount'),previewHourglass:$('previewHourglass'),killWarning:$('killWarning'),killCountdown:$('killCountdown'),attack:$('attack'),pauseButton:$('pauseButton'),pauseScreen:$('pauseScreen'),resumeButton:$('resumeButton'),gridToggle:$('gridToggle')};
   const player={x:0,y:0,r:14,angle:-Math.PI/2};
   // 上から時計回り: 背面、背面右、右、正面右、正面、正面左、左、背面左。
@@ -255,6 +256,7 @@
     ui.stop.disabled=true;ui.stop.textContent='';ui.sub.textContent='';setHud();
     transitionTimer=setTimeout(()=>{
       if(mode!=='confirmed')return;
+      if(effectPreviewMode){energy=0;transitionTimer=null;startEffectPreview();return}
       mode=selectionReason==='start'?'entry':'play';entryGray=selectionReason==='start'?2:0;
       if(selectionReason==='refill')invincible=Math.max(invincible,2);
       ui.overlay.classList.add('hidden');spawnTimer=0;shake=0;transitionTimer=null;last=performance.now();setHud();
@@ -623,10 +625,14 @@
     if(charge.pointer!==null&&charge.timer!==null)ui.attack.style.setProperty('--charge',`${Math.min(100,(now-charge.start)/20)}%`);
     update(dt);draw(now);requestAnimationFrame(frame);
   }
-  if(new URLSearchParams(location.search).has('effectPreview')){
-    const previewKinds=['blue','blue','green','red','purple'];
+  function startEffectPreview(){
+    const requested=Number(new URLSearchParams(location.search).get('stock'))||5;
+    const count=Math.max(1,Math.min(10,Math.round(requested)));
+    const palette=['blue','green','red','purple','black','metal'];
+    const previewKinds=Array.from({length:count},(_,i)=>palette[i%palette.length]);
     const previewBottles=previewKinds.map(kind=>({kind,color:SLIME_TYPES[kind].color,recovery:SLIME_TYPES[kind].hp*10}));
     startSelection(false,previewBottles.length,previewBottles.reduce((total,bottle)=>total+bottle.recovery,0),previewBottles);
-  }else setHud();
+  }
+  if(effectPreviewMode)startEffectPreview();else setHud();
   requestAnimationFrame(frame);
 })();
