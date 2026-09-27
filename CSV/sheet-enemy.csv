@@ -1,7 +1,7 @@
 ﻿enabled,enemy_key,description,family,variant,hp,attack,super_armor,ai_type,sand_type,death_hit_stop_seconds,notes
 1,slime_blue,青スライム,slime,blue,1,1,0,chase,blue,0.1,
 1,slime_green,緑スライム,slime,green,2,1,0,chase,green,0.1,
-1,slime_red,赤スライム,slime,red,3,1,0,chase,red,0.1,
+1,slime_red,赤スライム,slime,red,5,1,0,chase,red,0.1,
 1,slime_purple,紫スライム,slime,purple,10,5,0,chase,purple,0.1,
 1,slime_black,黒スライム,slime,black,20,10,1,chase,black,0.3,
 1,slime_metal,金属スライム,slime,metal,50,20,0,chase,white,0.3,
