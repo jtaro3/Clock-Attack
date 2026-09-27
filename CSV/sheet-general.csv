@@ -1,0 +1,10 @@
+﻿key,description,value,type,min,max,unit,notes,notes_spellcheck
+start_energy,スタート時の行動力 ,100,integer,1,100,point,,0
+max_enemies,同時に出現できる敵の最大数,20,integer,1,20,count,,0
+max_particles,パーティクル最大数,200,integer,0,300,count,,0
+idle_warning_seconds,敵を倒してから警告が出るまでの秒数,60,integer,1,60,seconds,,0
+game_over_countdown_seconds,ゲームオーバーまでのカウントダウン秒数,5,integer,1,60,seconds,,0
+recovery_invincible_seconds,行動力回復後の無敵時間,2,number,0,10,seconds,,0
+battle_start_delay_seconds,バトル開始時の待機時間,2,number,0,10,seconds,コレいらないかも,0
+max_hourglass_stock,砂時計の最大ストック数,10,integer,1,10,count,,0
+max_sand_display,砂量表示の最大値,1000,integer,1,10000,point,コレはいじらない,0
