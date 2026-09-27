@@ -2,7 +2,7 @@
   'use strict';
   const $=id=>document.getElementById(id);
   const canvas=$('field'),ctx=canvas.getContext('2d');
-  const ui={overlay:$('overlay'),panel:$('panel'),title:$('title'),eyebrow:$('eyebrow'),description:$('description'),resultValue:$('resultValue'),hourHand:$('hourHand'),minuteHand:$('minuteHand'),stop:$('stop'),debug:$('debug'),sub:$('sub'),score:$('score'),roundNumber:$('roundNumber'),roundTarget:$('roundTarget'),elapsedTime:$('elapsedTime'),energyValue:$('energyValue'),energyFill:$('energyFill'),grayDamageFill:$('grayDamageFill'),energyBar:document.querySelector('.energy-bar'),swordCounter:$('swordCounter'),attackCount:$('attackCount'),clockCount:$('clockCount'),clockButton:$('clockButton'),clockStock:$('clockStock'),buttonHourglass:$('buttonHourglass'),mergeStage:$('mergeStage'),mergeBottles:$('mergeBottles'),mergeHourglass:$('mergeHourglass'),sandPreview:$('sandPreview'),previewSandCount:$('previewSandCount'),previewHourglass:$('previewHourglass'),killWarning:$('killWarning'),killCountdown:$('killCountdown'),attack:$('attack'),pauseButton:$('pauseButton'),pauseScreen:$('pauseScreen'),resumeButton:$('resumeButton'),gridToggle:$('gridToggle')};
+  const ui={overlay:$('overlay'),panel:$('panel'),title:$('title'),eyebrow:$('eyebrow'),description:$('description'),resultValue:$('resultValue'),hourHand:$('hourHand'),minuteHand:$('minuteHand'),stop:$('stop'),sub:$('sub'),score:$('score'),roundNumber:$('roundNumber'),roundTarget:$('roundTarget'),elapsedTime:$('elapsedTime'),energyValue:$('energyValue'),energyFill:$('energyFill'),grayDamageFill:$('grayDamageFill'),energyBar:document.querySelector('.energy-bar'),swordCounter:$('swordCounter'),attackCount:$('attackCount'),clockCount:$('clockCount'),clockButton:$('clockButton'),clockStock:$('clockStock'),buttonHourglass:$('buttonHourglass'),mergeStage:$('mergeStage'),mergeBottles:$('mergeBottles'),mergeHourglass:$('mergeHourglass'),sandPreview:$('sandPreview'),previewSandCount:$('previewSandCount'),previewHourglass:$('previewHourglass'),killWarning:$('killWarning'),killCountdown:$('killCountdown'),attack:$('attack'),pauseButton:$('pauseButton'),pauseScreen:$('pauseScreen'),resumeButton:$('resumeButton'),gridToggle:$('gridToggle')};
   const player={x:0,y:0,r:14,angle:-Math.PI/2};
   // 上から時計回り: 背面、背面右、右、正面右、正面、正面左、左、背面左。
   const spriteBounds=[[386,362,850,928],[396,376,846,930],[432,356,812,956],[396,344,836,952],[386,350,866,946],[374,340,862,916],[394,344,828,926],[396,324,828,922]];
@@ -146,7 +146,7 @@
     ui.sandPreview.style.setProperty('--sand-color','#fff9e8');
     ui.previewHourglass.style.setProperty('--sand-level',String(finalLevel));
     ui.panel.classList.add('merging');
-    ui.stop.disabled=true;ui.debug.disabled=true;
+    ui.stop.disabled=true;
     requestAnimationFrame(()=>requestAnimationFrame(()=>{
       ui.mergeStage.classList.add('collapsing','absorbing');
       ui.mergeHourglass.classList.remove('empty');
@@ -154,7 +154,7 @@
     }));
     transitionTimer=setTimeout(()=>{
       ui.panel.classList.remove('merging');ui.mergeStage.classList.remove('collapsing','absorbing');
-      ui.stop.disabled=false;ui.debug.disabled=false;transitionTimer=null;
+      ui.stop.disabled=false;transitionTimer=null;
     },700);
   }
 
@@ -220,48 +220,47 @@
     ui.eyebrow.textContent=initial?'':'砂時計';
     ui.title.textContent=initial?'時を止めて、戦え。':'砂時計を返そう';
     ui.description.textContent='';
-    ui.resultValue.textContent='';ui.stop.disabled=false;ui.stop.textContent='光を';ui.debug.disabled=false;
+    ui.resultValue.textContent='';ui.stop.disabled=false;ui.stop.textContent='光を';
     ui.sub.textContent='';setHud();
     if(!initial)showBottleMerge(selectionBottles);
   }
-  function stopClock(debug=false){
+  function stopClock(){
     if(mode==='gameover'){restart();return}
     if(mode!=='select')return;
     if(selectionReason==='refill'){
-      mode='turning';ui.stop.disabled=true;ui.debug.disabled=true;
+      mode='turning';ui.stop.disabled=true;
       ui.panel.classList.add('turning');ui.sandPreview.classList.add('flipped');setHud();
-      transitionTimer=setTimeout(()=>flowSand(debug),289);
+      transitionTimer=setTimeout(flowSand,289);
       return;
     }
     updateClock(performance.now());
-    finishClock(debug);
+    finishClock();
   }
-  function flowSand(debug){
+  function flowSand(){
     if(mode!=='turning')return;
     ui.sandPreview.classList.add('flowing');
     transitionTimer=setTimeout(()=>{
       if(mode!=='turning')return;
       ui.sandPreview.classList.remove('flowing');ui.sandPreview.classList.add('flowed');
-      transitionTimer=setTimeout(()=>finishClock(debug),111);
-    },355);
+      transitionTimer=setTimeout(finishClock,167);
+    },533);
   }
-  function finishClock(debug){
-    const gained=debug||selectionReason==='start'?100:selectionRecovery;
+  function finishClock(){
+    const gained=selectionReason==='start'?100:selectionRecovery;
     energy+=gained;moveProgress=0;grayHits=0;lowEnergyGray=false;
     mode='confirmed';ui.panel.classList.remove('selecting','turning');ui.panel.classList.add('confirmed');
     ui.resultValue.textContent=gained;
     ui.eyebrow.textContent='行動力を取得';ui.title.textContent=`+${gained}`;
     ui.description.textContent=`元の値と合わせて行動力 ${energy}。1秒後に戦闘を再開します。`;
-    ui.stop.disabled=true;ui.debug.disabled=true;ui.stop.textContent='';ui.sub.textContent='まもなく開始';setHud();
+    ui.stop.disabled=true;ui.stop.textContent='';ui.sub.textContent='';setHud();
     transitionTimer=setTimeout(()=>{
       if(mode!=='confirmed')return;
       mode=selectionReason==='start'?'entry':'play';entryGray=selectionReason==='start'?2:0;
       if(selectionReason==='refill')invincible=Math.max(invincible,2);
       ui.overlay.classList.add('hidden');spawnTimer=0;shake=0;transitionTimer=null;last=performance.now();setHud();
-    },667);
+    },1000);
   }
   ui.stop.addEventListener('click',()=>stopClock());
-  ui.debug.addEventListener('click',()=>stopClock(true));
   ui.pauseButton.addEventListener('click',()=>{
     if(mode!=='play')return;
     mode='manual-pause';drag.pointer=null;cancelCharge();
