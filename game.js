@@ -3,7 +3,7 @@
   const $=id=>document.getElementById(id);
   const canvas=$('field'),ctx=canvas.getContext('2d');
   const query=new URLSearchParams(location.search),effectPreviewMode=query.has('effectPreview'),clearPreviewMode=query.has('clearPreview');
-  const ui={overlay:$('overlay'),panel:$('panel'),title:$('title'),eyebrow:$('eyebrow'),description:$('description'),resultValue:$('resultValue'),hourHand:$('hourHand'),minuteHand:$('minuteHand'),stop:$('stop'),sub:$('sub'),score:$('score'),roundNumber:$('roundNumber'),roundTarget:$('roundTarget'),elapsedTime:$('elapsedTime'),energyValue:$('energyValue'),energyFill:$('energyFill'),grayDamageFill:$('grayDamageFill'),energyBar:document.querySelector('.energy-bar'),swordCounter:$('swordCounter'),attackCount:$('attackCount'),clockCount:$('clockCount'),clockButton:$('clockButton'),clockStock:$('clockStock'),buttonHourglass:$('buttonHourglass'),mergeStage:$('mergeStage'),mergeBottles:$('mergeBottles'),mergeHourglass:$('mergeHourglass'),sandPreview:$('sandPreview'),previewSandCount:$('previewSandCount'),previewHourglass:$('previewHourglass'),killWarning:$('killWarning'),killCountdown:$('killCountdown'),attack:$('attack'),pauseButton:$('pauseButton'),pauseScreen:$('pauseScreen'),resumeButton:$('resumeButton'),gridToggle:$('gridToggle'),clearScreen:$('clearScreen'),clearAnnouncement:$('clearAnnouncement'),clearHourglass:$('clearHourglass'),clearScore:$('clearScore'),clearTime:$('clearTime'),clearActions:$('clearActions'),clearRetry:$('clearRetry'),clearTitleLink:$('clearTitleLink')};
+  const ui={overlay:$('overlay'),panel:$('panel'),title:$('title'),eyebrow:$('eyebrow'),description:$('description'),resultValue:$('resultValue'),hourHand:$('hourHand'),minuteHand:$('minuteHand'),stop:$('stop'),sub:$('sub'),score:$('score'),roundNumber:$('roundNumber'),roundTarget:$('roundTarget'),elapsedTime:$('elapsedTime'),energyValue:$('energyValue'),energyFill:$('energyFill'),grayDamageFill:$('grayDamageFill'),energyBar:document.querySelector('.energy-bar'),swordCounter:$('swordCounter'),attackCount:$('attackCount'),clockCount:$('clockCount'),clockButton:$('clockButton'),clockStock:$('clockStock'),buttonHourglass:$('buttonHourglass'),mergeStage:$('mergeStage'),mergeBottles:$('mergeBottles'),mergeHourglass:$('mergeHourglass'),sandPreview:$('sandPreview'),previewSandCount:$('previewSandCount'),previewHourglass:$('previewHourglass'),killWarning:$('killWarning'),killCountdown:$('killCountdown'),attack:$('attack'),instantKillButton:$('instantKillButton'),pauseButton:$('pauseButton'),pauseScreen:$('pauseScreen'),resumeButton:$('resumeButton'),gridToggle:$('gridToggle'),clearScreen:$('clearScreen'),clearAnnouncement:$('clearAnnouncement'),clearHourglass:$('clearHourglass'),clearScore:$('clearScore'),clearTime:$('clearTime'),clearActions:$('clearActions'),clearRetry:$('clearRetry'),clearTitleLink:$('clearTitleLink')};
   const player={x:0,y:0,r:14,angle:-Math.PI/2};
   // 上から時計回り: 背面、背面右、右、正面右、正面、正面左、左、背面左。
   const spriteBounds=[[386,362,850,928],[396,376,846,930],[432,356,812,956],[396,344,836,952],[386,350,866,946],[374,340,862,916],[394,344,828,926],[396,324,828,922]];
@@ -297,6 +297,7 @@
     ui.clearHourglass.innerHTML=hourglassSvg(['#fff8c9','#f1c553','#ffffff'],'clearSand');
     ui.clearScore.textContent=score;
     const seconds=Math.floor(elapsed);ui.clearTime.textContent=`${Math.floor(seconds/60)}:${String(seconds%60).padStart(2,'0')}`;
+    if(preview)ui.clearTitleLink.removeAttribute('href');else ui.clearTitleLink.href='index.html';
     ui.clearScreen.classList.remove('hidden');ui.clearScreen.classList.add('announcing');
     void ui.clearAnnouncement.offsetWidth;
     transitionTimer=setTimeout(()=>{ui.clearScreen.classList.remove('announcing');transitionTimer=null},1250);
@@ -419,6 +420,18 @@
   });
   addEventListener('keyup',e=>keys.delete(e.code));
   addEventListener('blur',()=>{keys.clear();drag.pointer=null;cancelCharge()});
+  function defeatEnemy(i,enemy){
+    deadEnemies.push({...enemy,deathTime:.45});score++;roundKills++;swordCount=Math.min(MAX_SWORD_COUNT,swordCount+1);
+    if(sandBottles.length<10)sandBottles.push({kind:enemy.kind,color:enemy.color,recovery:enemy.hpMax*10});
+    unlocked=sandBottles.length;timeSinceKill=0;ui.killWarning.classList.add('hidden');burst(enemy.x,enemy.y,enemy.color,11);
+    enemies.splice(i,1);
+  }
+  function finishEnemyDamage(defeated){
+    if(defeated){hitStop=.1;drag.pointer=null}
+    if(roundKills<roundKillTarget(round))return;
+    if(round>=MAX_EASY_ROUND){gameClear();return}
+    round++;roundKills=0;roundSpawned=0;spawnTimer=0;enemies.length=0;
+  }
   function hitEnemies(damage,fullCircle){
     const ax=Math.cos(player.angle),ay=Math.sin(player.angle);
     let defeated=false;
@@ -431,19 +444,22 @@
       explosions.push({x:enemy.x,y:enemy.y,r:enemy.r,life:.45,max:.45});
       burst(enemy.x,enemy.y,'#fff1c3',15);showDamage(enemy,damage);
       if(enemy.hp>0)continue;
-      defeated=true;deadEnemies.push({...enemy,deathTime:.45});
-      score++;roundKills++;swordCount=Math.min(MAX_SWORD_COUNT,swordCount+1);
-      if(sandBottles.length<10)sandBottles.push({kind:enemy.kind,color:enemy.color,recovery:enemy.hpMax*10});
-      unlocked=sandBottles.length;timeSinceKill=0;ui.killWarning.classList.add('hidden');burst(enemy.x,enemy.y,enemy.color,11);
-      enemies.splice(i,1);
+      defeated=true;defeatEnemy(i,enemy);
     }
-    if(defeated){hitStop=.1;drag.pointer=null}
-    if(roundKills>=roundKillTarget(round)){
-      if(round>=MAX_EASY_ROUND){gameClear();return}
-      round++;roundKills=0;roundSpawned=0;spawnTimer=0;
-      enemies.length=0;
-    }
+    finishEnemyDamage(defeated);
   }
+  function instantKillAll(){
+    if(mode!=='play'||hitStop>0||enemies.length===0)return;
+    let defeated=false;
+    for(let i=enemies.length-1;i>=0;i--){
+      const enemy=enemies[i];enemy.hp-=100;enemy.hit=.18;
+      explosions.push({x:enemy.x,y:enemy.y,r:enemy.r,life:.45,max:.45});
+      burst(enemy.x,enemy.y,'#fff1c3',15);showDamage(enemy,100);
+      if(enemy.hp<=0){defeated=true;defeatEnemy(i,enemy)}
+    }
+    finishEnemyDamage(defeated);setHud();
+  }
+  ui.instantKillButton.addEventListener('click',instantKillAll);
   function attack(){
     if(mode!=='play'||energy<=0||swing>0||spin>0||hitStop>0)return;
     const damage=attackDamage(swordCount);

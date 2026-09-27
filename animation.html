@@ -4,19 +4,20 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no">
   <meta name="theme-color" content="#101923">
-  <title>演出確認 — 針の刻 v0.56</title>
+  <title>演出確認 — 針の刻 v0.57</title>
   <style>
-    :root{font-family:system-ui,"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;color:#f5f1dc;background:#101923}
-    *{box-sizing:border-box}body{margin:0;height:100vh;height:100dvh;overflow:hidden;background:#101923}.toolbar{height:68px;padding:10px max(12px,env(safe-area-inset-right)) 10px max(12px,env(safe-area-inset-left));display:flex;align-items:center;gap:8px;background:#142a28;border-bottom:1px solid #d6c18c55}.back,.preset{border:1px solid #9db898;border-radius:10px;background:#24453b;color:#eef5e8;text-decoration:none;font-size:13px;font-weight:900}.back{padding:10px 12px;white-space:nowrap}.presets{display:flex;gap:6px;overflow-x:auto}.preset{min-width:48px;padding:10px 8px;cursor:pointer}.preset.active{background:#e6c987;color:#172721;border-color:#e6c987}iframe{display:block;width:100%;height:calc(100% - 68px);border:0;background:#172530}
+    :root{font-family:system-ui,"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;color:#f5f1dc;background:#000}
+    *{box-sizing:border-box}body{margin:0;height:100vh;height:100dvh;overflow:hidden;background:#000}.toolbar{height:68px;padding:10px max(12px,env(safe-area-inset-right)) 10px max(12px,env(safe-area-inset-left));display:flex;align-items:center;gap:8px;background:#142a28;border-bottom:1px solid #d6c18c55}.back,.preset{border:1px solid #9db898;border-radius:10px;background:#24453b;color:#eef5e8;text-decoration:none;font-size:13px;font-weight:900}.back{padding:10px 12px;white-space:nowrap;background:#9e2929;border-color:#ff7c73;color:#fff}.presets{display:flex;gap:6px;overflow-x:auto}.preset{min-width:48px;padding:10px 8px;cursor:pointer}.preset.active{background:#e6c987;color:#172721;border-color:#e6c987}.stage{position:relative;width:100%;height:calc(100% - 68px);background:#000}.placeholder{position:absolute;inset:0;display:grid;place-items:center;color:#aaa;font-size:15px;font-weight:800;letter-spacing:.08em}.placeholder.hidden{display:none}iframe{display:none;width:100%;height:100%;border:0;background:#000}iframe.ready{display:block}
   </style>
 </head>
 <body>
-  <header class="toolbar"><a class="back" href="index.html">タイトルへ</a><div class="presets" aria-label="演出の種類"><button class="preset" data-stock="1">1個</button><button class="preset active" data-stock="5">5個</button><button class="preset" data-stock="7">7個</button><button class="preset" data-stock="10">10個</button><button class="preset" data-effect="clear">クリア</button></div></header>
-  <iframe id="preview" title="砂時計の回復演出" src="game.html?effectPreview=1&amp;stock=5"></iframe>
+  <header class="toolbar"><a class="back" href="index.html">タイトルへ</a><div class="presets" aria-label="演出の種類"><button class="preset" data-stock="1">1個</button><button class="preset" data-stock="5">5個</button><button class="preset" data-stock="7">7個</button><button class="preset" data-stock="10">10個</button><button class="preset" data-effect="clear">クリア</button></div></header>
+  <div class="stage"><div id="placeholder" class="placeholder">画面上のボタンから演出を選択</div><iframe id="preview" title="演出確認"></iframe></div>
   <script>
-    const frame=document.getElementById('preview');
+    const frame=document.getElementById('preview'),placeholder=document.getElementById('placeholder');
     document.querySelectorAll('.preset').forEach(button=>button.addEventListener('click',()=>{
       document.querySelectorAll('.preset').forEach(item=>item.classList.toggle('active',item===button));
+      placeholder.classList.add('hidden');frame.classList.add('ready');
       frame.src=button.dataset.effect==='clear'?'game.html?clearPreview=1':`game.html?effectPreview=1&stock=${button.dataset.stock}`;
     }));
   </script>
