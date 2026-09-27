@@ -5,7 +5,9 @@ Sub ExportAllSheetsToCSV
     Dim doc As Object, files As Object
     Dim sourcePath As String, parentPath As String, pendingPath As String
     Dim separator As String, projectPath As String, scriptPath As String
-    Dim arguments As String, i As Long
+    Dim arguments As String, i As Long, resultPath As String, resultText As String
+    Dim powerShellPath As String, inputStream As Object, textStream As Object
+    Dim executor As Object
     Dim options(2) As New com.sun.star.beans.PropertyValue
     On Error GoTo Failed
 
@@ -30,7 +32,9 @@ Sub ExportAllSheetsToCSV
     projectPath = Left(parentPath, Len(parentPath) - 1)
     pendingPath = parentPath & "CSV.__pending"
     scriptPath = parentPath & "publish-csv-folder.ps1"
+    resultPath = parentPath & "CSV_EXPORT_RESULT.txt"
     files = CreateUnoService("com.sun.star.ucb.SimpleFileAccess")
+    If files.exists(ConvertToURL(resultPath)) Then files.kill(ConvertToURL(resultPath))
     ResetFolder files, pendingPath
 
     options(0).Name = "FilterName"
@@ -42,9 +46,35 @@ Sub ExportAllSheetsToCSV
     options(2).Value = True
     doc.storeToURL(ConvertToURL(pendingPath & separator & "sheet.csv"), options())
 
+    powerShellPath = Environ("SystemRoot") & "\System32\WindowsPowerShell\v1.0\powershell.exe"
     arguments = "-NoProfile -ExecutionPolicy Bypass -File " & Q(scriptPath) & _
-        " -SourceCsvFolder " & Q(pendingPath) & " -ProjectFolder " & Q(projectPath)
-    Shell("powershell.exe", 0, arguments, True)
+        " -SourceCsvFolder " & Q(pendingPath) & " -ProjectFolder " & Q(projectPath) & _
+        " -ResultFile " & Q(resultPath) & " -Silent"
+    If Not files.exists(ConvertToURL(powerShellPath)) Then
+        MsgBox "PowerShellが見つかりません。" & Chr(10) & powerShellPath, 16, "CSV・JSON出力エラー"
+        Exit Sub
+    End If
+    executor = CreateUnoService("com.sun.star.system.SystemShellExecute")
+    executor.execute(powerShellPath, arguments, 0)
+    For i = 1 To 300
+        If files.exists(ConvertToURL(resultPath)) Then Exit For
+        Wait 100
+    Next i
+    If Not files.exists(ConvertToURL(resultPath)) Then
+        MsgBox "CSVは一時フォルダーへ出力しましたが、30秒以内に検証結果を受け取れませんでした。" & Chr(10) & scriptPath, 16, "CSV・JSON出力エラー"
+        Exit Sub
+    End If
+    inputStream = files.openFileRead(ConvertToURL(resultPath))
+    textStream = CreateUnoService("com.sun.star.io.TextInputStream")
+    textStream.setInputStream(inputStream)
+    textStream.setEncoding("UTF-8")
+    resultText = textStream.readLine()
+    textStream.closeInput()
+    If Left(resultText, 3) = "OK:" Then
+        MsgBox resultText, 64, "CSV・JSON出力完了"
+    Else
+        MsgBox resultText, 16, "CSV・JSON出力エラー"
+    End If
     Exit Sub
 Failed:
     MsgBox "CSV出力を開始できませんでした。" & Chr(10) & Error$, 16, "CSV・JSON出力エラー"
