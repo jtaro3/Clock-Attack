@@ -5,3 +5,6 @@
 # Local Sites packaging artifacts
 /site-*.tar.gz
 /CSV_EXPORT_RESULT.txt
+
+# LibreOffice temporary lock files
+/.~lock.*#
