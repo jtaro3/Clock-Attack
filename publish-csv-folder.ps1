@@ -6,8 +6,15 @@
 $ErrorActionPreference='Stop'
 function Show-Result([string]$Message,[string]$Title,[int]$Icon){
     if($Silent){return}
-    $popup=New-Object -ComObject WScript.Shell
-    try{$popup.Popup($Message,0,$Title,$Icon)|Out-Null}finally{[void][Runtime.InteropServices.Marshal]::ReleaseComObject($popup)}
+    Add-Type -AssemblyName System.Windows.Forms
+    $owner=New-Object System.Windows.Forms.Form
+    $owner.TopMost=$true
+    $owner.ShowInTaskbar=$false
+    try{
+        $buttons=[System.Windows.Forms.MessageBoxButtons]::OK
+        $icon=if($Icon -eq 16){[System.Windows.Forms.MessageBoxIcon]::Error}else{[System.Windows.Forms.MessageBoxIcon]::Information}
+        [System.Windows.Forms.MessageBox]::Show($owner,$Message,$Title,$buttons,$icon)|Out-Null
+    }finally{$owner.Dispose()}
 }
 $validator=Join-Path $ProjectFolder 'csv-to-game-data.ps1'
 $destination=Join-Path $ProjectFolder 'CSV'
