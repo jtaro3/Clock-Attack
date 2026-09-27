@@ -155,7 +155,7 @@
     transitionTimer=setTimeout(()=>{
       ui.panel.classList.remove('merging');ui.mergeStage.classList.remove('collapsing','absorbing');
       ui.stop.disabled=false;ui.debug.disabled=false;transitionTimer=null;
-    },1050);
+    },700);
   }
 
   function updateClock(now){
@@ -230,7 +230,7 @@
     if(selectionReason==='refill'){
       mode='turning';ui.stop.disabled=true;ui.debug.disabled=true;
       ui.panel.classList.add('turning');ui.sandPreview.classList.add('flipped');setHud();
-      transitionTimer=setTimeout(()=>flowSand(debug),433);
+      transitionTimer=setTimeout(()=>flowSand(debug),289);
       return;
     }
     updateClock(performance.now());
@@ -242,8 +242,8 @@
     transitionTimer=setTimeout(()=>{
       if(mode!=='turning')return;
       ui.sandPreview.classList.remove('flowing');ui.sandPreview.classList.add('flowed');
-      transitionTimer=setTimeout(()=>finishClock(debug),167);
-    },533);
+      transitionTimer=setTimeout(()=>finishClock(debug),111);
+    },355);
   }
   function finishClock(debug){
     const gained=debug||selectionReason==='start'?100:selectionRecovery;
@@ -258,7 +258,7 @@
       mode=selectionReason==='start'?'entry':'play';entryGray=selectionReason==='start'?2:0;
       if(selectionReason==='refill')invincible=Math.max(invincible,2);
       ui.overlay.classList.add('hidden');spawnTimer=0;shake=0;transitionTimer=null;last=performance.now();setHud();
-    },1000);
+    },667);
   }
   ui.stop.addEventListener('click',()=>stopClock());
   ui.debug.addEventListener('click',()=>stopClock(true));
