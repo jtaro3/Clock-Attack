@@ -1,25 +1,21 @@
-Option Explicit
+﻿Option Explicit
 
-' LibreOffice Calc用。マイマクロの標準モジュールに貼り付けてください。
+' LibreOffice Calc: export to a temporary folder, validate, then publish CSV and JSON.
 Sub ExportAllSheetsToCSV
     Dim doc As Object, files As Object
-    Dim sourcePath As String, parentPath As String, folderPath As String
-    Dim folderURL As String, separator As String
-    Dim i As Long
+    Dim sourcePath As String, parentPath As String, pendingPath As String
+    Dim separator As String, projectPath As String, scriptPath As String
+    Dim arguments As String, i As Long
     Dim options(2) As New com.sun.star.beans.PropertyValue
     On Error GoTo Failed
 
     doc = ThisComponent
     If Not doc.supportsService("com.sun.star.sheet.SpreadsheetDocument") Then
-        MsgBox "CSVに出力したいCalcのブックを開いてください。", 48, "CSV出力"
+        MsgBox "CSVに出力したいCalcのブックを開いてください。", 48, "CSV・JSON出力"
         Exit Sub
     End If
-    If doc.URL = "" Then
-        MsgBox "先にブックを保存してください。", 48, "CSV出力"
-        Exit Sub
-    End If
-    If LCase(Left(doc.URL, 5)) <> "file:" Then
-        MsgBox "ブックをPC上のフォルダーに保存してから実行してください。", 48, "CSV出力"
+    If doc.URL = "" Or LCase(Left(doc.URL, 5)) <> "file:" Then
+        MsgBox "先にブックをPC上のフォルダーへ保存してください。", 48, "CSV・JSON出力"
         Exit Sub
     End If
 
@@ -31,29 +27,42 @@ Sub ExportAllSheetsToCSV
             Exit For
         End If
     Next i
+    projectPath = Left(parentPath, Len(parentPath) - 1)
+    pendingPath = parentPath & "CSV.__pending"
+    scriptPath = parentPath & "publish-csv-folder.ps1"
     files = CreateUnoService("com.sun.star.ucb.SimpleFileAccess")
-    folderPath = parentPath & "CSV"
-    folderURL = ConvertToURL(folderPath)
-    If Not files.exists(folderURL) Then
-        files.createFolder(folderURL)
-    ElseIf Not files.isFolder(folderURL) Then
-        MsgBox "CSVという名前のファイルがあるため、出力フォルダーを作成できません。", 48, "CSV出力"
-        Exit Sub
-    End If
+    ResetFolder files, pendingPath
 
     options(0).Name = "FilterName"
     options(0).Value = "Text - txt - csv (StarCalc)"
     options(1).Name = "FilterOptions"
-    ' Comma, double quote, UTF-8, displayed values, no formula text, all sheets, BOM.
+    ' Comma, double quote, UTF-8, displayed values, all sheets, BOM.
     options(1).Value = "44,34,76,1,,0,false,true,true,false,false,-1,false,true"
     options(2).Name = "Overwrite"
     options(2).Value = True
+    doc.storeToURL(ConvertToURL(pendingPath & separator & "sheet.csv"), options())
 
-    ' storeToURL exports a copy; it does not change the workbook's format or location.
-    doc.storeToURL(ConvertToURL(folderPath & separator & "sheet.csv"), options())
-    MsgBox "全シートのCSV出力が完了しました。" & Chr(10) & folderPath, 64, "CSV出力"
+    arguments = "-NoProfile -ExecutionPolicy Bypass -File " & Q(scriptPath) & _
+        " -SourceCsvFolder " & Q(pendingPath) & " -ProjectFolder " & Q(projectPath)
+    Shell("powershell.exe", 0, arguments, True)
     Exit Sub
 Failed:
-    MsgBox "CSV出力に失敗しました。" & Chr(10) & Error$ & Chr(10) & _
-        "出力先: " & folderPath & Chr(10) & "途中まで出力されている場合があります。", 16, "CSV出力"
+    MsgBox "CSV出力を開始できませんでした。" & Chr(10) & Error$, 16, "CSV・JSON出力エラー"
 End Sub
+
+Sub ResetFolder(files As Object, folderPath As String)
+    Dim folderURL As String, entries As Variant, entry As Variant
+    folderURL = ConvertToURL(folderPath)
+    If files.exists(folderURL) Then
+        entries = files.getFolderContents(folderURL, True)
+        For Each entry In entries
+            files.kill(entry)
+        Next entry
+        files.kill(folderURL)
+    End If
+    files.createFolder(folderURL)
+End Sub
+
+Function Q(value As String) As String
+    Q = Chr(34) & value & Chr(34)
+End Function
