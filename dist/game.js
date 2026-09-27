@@ -3,7 +3,7 @@
   const $=id=>document.getElementById(id);
   const canvas=$('field'),ctx=canvas.getContext('2d');
   const query=new URLSearchParams(location.search),effectPreviewMode=query.has('effectPreview'),clearPreviewMode=query.has('clearPreview');
-  const ui={overlay:$('overlay'),panel:$('panel'),title:$('title'),eyebrow:$('eyebrow'),description:$('description'),resultValue:$('resultValue'),hourHand:$('hourHand'),minuteHand:$('minuteHand'),stop:$('stop'),sub:$('sub'),score:$('score'),roundNumber:$('roundNumber'),roundTarget:$('roundTarget'),elapsedTime:$('elapsedTime'),energyValue:$('energyValue'),energyFill:$('energyFill'),grayDamageFill:$('grayDamageFill'),energyBar:document.querySelector('.energy-bar'),swordCounter:$('swordCounter'),attackCount:$('attackCount'),clockCount:$('clockCount'),clockButton:$('clockButton'),clockStock:$('clockStock'),buttonHourglass:$('buttonHourglass'),mergeStage:$('mergeStage'),mergeBottles:$('mergeBottles'),mergeHourglass:$('mergeHourglass'),sandPreview:$('sandPreview'),previewSandCount:$('previewSandCount'),previewHourglass:$('previewHourglass'),killWarning:$('killWarning'),killCountdown:$('killCountdown'),attack:$('attack'),pauseButton:$('pauseButton'),pauseScreen:$('pauseScreen'),resumeButton:$('resumeButton'),gridToggle:$('gridToggle'),clearScreen:$('clearScreen'),clearAnnouncement:$('clearAnnouncement'),clearHourglass:$('clearHourglass'),clearScore:$('clearScore'),clearTime:$('clearTime'),clearActions:$('clearActions'),clearRetry:$('clearRetry')};
+  const ui={overlay:$('overlay'),panel:$('panel'),title:$('title'),eyebrow:$('eyebrow'),description:$('description'),resultValue:$('resultValue'),hourHand:$('hourHand'),minuteHand:$('minuteHand'),stop:$('stop'),sub:$('sub'),score:$('score'),roundNumber:$('roundNumber'),roundTarget:$('roundTarget'),elapsedTime:$('elapsedTime'),energyValue:$('energyValue'),energyFill:$('energyFill'),grayDamageFill:$('grayDamageFill'),energyBar:document.querySelector('.energy-bar'),swordCounter:$('swordCounter'),attackCount:$('attackCount'),clockCount:$('clockCount'),clockButton:$('clockButton'),clockStock:$('clockStock'),buttonHourglass:$('buttonHourglass'),mergeStage:$('mergeStage'),mergeBottles:$('mergeBottles'),mergeHourglass:$('mergeHourglass'),sandPreview:$('sandPreview'),previewSandCount:$('previewSandCount'),previewHourglass:$('previewHourglass'),killWarning:$('killWarning'),killCountdown:$('killCountdown'),attack:$('attack'),pauseButton:$('pauseButton'),pauseScreen:$('pauseScreen'),resumeButton:$('resumeButton'),gridToggle:$('gridToggle'),clearScreen:$('clearScreen'),clearAnnouncement:$('clearAnnouncement'),clearHourglass:$('clearHourglass'),clearScore:$('clearScore'),clearTime:$('clearTime'),clearActions:$('clearActions'),clearRetry:$('clearRetry'),clearTitleLink:$('clearTitleLink')};
   const player={x:0,y:0,r:14,angle:-Math.PI/2};
   // 上から時計回り: 背面、背面右、右、正面右、正面、正面左、左、背面左。
   const spriteBounds=[[386,362,850,928],[396,376,846,930],[432,356,812,956],[396,344,836,952],[386,350,866,946],[374,340,862,916],[394,344,828,926],[396,324,828,922]];
@@ -302,7 +302,8 @@
     transitionTimer=setTimeout(()=>{ui.clearScreen.classList.remove('announcing');transitionTimer=null},1250);
     setHud();
   }
-  ui.clearRetry.addEventListener('click',()=>clearPreviewMode?gameClear(true):restart());
+  ui.clearRetry.addEventListener('click',()=>{if(!clearPreviewMode)restart()});
+  ui.clearTitleLink.addEventListener('click',event=>{if(clearPreviewMode)event.preventDefault()});
   function gameOver(reason='energy'){
     clearTimeout(transitionTimer);cancelCharge();mode='gameover';drag.pointer=null;
     ui.killWarning.classList.add('hidden');
