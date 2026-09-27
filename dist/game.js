@@ -297,7 +297,6 @@
     ui.clearHourglass.innerHTML=hourglassSvg(['#fff8c9','#f1c553','#ffffff'],'clearSand');
     ui.clearScore.textContent=score;
     const seconds=Math.floor(elapsed);ui.clearTime.textContent=`${Math.floor(seconds/60)}:${String(seconds%60).padStart(2,'0')}`;
-    ui.clearActions.classList.toggle('preview-hidden',preview);
     ui.clearScreen.classList.remove('hidden');ui.clearScreen.classList.add('announcing');
     void ui.clearAnnouncement.offsetWidth;
     transitionTimer=setTimeout(()=>{ui.clearScreen.classList.remove('announcing');transitionTimer=null},1250);
