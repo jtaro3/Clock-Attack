@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<profile>
+ <version>LibreOffice v1</version>
+ <device>
+  <type>opencl</type>
+  <name>NVIDIA GeForce GTX 1660 SUPER</name>
+  <driver>616.92</driver>
+  <time>26274</time>
+  <errors>false</errors>
+ </device>
+ <device>
+  <type>native</type>
+  <time>2366976</time>
+  <errors>false</errors>
+ </device>
+</profile>
