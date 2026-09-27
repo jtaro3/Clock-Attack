@@ -1,11 +1,11 @@
 {
     "schema_version":  1,
-    "generated_at":  "2026-09-28T03:04:08.9735480+09:00",
+    "generated_at":  "2026-09-28T07:47:01.2395491+09:00",
     "general":  {
-                    "start_energy":  100,
+                    "start_energy":  110,
                     "max_enemies":  20,
                     "max_particles":  200,
-                    "idle_warning_seconds":  60,
+                    "idle_warning_seconds":  25,
                     "game_over_countdown_seconds":  5,
                     "recovery_invincible_seconds":  2,
                     "battle_start_delay_seconds":  2,
