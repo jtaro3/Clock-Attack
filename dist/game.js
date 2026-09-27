@@ -1,8 +1,17 @@
-(()=>{
+(async()=>{
   'use strict';
+  let gameData={};
+  try{
+    const response=await fetch('game-data.json',{cache:'no-store'});
+    if(!response.ok)throw new Error(`HTTP ${response.status}`);
+    gameData=await response.json();
+  }catch(error){console.warn('game-data.jsonを読み込めないため内蔵値で起動します。',error)}
+  const general=gameData.general||{},playerData=gameData.player||{},enemyData=gameData.enemies||{},roundData=gameData.rounds||{};
+  const setting=(source,key,fallback)=>Number.isFinite(Number(source[key]))?Number(source[key]):fallback;
   const $=id=>document.getElementById(id);
   const canvas=$('field'),ctx=canvas.getContext('2d');
-  const ui={overlay:$('overlay'),panel:$('panel'),title:$('title'),eyebrow:$('eyebrow'),description:$('description'),resultValue:$('resultValue'),hourHand:$('hourHand'),minuteHand:$('minuteHand'),stop:$('stop'),debug:$('debug'),sub:$('sub'),score:$('score'),roundNumber:$('roundNumber'),roundTarget:$('roundTarget'),elapsedTime:$('elapsedTime'),energyValue:$('energyValue'),energyFill:$('energyFill'),grayDamageFill:$('grayDamageFill'),energyBar:document.querySelector('.energy-bar'),attackCount:$('attackCount'),clockCount:$('clockCount'),clockButton:$('clockButton'),clockStock:$('clockStock'),buttonHourglass:$('buttonHourglass'),mergeStage:$('mergeStage'),mergeBottles:$('mergeBottles'),sandPreview:$('sandPreview'),previewSandCount:$('previewSandCount'),previewHourglass:$('previewHourglass'),killWarning:$('killWarning'),killCountdown:$('killCountdown'),attack:$('attack'),pauseButton:$('pauseButton'),pauseScreen:$('pauseScreen'),resumeButton:$('resumeButton')};
+  const query=new URLSearchParams(location.search),effectPreviewMode=query.has('effectPreview'),clearPreviewMode=query.has('clearPreview');
+  const ui={overlay:$('overlay'),panel:$('panel'),title:$('title'),eyebrow:$('eyebrow'),description:$('description'),resultValue:$('resultValue'),hourHand:$('hourHand'),minuteHand:$('minuteHand'),stop:$('stop'),sub:$('sub'),score:$('score'),roundNumber:$('roundNumber'),roundTarget:$('roundTarget'),elapsedTime:$('elapsedTime'),energyValue:$('energyValue'),energyFill:$('energyFill'),grayDamageFill:$('grayDamageFill'),energyBar:document.querySelector('.energy-bar'),swordCounter:$('swordCounter'),attackCount:$('attackCount'),clockCount:$('clockCount'),clockButton:$('clockButton'),clockStock:$('clockStock'),buttonHourglass:$('buttonHourglass'),mergeStage:$('mergeStage'),mergeBottles:$('mergeBottles'),mergeHourglass:$('mergeHourglass'),sandPreview:$('sandPreview'),previewSandCount:$('previewSandCount'),previewHourglass:$('previewHourglass'),killWarning:$('killWarning'),killCountdown:$('killCountdown'),attack:$('attack'),speedButton:$('speedButton'),instantKillButton:$('instantKillButton'),pauseButton:$('pauseButton'),pauseScreen:$('pauseScreen'),resumeButton:$('resumeButton'),gridToggle:$('gridToggle'),clearScreen:$('clearScreen'),clearAnnouncement:$('clearAnnouncement'),clearHourglass:$('clearHourglass'),clearScore:$('clearScore'),clearTime:$('clearTime'),clearActions:$('clearActions'),clearRetry:$('clearRetry'),clearTitleLink:$('clearTitleLink')};
   const player={x:0,y:0,r:14,angle:-Math.PI/2};
   // 上から時計回り: 背面、背面右、右、正面右、正面、正面左、左、背面左。
   const spriteBounds=[[386,362,850,928],[396,376,846,930],[432,356,812,956],[396,344,836,952],[386,350,866,946],[374,340,862,916],[394,344,828,926],[396,324,828,922]];
@@ -53,22 +62,27 @@
   const keys=new Set();
   let w=0,h=0,dpr=1,last=performance.now(),clockOrigin=last-61/1440*3000;
   let mode='select',selectionReason='start',selectionIcons=0,selectionRecovery=0,selectionBottles=[],transitionTimer=null;
-  let energy=0,moveProgress=0,unlocked=0,score=0,round=1,roundKills=0,roundSpawned=0,swordCount=0,elapsed=0,timeSinceKill=0,purpleSpawned=false,spawnTimer=0,invincible=0,damageFlash=0,grayHits=0,entryGray=0,lowEnergyGray=false,swing=0,spin=0,swingAngle=0,shake=0,hitStop=0;
+  let energy=0,moveProgress=0,unlocked=0,score=0,round=1,roundKills=0,roundSpawned=0,roundElapsed=0,swordCount=0,elapsed=0,timeSinceKill=0,purpleSpawned=false,spawnTimer=0,invincible=0,damageFlash=0,grayHits=0,entryGray=0,lowEnergyGray=false,swing=0,spin=0,swingAngle=0,swingScale=1,spinScale=1,shake=0,hitStop=0,timeScale=1,roundSpawnCounts={};
+  let showGrid=localStorage.getItem('clock-attack-grid')==='1';
   const sandBottles=[];
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
-  const MOVE_DISTANCE_PER_ENERGY=16;
-  const SLIME_TYPES={
-    blue:{kind:'blue',hp:1,attack:1,color:'#66c8ee',radius:14},
-    green:{kind:'green',hp:2,attack:1,color:'#74d590',radius:16},
-    red:{kind:'red',hp:3,attack:1,color:'#e97a83',radius:18},
-    purple:{kind:'purple',hp:10,attack:5,color:'#b679e5',radius:22},
-    black:{kind:'black',hp:20,attack:10,color:'#171a20',radius:24,knockback:false},
-    metal:{kind:'metal',hp:50,attack:20,color:'#bec8d1',radius:26}
-  };
+  const START_ENERGY=setting(general,'start_energy',100),MOVE_DISTANCE_PER_ENERGY=setting(playerData,'move_distance_per_energy',16);
+  const MAX_ENEMIES=setting(general,'max_enemies',20),MAX_PARTICLES=setting(general,'max_particles',200),MAX_SWORD_COUNT=setting(playerData,'max_sword_count',150),MAX_EASY_ROUND=setting(gameData.difficulties?.easy||{},'max_round',3);
+  const MAX_HOURGLASS_STOCK=setting(general,'max_hourglass_stock',10),MAX_SAND_DISPLAY=setting(general,'max_sand_display',1000),IDLE_WARNING_SECONDS=setting(general,'idle_warning_seconds',60),GAME_OVER_COUNTDOWN_SECONDS=setting(general,'game_over_countdown_seconds',5),RECOVERY_INVINCIBLE_SECONDS=setting(general,'recovery_invincible_seconds',2),BATTLE_START_DELAY_SECONDS=setting(general,'battle_start_delay_seconds',2);
+  const BASE_ATTACK_DAMAGE=setting(playerData,'base_attack_damage',1),WHITE_AURA_DAMAGE=setting(playerData,'white_aura_damage',5),RED_AURA_DAMAGE=setting(playerData,'red_aura_damage',20),SPIN_SWORD_COST=setting(playerData,'spin_sword_cost',10),SPIN_MIN_DAMAGE=setting(playerData,'spin_min_damage',5),WHITE_AURA_INTERVAL=setting(playerData,'white_aura_interval',50),RED_AURA_INTERVAL=setting(playerData,'red_aura_interval',100),SPIN_CHARGE_SECONDS=setting(playerData,'spin_charge_seconds',2);
+  const PLAYER_SCALE=setting(playerData,'player_scale',1),SWORD_SCALE=setting(playerData,'sword_scale',1);
+  const NORMAL_ATTACK_EFFECT_SCALE=setting(playerData,'normal_attack_effect_scale',1),WHITE_ATTACK_EFFECT_SCALE=setting(playerData,'white_attack_effect_scale',1.5),RED_ATTACK_EFFECT_SCALE=setting(playerData,'red_attack_effect_scale',2);
+  const ROUND_KILL_TARGETS=[0,10,20,30,30,30];
+  const currentRoundConfig=roundNumber=>roundData[String(roundNumber)]||{};
+  const roundKillTarget=roundNumber=>setting(currentRoundConfig(roundNumber),'kill_target',ROUND_KILL_TARGETS[roundNumber]??ROUND_KILL_TARGETS.at(-1));
+  const enemyType=(key,kind,hp,attack,color,radius)=>{const data=enemyData[key]||{};return{enemyKey:key,kind,hp:setting(data,'hp',hp),attack:setting(data,'attack',attack),deathHitStop:setting(data,'death_hit_stop_seconds',.1),color,radius,knockback:data.super_armor===undefined?kind!=='black':!data.super_armor}};
+  const SLIME_TYPES={blue:enemyType('slime_blue','blue',1,1,'#66c8ee',14),green:enemyType('slime_green','green',2,1,'#74d590',16),red:enemyType('slime_red','red',3,1,'#e97a83',18),purple:enemyType('slime_purple','purple',10,5,'#b679e5',22),black:enemyType('slime_black','black',20,10,'#171a20',24),metal:enemyType('slime_metal','metal',50,20,'#bec8d1',26)};
+  const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type.enemyKey,type]));
   function attackDamage(count){
-    if(count>0&&count%100===0)return 20;
-    return count>0&&count%50===0?5:1;
+    if(count>0&&count%RED_AURA_INTERVAL===0)return RED_AURA_DAMAGE;
+    return count>0&&count%WHITE_AURA_INTERVAL===0?WHITE_AURA_DAMAGE:BASE_ATTACK_DAMAGE;
   }
+  const attackEffectScale=damage=>damage===RED_AURA_DAMAGE?RED_ATTACK_EFFECT_SCALE:damage===WHITE_AURA_DAMAGE?WHITE_ATTACK_EFFECT_SCALE:NORMAL_ATTACK_EFFECT_SCALE;
   const minY=()=>Math.max(92/VIEW_SCALE,h*.12),maxY=()=>Math.max(minY()+60,h-130/VIEW_SCALE);
 
   function renderTerrain(){
@@ -113,14 +127,14 @@
   ui.buttonHourglass.innerHTML=hourglassSvg([],'buttonSand');
   ui.buttonHourglass.querySelectorAll('.sand-step').forEach((step,i)=>step.classList.toggle('filled',i<5));
   ui.previewHourglass.innerHTML=hourglassSvg([],'previewSand');
-  for(let i=0;i<10;i++){
+  for(let i=0;i<MAX_HOURGLASS_STOCK;i++){
     const slot=document.createElement('span');slot.className='stock-slot';
     slot.innerHTML='<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M12 3h8v5l3 3v16c0 2-2 3-4 3h-6c-2 0-4-1-4-3V11l3-3z"/><path d="M11 8h10"/><path class="bottle-sand" d="M11 21h10v6H11z"/></svg>';
     ui.clockStock.appendChild(slot);stockSlots.push(slot);
   }
   function showSand(steps){
-    ui.previewHourglass.style.setProperty('--sand-level',String(steps/10));
-    ui.previewSandCount.textContent=`砂のビン ${steps}/10`;
+    ui.previewHourglass.style.setProperty('--sand-level',String(steps/MAX_HOURGLASS_STOCK));
+    ui.previewSandCount.textContent=`砂のビン ${steps}/${MAX_HOURGLASS_STOCK}`;
   }
   function showBottleMerge(bottles){
     ui.mergeBottles.innerHTML='';
@@ -135,15 +149,26 @@
       item.innerHTML='<svg viewBox="0 0 32 42" aria-hidden="true"><path d="M12 2h8v6l4 4v24c0 3-2 4-5 4h-6c-3 0-5-1-5-4V12l4-4z"/><path d="M10 9h12"/><path class="bottle-fill" d="M10 25h12v11H10z"/></svg>';
       ui.mergeBottles.appendChild(item);
     });
+    const initialLevel=clamp(energy/MAX_SAND_DISPLAY,0,1);
+    const finalLevel=clamp((energy+selectionRecovery)/MAX_SAND_DISPLAY,0,1);
+    ui.mergeHourglass.innerHTML=hourglassSvg([],'mergeSand');
+    ui.mergeHourglass.style.setProperty('--sand-level',String(initialLevel));
+    ui.mergeHourglass.style.setProperty('--sand-color','#fff9e8');
+    ui.mergeHourglass.classList.toggle('empty',energy===0);
     ui.previewHourglass.innerHTML=hourglassSvg([],'previewSand');
     ui.sandPreview.style.setProperty('--sand-color','#fff9e8');
+    ui.previewHourglass.style.setProperty('--sand-level',String(finalLevel));
     ui.panel.classList.add('merging');
-    ui.stop.disabled=true;ui.debug.disabled=true;
-    requestAnimationFrame(()=>requestAnimationFrame(()=>ui.mergeStage.classList.add('collapsing')));
+    ui.stop.disabled=true;
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{
+      ui.mergeStage.classList.add('collapsing','absorbing');
+      ui.mergeHourglass.classList.remove('empty');
+      ui.mergeHourglass.style.setProperty('--sand-level',String(finalLevel));
+    }));
     transitionTimer=setTimeout(()=>{
-      ui.panel.classList.remove('merging');ui.mergeStage.classList.remove('collapsing');
-      ui.stop.disabled=false;ui.debug.disabled=false;transitionTimer=null;
-    },1050);
+      ui.panel.classList.remove('merging');ui.mergeStage.classList.remove('collapsing','absorbing');
+      ui.stop.disabled=false;transitionTimer=null;
+    },700);
   }
 
   function updateClock(now){
@@ -154,7 +179,7 @@
   function setHud(){
     ui.score.textContent=roundKills;
     ui.roundNumber.textContent=round;
-    ui.roundTarget.textContent=round*10;
+    ui.roundTarget.textContent=roundKillTarget(round);
     ui.energyValue.textContent=energy;
     ui.energyFill.style.width=`${Math.min(100,energy)}%`;
     ui.grayDamageFill.style.width=energy===0?`${grayHits/3*100}%`:'0%';
@@ -166,11 +191,18 @@
     if(mode!=='turning'&&mode!=='confirmed')showSand(selectionReason==='refill'&&mode==='select'?selectionIcons:unlocked);
     ui.clockButton.disabled=mode!=='play'||unlocked===0;
     ui.pauseButton.disabled=mode!=='play';
+    ui.speedButton.disabled=mode!=='play';
     ui.clockButton.classList.toggle('ready',mode==='play'&&unlocked>0);
-    ui.clockButton.classList.toggle('stock-full',unlocked>=10);
+    ui.clockButton.classList.toggle('stock-full',unlocked>=MAX_HOURGLASS_STOCK);
     ui.attack.disabled=mode!=='play'||energy<=0;
     ui.attack.classList.toggle('available',mode==='play'&&energy>0);
-    ui.attack.classList.toggle('spin-ready',swordCount>=10);
+    ui.attack.classList.toggle('spin-ready',swordCount>=SPIN_SWORD_COST);
+    ui.swordCounter.classList.toggle('spin-ready',swordCount>=SPIN_SWORD_COST);
+    const auraDamage=attackDamage(swordCount);
+    ui.swordCounter.classList.toggle('aura-white',auraDamage===WHITE_AURA_DAMAGE);
+    ui.swordCounter.classList.toggle('aura-red',auraDamage===RED_AURA_DAMAGE);
+    ui.gridToggle.setAttribute('aria-pressed',String(showGrid));
+    ui.gridToggle.textContent=`グリッド表示：${showGrid?'ON':'OFF'}`;
     ui.energyBar.classList.toggle('hit',damageFlash>0);
     for(let i=0;i<stockSlots.length;i++){
       const bottle=sandBottles[i];
@@ -192,58 +224,58 @@
   }
   function startSelection(initial=false,icons=0,recovery=0,bottles=[]){
     clearTimeout(transitionTimer);transitionTimer=null;cancelCharge();
-    mode='select';selectionReason=initial?'start':'refill';selectionIcons=icons;selectionRecovery=initial?100:recovery;selectionBottles=bottles;drag.pointer=null;shake=0;
+    mode='select';selectionReason=initial?'start':'refill';selectionIcons=icons;selectionRecovery=initial?START_ENERGY:recovery;selectionBottles=bottles;drag.pointer=null;shake=0;
     clockOrigin=performance.now()-(initial?61/1440*3000:0);
     ui.overlay.classList.remove('hidden');
     ui.killWarning.classList.add('hidden');
     ui.panel.classList.remove('gameover','paused','confirmed','refill','turning','merging');ui.panel.classList.add('selecting');
     ui.panel.classList.toggle('refill',!initial);
-    ui.sandPreview.classList.remove('flipped','flowing','flowed');ui.mergeStage.classList.remove('collapsing');
+    ui.sandPreview.classList.remove('flipped','flowing','flowed');ui.mergeStage.classList.remove('collapsing','absorbing');
     ui.eyebrow.textContent=initial?'':'砂時計';
     ui.title.textContent=initial?'時を止めて、戦え。':'砂時計を返そう';
     ui.description.textContent='';
-    ui.resultValue.textContent='';ui.stop.disabled=false;ui.stop.textContent='光を';ui.debug.disabled=false;
+    ui.resultValue.textContent='';ui.stop.disabled=false;ui.stop.textContent='光を';
     ui.sub.textContent='';setHud();
     if(!initial)showBottleMerge(selectionBottles);
   }
-  function stopClock(debug=false){
+  function stopClock(){
     if(mode==='gameover'){restart();return}
     if(mode!=='select')return;
     if(selectionReason==='refill'){
-      mode='turning';ui.stop.disabled=true;ui.debug.disabled=true;
+      mode='turning';ui.stop.disabled=true;
       ui.panel.classList.add('turning');ui.sandPreview.classList.add('flipped');setHud();
-      transitionTimer=setTimeout(()=>flowSand(debug),433);
+      transitionTimer=setTimeout(flowSand,289);
       return;
     }
     updateClock(performance.now());
-    finishClock(debug);
+    finishClock();
   }
-  function flowSand(debug){
+  function flowSand(){
     if(mode!=='turning')return;
     ui.sandPreview.classList.add('flowing');
     transitionTimer=setTimeout(()=>{
       if(mode!=='turning')return;
       ui.sandPreview.classList.remove('flowing');ui.sandPreview.classList.add('flowed');
-      transitionTimer=setTimeout(()=>finishClock(debug),167);
+      transitionTimer=setTimeout(finishClock,167);
     },533);
   }
-  function finishClock(debug){
-    const gained=debug||selectionReason==='start'?100:selectionRecovery;
+  function finishClock(){
+    const gained=selectionReason==='start'?START_ENERGY:selectionRecovery;
     energy+=gained;moveProgress=0;grayHits=0;lowEnergyGray=false;
     mode='confirmed';ui.panel.classList.remove('selecting','turning');ui.panel.classList.add('confirmed');
     ui.resultValue.textContent=gained;
     ui.eyebrow.textContent='行動力を取得';ui.title.textContent=`+${gained}`;
     ui.description.textContent=`元の値と合わせて行動力 ${energy}。1秒後に戦闘を再開します。`;
-    ui.stop.disabled=true;ui.debug.disabled=true;ui.stop.textContent='';ui.sub.textContent='まもなく開始';setHud();
+    ui.stop.disabled=true;ui.stop.textContent='';ui.sub.textContent='';setHud();
     transitionTimer=setTimeout(()=>{
       if(mode!=='confirmed')return;
-      mode=selectionReason==='start'?'entry':'play';entryGray=selectionReason==='start'?2:0;
-      if(selectionReason==='refill')invincible=Math.max(invincible,2);
+      if(effectPreviewMode){energy=0;transitionTimer=null;startEffectPreview();return}
+      mode=selectionReason==='start'?'entry':'play';entryGray=selectionReason==='start'?BATTLE_START_DELAY_SECONDS:0;
+      if(selectionReason==='refill')invincible=Math.max(invincible,RECOVERY_INVINCIBLE_SECONDS);
       ui.overlay.classList.add('hidden');spawnTimer=0;shake=0;transitionTimer=null;last=performance.now();setHud();
     },1000);
   }
   ui.stop.addEventListener('click',()=>stopClock());
-  ui.debug.addEventListener('click',()=>stopClock(true));
   ui.pauseButton.addEventListener('click',()=>{
     if(mode!=='play')return;
     mode='manual-pause';drag.pointer=null;cancelCharge();
@@ -253,15 +285,36 @@
     if(mode!=='manual-pause')return;
     mode='play';ui.pauseScreen.classList.add('hidden');last=performance.now();setHud();
   });
+  ui.gridToggle.addEventListener('click',()=>{
+    showGrid=!showGrid;
+    localStorage.setItem('clock-attack-grid',showGrid?'1':'0');
+    setHud();
+  });
   function restart(){
-    clearTimeout(transitionTimer);energy=0;moveProgress=0;unlocked=0;sandBottles.length=0;score=0;round=1;roundKills=0;roundSpawned=0;swordCount=0;elapsed=0;timeSinceKill=0;purpleSpawned=false;damageFlash=0;grayHits=0;lowEnergyGray=false;
+    clearTimeout(transitionTimer);energy=0;moveProgress=0;unlocked=0;sandBottles.length=0;score=0;round=1;roundKills=0;roundSpawned=0;roundElapsed=0;roundSpawnCounts={};swordCount=0;elapsed=0;timeSinceKill=0;purpleSpawned=false;damageFlash=0;grayHits=0;lowEnergyGray=false;timeScale=1;ui.speedButton.textContent='速度×1';
     ui.elapsedTime.textContent='0:00';
     ui.pauseScreen.classList.add('hidden');
+    ui.clearScreen.classList.add('hidden');
     ui.killWarning.classList.add('hidden');
     enemies.length=0;deadEnemies.length=0;particles.length=0;explosions.length=0;damageNumbers.length=0;
     player.x=w/2;player.y=(minY()+maxY())/2;invincible=0;entryGray=0;swing=0;spin=0;hitStop=0;
     startSelection(true);
   }
+  function gameClear(preview=false){
+    clearTimeout(transitionTimer);cancelCharge();mode='clear';drag.pointer=null;
+    ui.killWarning.classList.add('hidden');ui.overlay.classList.add('hidden');ui.pauseScreen.classList.add('hidden');
+    if(preview){score=60;elapsed=183}
+    ui.clearHourglass.innerHTML=hourglassSvg(['#fff8c9','#f1c553','#ffffff'],'clearSand');
+    ui.clearScore.textContent=score;
+    const seconds=Math.floor(elapsed);ui.clearTime.textContent=`${Math.floor(seconds/60)}:${String(seconds%60).padStart(2,'0')}`;
+    if(preview)ui.clearTitleLink.removeAttribute('href');else ui.clearTitleLink.href='index.html';
+    ui.clearScreen.classList.remove('hidden');ui.clearScreen.classList.add('announcing');
+    void ui.clearAnnouncement.offsetWidth;
+    transitionTimer=setTimeout(()=>{ui.clearScreen.classList.remove('announcing');transitionTimer=null},1250);
+    setHud();
+  }
+  ui.clearRetry.addEventListener('click',()=>{if(!clearPreviewMode)restart()});
+  ui.clearTitleLink.addEventListener('click',event=>{if(clearPreviewMode)event.preventDefault()});
   function gameOver(reason='energy'){
     clearTimeout(transitionTimer);cancelCharge();mode='gameover';drag.pointer=null;
     ui.killWarning.classList.add('hidden');
@@ -279,6 +332,7 @@
       const angle=Math.random()*Math.PI*2,speed=35+Math.random()*90;
       particles.push({x,y,vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed,life:.25+Math.random()*.3,max:.55,color});
     }
+    if(particles.length>MAX_PARTICLES)particles.splice(0,particles.length-MAX_PARTICLES);
   }
   function showDamage(enemy,amount){
     const columns=[0,-1,1,-2,2];
@@ -354,12 +408,12 @@
     if(mode!=='play'||energy<=0)return;
     e.preventDefault();ui.attack.setPointerCapture(e.pointerId);
     cancelCharge();charge.pointer=e.pointerId;charge.start=performance.now();
-    if(swordCount>=10){
+    if(swordCount>=SPIN_SWORD_COST){
       ui.attack.classList.add('charging');
       charge.timer=setTimeout(()=>{
-        if(charge.pointer!==e.pointerId||mode!=='play'||energy<=0||swordCount<10)return;
+        if(charge.pointer!==e.pointerId||mode!=='play'||energy<=0||swordCount<SPIN_SWORD_COST)return;
         spinAttack();cancelCharge();
-      },2000);
+      },SPIN_CHARGE_SECONDS*1000/timeScale);
     }
   });
   ui.attack.addEventListener('pointerup',e=>{
@@ -376,9 +430,22 @@
   });
   addEventListener('keyup',e=>keys.delete(e.code));
   addEventListener('blur',()=>{keys.clear();drag.pointer=null;cancelCharge()});
+  function defeatEnemy(i,enemy){
+    deadEnemies.push({...enemy,deathTime:.45});score++;roundKills++;swordCount=Math.min(MAX_SWORD_COUNT,swordCount+1);
+    if(sandBottles.length<MAX_HOURGLASS_STOCK)sandBottles.push({kind:enemy.kind,color:enemy.color,recovery:enemy.hpMax*10});
+    unlocked=sandBottles.length;timeSinceKill=0;ui.killWarning.classList.add('hidden');burst(enemy.x,enemy.y,enemy.color,11);
+    enemies.splice(i,1);
+    return enemy.deathHitStop||.1;
+  }
+  function finishEnemyDamage(defeated,deathHitStop=.1){
+    if(defeated){hitStop=Math.max(hitStop,deathHitStop);drag.pointer=null}
+    if(roundKills<roundKillTarget(round))return;
+    if(round>=MAX_EASY_ROUND){gameClear();return}
+    round++;roundKills=0;roundSpawned=0;roundElapsed=0;roundSpawnCounts={};spawnTimer=0;enemies.length=0;
+  }
   function hitEnemies(damage,fullCircle){
     const ax=Math.cos(player.angle),ay=Math.sin(player.angle);
-    let defeated=false;
+    let defeated=false,deathHitStop=0;
     for(let i=enemies.length-1;i>=0;i--){
       const enemy=enemies[i],dx=enemy.x-player.x,dy=enemy.y-player.y,len=Math.hypot(dx,dy);
       if(len>=player.r+enemy.r+51||(!fullCircle&&len>=25&&(dx*ax+dy*ay)/len<=-.2))continue;
@@ -388,46 +455,65 @@
       explosions.push({x:enemy.x,y:enemy.y,r:enemy.r,life:.45,max:.45});
       burst(enemy.x,enemy.y,'#fff1c3',15);showDamage(enemy,damage);
       if(enemy.hp>0)continue;
-      defeated=true;deadEnemies.push({...enemy,deathTime:.45});
-      score++;roundKills++;swordCount++;
-      if(sandBottles.length<10)sandBottles.push({kind:enemy.kind,color:enemy.color,recovery:enemy.hpMax*10});
-      unlocked=sandBottles.length;timeSinceKill=0;ui.killWarning.classList.add('hidden');burst(enemy.x,enemy.y,enemy.color,11);
-      enemies.splice(i,1);
+      defeated=true;deathHitStop=Math.max(deathHitStop,defeatEnemy(i,enemy));
     }
-    if(defeated){hitStop=.1;drag.pointer=null}
-    if(roundKills>=round*10){
-      round++;roundKills=0;roundSpawned=0;spawnTimer=0;
-      enemies.length=0;
-    }
+    finishEnemyDamage(defeated,deathHitStop);
   }
+  function instantKillAll(){
+    if(mode!=='play'||hitStop>0||enemies.length===0)return;
+    let defeated=false,deathHitStop=0;
+    for(let i=enemies.length-1;i>=0;i--){
+      const enemy=enemies[i];enemy.hp-=100;enemy.hit=.18;
+      explosions.push({x:enemy.x,y:enemy.y,r:enemy.r,life:.45,max:.45});
+      burst(enemy.x,enemy.y,'#fff1c3',15);showDamage(enemy,100);
+      if(enemy.hp<=0){defeated=true;deathHitStop=Math.max(deathHitStop,defeatEnemy(i,enemy))}
+    }
+    finishEnemyDamage(defeated,deathHitStop);setHud();
+  }
+  ui.instantKillButton.addEventListener('click',instantKillAll);
+  ui.speedButton.addEventListener('click',()=>{
+    if(mode!=='play')return;
+    timeScale=timeScale===1?1.5:timeScale===1.5?2:1;
+    ui.speedButton.textContent=`速度×${timeScale}`;
+  });
   function attack(){
     if(mode!=='play'||energy<=0||swing>0||spin>0||hitStop>0)return;
     const damage=attackDamage(swordCount);
-    spendEnergy(1);swing=.27;swingAngle=player.angle;
+    spendEnergy(1);swing=.27;swingAngle=player.angle;swingScale=attackEffectScale(damage);
     hitEnemies(damage,false);
     setHud();checkExhausted();
   }
   function spinAttack(){
-    if(mode!=='play'||energy<=0||swordCount<10||swing>0||spin>0||hitStop>0)return;
-    const damage=Math.max(5,attackDamage(swordCount));
-    swordCount-=10;spin=.55;swingAngle=player.angle;
+    if(mode!=='play'||energy<=0||swordCount<SPIN_SWORD_COST||swing>0||spin>0||hitStop>0)return;
+    const damage=Math.max(SPIN_MIN_DAMAGE,attackDamage(swordCount));
+    swordCount-=SPIN_SWORD_COST;spin=.55;swingAngle=player.angle;spinScale=attackEffectScale(damage);
     hitEnemies(damage,true);
     setHud();checkExhausted();
   }
   function spawn(forcePurple=false){
-    if(roundSpawned>=round*10)return;
-    const purple=forcePurple||elapsed>=60&&Math.random()<.15;
-    const normalTypes=round>=4?[SLIME_TYPES.green,SLIME_TYPES.red,SLIME_TYPES.black]:[SLIME_TYPES.blue,SLIME_TYPES.green,SLIME_TYPES.red];
-    if(round>=5&&!enemies.some(enemy=>enemy.kind==='metal'))normalTypes.push(SLIME_TYPES.metal);
-    const type=purple?SLIME_TYPES.purple:normalTypes[Math.floor(Math.random()*normalTypes.length)];
-    const hp=type.hp,edge=Math.floor(Math.random()*4),r=type.radius;
+    if(roundSpawned>=roundKillTarget(round)||enemies.length>=MAX_ENEMIES)return;
+    const config=currentRoundConfig(round),rules=Array.isArray(config.spawns)?config.spawns:[];
+    let rule=null,type=null;
+    if(forcePurple)type=SLIME_TYPES.purple;
+    else if(rules.length){
+      const eligible=rules.filter(candidate=>{
+        const candidateType=SLIME_BY_KEY[candidate.enemy_key];if(!candidateType||roundElapsed<Number(candidate.start_elapsed_seconds||0))return false;
+        if(Number(candidate.max_alive||0)>0&&enemies.filter(enemy=>enemy.enemyKey===candidate.enemy_key).length>=Number(candidate.max_alive))return false;
+        return !(Number(candidate.max_per_round||0)>0&&Number(roundSpawnCounts[candidate.enemy_key]||0)>=Number(candidate.max_per_round));
+      });
+      const total=eligible.reduce((sum,candidate)=>sum+Number(candidate.spawn_weight||0),0);let pick=Math.random()*total;
+      rule=eligible.find(candidate=>(pick-=Number(candidate.spawn_weight||0))<=0)||eligible[eligible.length-1];
+      type=rule?SLIME_BY_KEY[rule.enemy_key]:null;
+    }
+    if(!type){const fallback=[SLIME_TYPES.blue,SLIME_TYPES.green,SLIME_TYPES.red];type=fallback[Math.floor(Math.random()*fallback.length)]}
+    const hp=Math.max(1,Math.round(type.hp*setting(config,'enemy_hp_multiplier',1))),attack=Math.max(0,type.attack*setting(config,'enemy_attack_multiplier',round)),edge=Math.floor(Math.random()*4),r=type.radius;
     let x,y;
     if(edge===0){x=-r;y=minY()+Math.random()*(maxY()-minY())}
     else if(edge===1){x=w+r;y=minY()+Math.random()*(maxY()-minY())}
     else if(edge===2){x=Math.random()*w;y=minY()-r}
     else{x=Math.random()*w;y=maxY()+r}
-    enemies.push({x,y,r,hp,hpMax:hp,kind:type.kind,attack:type.attack,knockback:type.knockback!==false,color:type.color,speed:21+Math.random()*12+score*.3,hit:0,wobble:Math.random()*6.28});
-    roundSpawned++;
+    enemies.push({x,y,r,hp,hpMax:hp,enemyKey:type.enemyKey,kind:type.kind,attack,deathHitStop:type.deathHitStop,knockback:type.knockback!==false,color:type.color,speed:(21+Math.random()*12+score*.3)*setting(config,'enemy_speed_multiplier',1),hit:0,wobble:Math.random()*6.28});
+    roundSpawned++;roundSpawnCounts[type.enemyKey]=(roundSpawnCounts[type.enemyKey]||0)+1;
   }
   function update(dt){
     if(mode==='entry'){
@@ -438,10 +524,10 @@
     if(mode!=='play')return;
     if(hitStop>0){hitStop=Math.max(0,hitStop-dt);updateHitEffects(dt);return}
     const previousSecond=Math.floor(elapsed);
-    elapsed+=dt;
+    elapsed+=dt;roundElapsed+=dt;
     if(score>0)timeSinceKill+=dt;
-    if(score>0&&timeSinceKill>=60){
-      const countdown=Math.ceil(65-timeSinceKill);
+    if(score>0&&timeSinceKill>=IDLE_WARNING_SECONDS){
+      const countdown=Math.ceil(IDLE_WARNING_SECONDS+GAME_OVER_COUNTDOWN_SECONDS-timeSinceKill);
       if(countdown<=0){gameOver('no-kill');return}
       ui.killCountdown.textContent=countdown;
       ui.killWarning.classList.remove('hidden');
@@ -459,7 +545,7 @@
     const length=Math.hypot(dx,dy);
     if(length){movePlayer(dx/length*124*dt,dy/length*124*dt);if(mode!=='play')return}
     spawnTimer+=dt;
-    if(spawnTimer>Math.max(.65,1.8-score*.02)){spawnTimer=0;spawn()}
+    if(spawnTimer>=setting(currentRoundConfig(round),'spawn_interval_seconds',1)){spawnTimer=0;spawn()}
     invincible=Math.max(0,invincible-dt);damageFlash=Math.max(0,damageFlash-dt);ui.energyBar.classList.toggle('hit',damageFlash>0);
     swing=Math.max(0,swing-dt);spin=Math.max(0,spin-dt);shake=Math.max(0,shake-dt);
     for(const enemy of enemies){
@@ -468,10 +554,10 @@
       enemy.x+=ex/len*enemy.speed*dt;enemy.y+=ey/len*enemy.speed*dt;
       if(len<player.r+enemy.r-3&&invincible<=0){
         damageFlash=.5;
-        player.x=clamp(player.x+ex/len*4/VIEW_SCALE,player.r+4,w-player.r-4);
-        player.y=clamp(player.y+ey/len*4/VIEW_SCALE,minY()+player.r,maxY()-player.r);
+        player.x=clamp(player.x+ex/len*16/VIEW_SCALE,player.r+4,w-player.r-4);
+        player.y=clamp(player.y+ey/len*16/VIEW_SCALE,minY()+player.r,maxY()-player.r);
         if(energy===0&&unlocked>0){grayHits=Math.min(3,grayHits+1);setHud()}
-        else spendEnergy(enemy.attack*round);
+        else spendEnergy(enemy.attack);
         invincible=1.15;shake=.2;burst(player.x,player.y,'#fff4dc',9);
         if(grayHits>=3){
           mode='defeated';drag.pointer=null;cancelCharge();setHud();
@@ -490,7 +576,8 @@
     ctx.translate(player.x+Math.cos(angle)*(radius-40),player.y+Math.sin(angle)*(radius-40));
     ctx.rotate(angle+Math.PI/2);
     // SVG の柄を手元に置き、刃先を軌跡の外周へ向ける。
-    ctx.drawImage(swordImage,-25,-44,50,50);
+    const size=50*SWORD_SCALE;
+    ctx.drawImage(swordImage,-size/2,-44*SWORD_SCALE,size,size);
     ctx.restore();
   }
   function draw(now){
@@ -498,6 +585,13 @@
     if(shake>0)ctx.translate((Math.random()-.5)*5,(Math.random()-.5)*5);
     if(terrainCanvas){ctx.imageSmoothingEnabled=false;ctx.drawImage(terrainCanvas,0,0);ctx.imageSmoothingEnabled=true}
     else{ctx.fillStyle='#447a45';ctx.fillRect(0,0,w,h)}
+    if(showGrid){
+      const size=mapTools.tileSize,left=Math.round((w-map.width*size)/2),top=Math.round((h-map.height*size)/2);
+      ctx.save();ctx.strokeStyle='#f6f1d399';ctx.lineWidth=1/VIEW_SCALE;ctx.beginPath();
+      for(let x=0;x<=map.width;x++){const px=left+x*size;ctx.moveTo(px,top);ctx.lineTo(px,top+map.height*size)}
+      for(let y=0;y<=map.height;y++){const py=top+y*size;ctx.moveTo(left,py);ctx.lineTo(left+map.width*size,py)}
+      ctx.stroke();ctx.restore();
+    }
     ctx.strokeStyle='#e7d49e55';ctx.lineWidth=2;ctx.strokeRect(8,minY(),w-16,maxY()-minY());
     for(const enemy of [...enemies,...deadEnemies]){
       const dying=enemy.deathTime!==undefined;
@@ -529,20 +623,20 @@
       }
       ctx.restore();
     }
-    if(swing>0){ctx.strokeStyle=`rgba(255,224,158,${swing/.27})`;ctx.lineWidth=12;ctx.lineCap='round';ctx.beginPath();ctx.arc(player.x,player.y,49,swingAngle-.95,swingAngle+.95);ctx.stroke()}
+    if(swing>0){ctx.strokeStyle=`rgba(255,224,158,${swing/.27})`;ctx.lineWidth=12*swingScale;ctx.lineCap='round';ctx.beginPath();ctx.arc(player.x,player.y,49*swingScale,swingAngle-.95,swingAngle+.95);ctx.stroke()}
     if(spin>0){
       const progress=1-spin/.55,angle=swingAngle+progress*Math.PI*2;
-      ctx.strokeStyle=`rgba(255,214,133,${spin/.55})`;ctx.lineWidth=13;ctx.lineCap='round';
-      ctx.beginPath();ctx.arc(player.x,player.y,53,angle-1.1,angle+1.1);ctx.stroke();
+      ctx.strokeStyle=`rgba(255,214,133,${spin/.55})`;ctx.lineWidth=13*spinScale;ctx.lineCap='round';
+      ctx.beginPath();ctx.arc(player.x,player.y,53*spinScale,angle-1.1,angle+1.1);ctx.stroke();
       ctx.strokeStyle=`rgba(255,245,210,${spin/.55*.65})`;ctx.lineWidth=3;
-      ctx.beginPath();ctx.arc(player.x,player.y,53,0,Math.PI*2);ctx.stroke();
+      ctx.beginPath();ctx.arc(player.x,player.y,53*spinScale,0,Math.PI*2);ctx.stroke();
     }
     ctx.globalAlpha=invincible>0&&Math.floor(now/90)%2?.4:1;
     ctx.fillStyle='#111d26aa';ctx.beginPath();ctx.ellipse(player.x,player.y+14,17,6,0,0,7);ctx.fill();
     const direction=((Math.round((player.angle+Math.PI/2)/(Math.PI/4))%8)+8)%8;
     const sprite=playerSprites[direction],graySprite=playerSpritesGray[direction];
     if(sprite){
-      const height=56,width=height*sprite.width/sprite.height;
+      const height=56*PLAYER_SCALE,width=height*sprite.width/sprite.height;
       ctx.imageSmoothingEnabled=false;
       const left=player.x-width/2,top=player.y+21-height;
       if((entryGray>0||energy===0&&unlocked>0)&&graySprite)ctx.drawImage(graySprite,left,top,width,height);
@@ -560,9 +654,9 @@
     }
     ctx.globalAlpha=1;
     const auraDamage=attackDamage(swordCount);
-    if(auraDamage>1){
-      const color=auraDamage===20?'#ff554d':'#f7fbff';
-      ctx.save();ctx.strokeStyle=color;ctx.lineWidth=auraDamage===20?4:3;
+    if(auraDamage>BASE_ATTACK_DAMAGE){
+      const color=auraDamage===RED_AURA_DAMAGE?'#ff554d':'#f7fbff';
+      ctx.save();ctx.strokeStyle=color;ctx.lineWidth=auraDamage===RED_AURA_DAMAGE?4:3;
       ctx.shadowColor=color;ctx.shadowBlur=18+Math.sin(now/150)*4;
       ctx.globalAlpha=.8+Math.sin(now/180)*.13;
       ctx.beginPath();ctx.ellipse(player.x,player.y-5,26,31,0,0,Math.PI*2);ctx.stroke();
@@ -572,11 +666,11 @@
     }
     if(swing>0){
       const progress=1-swing/.27;
-      drawSword(swingAngle-.95+progress*1.9,49,Math.min(1,swing/.055));
+      drawSword(swingAngle-.95+progress*1.9,49*swingScale,Math.min(1,swing/.055));
     }
     if(spin>0){
       const progress=1-spin/.55;
-      drawSword(swingAngle+progress*Math.PI*2,53,Math.min(1,spin/.075));
+      drawSword(swingAngle+progress*Math.PI*2,53*spinScale,Math.min(1,spin/.075));
     }
     ctx.save();ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='900 21px system-ui, sans-serif';ctx.lineWidth=4;ctx.strokeStyle='#182126';
     for(const number of damageNumbers){
@@ -589,15 +683,19 @@
     ctx.restore();
   }
   function frame(now){
-    const dt=Math.min((now-last)/1000,.05);last=now;
+    const dt=Math.min((now-last)/1000,.05)*timeScale;last=now;
     if(mode==='select')updateClock(now);
-    if(charge.pointer!==null&&charge.timer!==null)ui.attack.style.setProperty('--charge',`${Math.min(100,(now-charge.start)/20)}%`);
+    if(charge.pointer!==null&&charge.timer!==null)ui.attack.style.setProperty('--charge',`${Math.min(100,(now-charge.start)*timeScale/(SPIN_CHARGE_SECONDS*10))}%`);
     update(dt);draw(now);requestAnimationFrame(frame);
   }
-  if(new URLSearchParams(location.search).has('effectPreview')){
-    const previewKinds=['blue','blue','green','red','purple'];
+  function startEffectPreview(){
+    const requested=Number(new URLSearchParams(location.search).get('stock'))||5;
+    const count=Math.max(1,Math.min(MAX_HOURGLASS_STOCK,Math.round(requested)));
+    const palette=['blue','green','red','purple','black','metal'];
+    const previewKinds=Array.from({length:count},(_,i)=>palette[i%palette.length]);
     const previewBottles=previewKinds.map(kind=>({kind,color:SLIME_TYPES[kind].color,recovery:SLIME_TYPES[kind].hp*10}));
     startSelection(false,previewBottles.length,previewBottles.reduce((total,bottle)=>total+bottle.recovery,0),previewBottles);
-  }else setHud();
+  }
+  if(clearPreviewMode)gameClear(true);else if(effectPreviewMode)startEffectPreview();else setHud();
   requestAnimationFrame(frame);
 })();
