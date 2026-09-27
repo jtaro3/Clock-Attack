@@ -279,6 +279,14 @@
     },1000);
   }
   ui.stop.addEventListener('click',()=>stopClock());
+  function activateRecovery(event){
+    if(selectionReason!=='refill'||mode!=='select'||ui.stop.disabled)return;
+    if(event.type==='keydown'&&!['Enter',' '].includes(event.key))return;
+    event.preventDefault();
+    stopClock();
+  }
+  ui.overlay.addEventListener('click',activateRecovery);
+  ui.overlay.addEventListener('keydown',activateRecovery);
   ui.pauseButton.addEventListener('click',()=>{
     if(mode!=='play')return;
     mode='manual-pause';drag.pointer=null;cancelCharge();
