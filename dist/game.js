@@ -2,7 +2,7 @@
   'use strict';
   const $=id=>document.getElementById(id);
   const canvas=$('field'),ctx=canvas.getContext('2d');
-  const ui={overlay:$('overlay'),panel:$('panel'),title:$('title'),eyebrow:$('eyebrow'),description:$('description'),resultValue:$('resultValue'),hourHand:$('hourHand'),minuteHand:$('minuteHand'),stop:$('stop'),debug:$('debug'),sub:$('sub'),score:$('score'),roundNumber:$('roundNumber'),roundTarget:$('roundTarget'),elapsedTime:$('elapsedTime'),energyValue:$('energyValue'),energyFill:$('energyFill'),grayDamageFill:$('grayDamageFill'),energyBar:document.querySelector('.energy-bar'),attackCount:$('attackCount'),clockCount:$('clockCount'),clockButton:$('clockButton'),clockStock:$('clockStock'),buttonHourglass:$('buttonHourglass'),mergeStage:$('mergeStage'),mergeBottles:$('mergeBottles'),mergeHourglass:$('mergeHourglass'),sandPreview:$('sandPreview'),previewSandCount:$('previewSandCount'),previewHourglass:$('previewHourglass'),killWarning:$('killWarning'),killCountdown:$('killCountdown'),attack:$('attack'),pauseButton:$('pauseButton'),pauseScreen:$('pauseScreen'),resumeButton:$('resumeButton'),gridToggle:$('gridToggle')};
+  const ui={overlay:$('overlay'),panel:$('panel'),title:$('title'),eyebrow:$('eyebrow'),description:$('description'),resultValue:$('resultValue'),hourHand:$('hourHand'),minuteHand:$('minuteHand'),stop:$('stop'),debug:$('debug'),sub:$('sub'),score:$('score'),roundNumber:$('roundNumber'),roundTarget:$('roundTarget'),elapsedTime:$('elapsedTime'),energyValue:$('energyValue'),energyFill:$('energyFill'),grayDamageFill:$('grayDamageFill'),energyBar:document.querySelector('.energy-bar'),swordCounter:$('swordCounter'),attackCount:$('attackCount'),clockCount:$('clockCount'),clockButton:$('clockButton'),clockStock:$('clockStock'),buttonHourglass:$('buttonHourglass'),mergeStage:$('mergeStage'),mergeBottles:$('mergeBottles'),mergeHourglass:$('mergeHourglass'),sandPreview:$('sandPreview'),previewSandCount:$('previewSandCount'),previewHourglass:$('previewHourglass'),killWarning:$('killWarning'),killCountdown:$('killCountdown'),attack:$('attack'),pauseButton:$('pauseButton'),pauseScreen:$('pauseScreen'),resumeButton:$('resumeButton'),gridToggle:$('gridToggle')};
   const player={x:0,y:0,r:14,angle:-Math.PI/2};
   // 上から時計回り: 背面、背面右、右、正面右、正面、正面左、左、背面左。
   const spriteBounds=[[386,362,850,928],[396,376,846,930],[432,356,812,956],[396,344,836,952],[386,350,866,946],[374,340,862,916],[394,344,828,926],[396,324,828,922]];
@@ -183,6 +183,10 @@
     ui.attack.disabled=mode!=='play'||energy<=0;
     ui.attack.classList.toggle('available',mode==='play'&&energy>0);
     ui.attack.classList.toggle('spin-ready',swordCount>=10);
+    ui.swordCounter.classList.toggle('spin-ready',swordCount>=10);
+    const auraDamage=attackDamage(swordCount);
+    ui.swordCounter.classList.toggle('aura-white',auraDamage===5);
+    ui.swordCounter.classList.toggle('aura-red',auraDamage===20);
     ui.gridToggle.setAttribute('aria-pressed',String(showGrid));
     ui.gridToggle.textContent=`グリッド表示：${showGrid?'ON':'OFF'}`;
     ui.energyBar.classList.toggle('hit',damageFlash>0);
