@@ -296,26 +296,25 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
     ui.overlay.classList.remove('hidden');
     ui.killWarning.classList.add('hidden');
     ui.panel.classList.remove('gameover','paused','confirmed','refill','turning','merging');ui.panel.classList.add('selecting');
-    ui.panel.classList.toggle('refill',!initial);
+    ui.panel.classList.add('refill');
     ui.sandPreview.classList.remove('flipped','flowing','flowed');ui.mergeStage.classList.remove('collapsing','absorbing');
-    ui.eyebrow.textContent=initial?'':'砂時計';
-    ui.title.textContent=initial?'時を止めて、戦え。':'砂時計を返そう';
+    ui.eyebrow.textContent='';
+    ui.title.textContent='';
     ui.description.textContent='';
     ui.resultValue.textContent='';ui.stop.disabled=false;ui.stop.textContent='光を';
     ui.sub.textContent='';setHud();
-    if(!initial)showBottleMerge(selectionBottles);
+    if(initial){
+      ui.previewHourglass.innerHTML=hourglassSvg([],'previewSand');
+      ui.sandPreview.style.setProperty('--sand-color','#fff9e8');
+      ui.previewHourglass.style.setProperty('--sand-level',String(clamp(selectionRecovery/MAX_SAND_DISPLAY,0,1)));
+    }else showBottleMerge(selectionBottles);
   }
   function stopClock(){
     if(mode==='gameover'){restart();return}
     if(mode!=='select')return;
-    if(selectionReason==='refill'){
-      mode='turning';ui.stop.disabled=true;
-      ui.panel.classList.add('turning');ui.sandPreview.classList.add('flipped');setHud();
-      transitionTimer=setTimeout(flowSand,289);
-      return;
-    }
-    updateClock(performance.now());
-    finishClock();
+    mode='turning';ui.stop.disabled=true;
+    ui.panel.classList.add('turning');ui.sandPreview.classList.add('flipped');setHud();
+    transitionTimer=setTimeout(flowSand,289);
   }
   function flowSand(){
     if(mode!=='turning')return;
@@ -331,8 +330,8 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
     energy+=gained;moveProgress=0;grayHits=0;lowEnergyGray=false;
     mode='confirmed';ui.panel.classList.remove('selecting','turning');ui.panel.classList.add('confirmed');
     ui.resultValue.textContent=gained;
-    ui.eyebrow.textContent='行動力を取得';ui.title.textContent=`+${gained}`;
-    ui.description.textContent=`元の値と合わせて行動力 ${energy}。1秒後に戦闘を再開します。`;
+    ui.eyebrow.textContent='';ui.title.textContent='';
+    ui.description.textContent='';
     ui.stop.disabled=true;ui.stop.textContent='';ui.sub.textContent='';setHud();
     transitionTimer=setTimeout(()=>{
       if(mode!=='confirmed')return;
@@ -344,7 +343,7 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
   }
   ui.stop.addEventListener('click',()=>stopClock());
   function activateRecovery(event){
-    if(selectionReason!=='refill'||mode!=='select'||ui.stop.disabled)return;
+    if(mode!=='select'||ui.stop.disabled)return;
     if(event.type==='keydown'&&!['Enter',' '].includes(event.key))return;
     event.preventDefault();
     stopClock();
