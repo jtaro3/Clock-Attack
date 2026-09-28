@@ -22,7 +22,7 @@
   <main>
     <section class="board" aria-label="マップ編集盤面">
       <div class="board-bar"><strong>マップ 24 × 18</strong><div class="zoom"><button id="pan" class="small-button pan-button" type="button" aria-pressed="true">移動</button><button id="edit" class="small-button edit-button" type="button" aria-pressed="false">編集</button><button id="zoomOut" class="small-button" type="button" aria-label="縮小">−</button><span id="zoomValue">100%</span><button id="zoomIn" class="small-button" type="button" aria-label="拡大">＋</button></div></div>
-      <div class="view-options"><button id="editorGridToggle" type="button" aria-pressed="true">グリッド：ON</button><button id="editorBoundsToggle" type="button" aria-pressed="true">移動範囲：ON</button><label>戦闘画面 幅<input id="battleWidth" type="number" min="240" max="3840" value="390">px</label><label>高さ<input id="battleHeight" type="number" min="320" max="2160" value="844">px</label></div>
+      <div class="view-options"><button id="editorGridToggle" type="button" aria-pressed="true">グリッド：ON</button><button id="editorBoundsToggle" type="button" aria-pressed="true">カメラ表示範囲：ON</button><label>表示画面 幅<input id="battleWidth" type="number" min="240" max="3840" value="390">px</label><label>高さ<input id="battleHeight" type="number" min="320" max="2160" value="844">px</label></div>
       <div id="viewport" class="viewport"><div class="map-layer"><canvas id="map" width="768" height="576" aria-label="マップ"></canvas><canvas id="mapOverlay" width="768" height="576" aria-hidden="true"></canvas></div></div>
       <div class="board-footer"><span id="message" role="status">読み込み中</span></div>
     </section>
@@ -44,6 +44,6 @@
   <script src="map-collision.js"></script>
   <script src="player-preview.js"></script>
   <script src="brush.js?objects=1"></script>
-  <script src="editor.js?collision=1"></script>
+  <script src="editor.js?camera-preview=1"></script>
 </body>
 </html>

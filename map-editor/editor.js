@@ -57,9 +57,13 @@
     const cssWidth=Number($('battleWidth').value),cssHeight=Number($('battleHeight').value);
     const valid=Number.isFinite(cssWidth)&&Number.isFinite(cssHeight)&&cssWidth>=240&&cssWidth<=3840&&cssHeight>=320&&cssHeight<=2160;
     const w=cssWidth/BattleMapBounds.viewScale,h=cssHeight/BattleMapBounds.viewScale;
-    const stageW=showEditorBounds&&valid?Math.max(canvas.width,Math.ceil(w)):canvas.width;
-    const stageH=showEditorBounds&&valid?Math.max(canvas.height,Math.ceil(h)):canvas.height;
-    const mapX=Math.round((stageW-canvas.width)/2),mapY=Math.round((stageH-canvas.height)/2),zoom=levels[zoomIndex];
+    const center=previewPlayer||{x:canvas.width/2,y:canvas.height/2};
+    const camera={left:center.x-w/2,top:center.y-h/2,width:w,height:h};
+    const mapX=showEditorBounds&&valid?Math.ceil(Math.max(0,-camera.left)):0;
+    const mapY=showEditorBounds&&valid?Math.ceil(Math.max(0,-camera.top)):0;
+    const stageW=showEditorBounds&&valid?Math.ceil(mapX+Math.max(canvas.width,camera.left+w)):canvas.width;
+    const stageH=showEditorBounds&&valid?Math.ceil(mapY+Math.max(canvas.height,camera.top+h)):canvas.height;
+    const zoom=levels[zoomIndex];
     const layer=canvas.parentElement;layer.style.width=stageW*zoom+'px';layer.style.height=stageH*zoom+'px';
     canvas.style.position='absolute';canvas.style.left=mapX*zoom+'px';canvas.style.top=mapY*zoom+'px';
     overlay.width=stageW;overlay.height=stageH;overlay.style.width=stageW*zoom+'px';overlay.style.height=stageH*zoom+'px';
@@ -69,13 +73,14 @@
       for(let y=0;y<=map.height;y++){overlayCtx.moveTo(mapX,mapY+y*32+.5);overlayCtx.lineTo(mapX+canvas.width,mapY+y*32+.5)}
       overlayCtx.stroke();
     }
+    overlayCtx.strokeStyle='#b2d0bc';overlayCtx.lineWidth=2;
+    overlayCtx.strokeRect(mapX+1,mapY+1,canvas.width-2,canvas.height-2);
     if(showEditorBounds&&valid){
-      const rect=BattleMapBounds.outer(w,h),worldX=Math.round((stageW-w)/2),worldY=Math.round((stageH-h)/2);
-      const x=rect.left+worldX,y=rect.top+worldY,width=rect.right-rect.left,height=rect.bottom-rect.top;
+      const x=mapX+camera.left,y=mapY+camera.top,width=camera.width,height=camera.height;
       overlayCtx.strokeStyle='#10211e';overlayCtx.lineWidth=5;overlayCtx.strokeRect(x,y,width,height);
       overlayCtx.strokeStyle='#fff2b6';overlayCtx.lineWidth=2;overlayCtx.strokeRect(x,y,width,height);
-      overlayCtx.fillStyle='#10211ecc';overlayCtx.fillRect(x+5,y+5,170,24);
-      overlayCtx.fillStyle='#fff2b6';overlayCtx.font='12px system-ui';overlayCtx.fillText('移動範囲 '+cssWidth+'×'+cssHeight,x+10,y+22);
+      overlayCtx.fillStyle='#10211ecc';overlayCtx.fillRect(x+5,y+5,240,24);
+      overlayCtx.fillStyle='#fff2b6';overlayCtx.font='12px system-ui';overlayCtx.fillText('カメラ表示範囲 '+cssWidth+'×'+cssHeight,x+10,y+22);
     }
     if(placingPlayer||previewPlayer){
       overlayCtx.strokeStyle='#ff7070';overlayCtx.lineWidth=2;
@@ -87,7 +92,7 @@
     }
   }
   $('editorGridToggle').addEventListener('click',()=>{showEditorGrid=!showEditorGrid;$('editorGridToggle').textContent='グリッド：'+(showEditorGrid?'ON':'OFF');$('editorGridToggle').setAttribute('aria-pressed',String(showEditorGrid));drawOverlay()});
-  $('editorBoundsToggle').addEventListener('click',()=>{showEditorBounds=!showEditorBounds;$('editorBoundsToggle').textContent='移動範囲：'+(showEditorBounds?'ON':'OFF');$('editorBoundsToggle').setAttribute('aria-pressed',String(showEditorBounds));drawOverlay()});
+  $('editorBoundsToggle').addEventListener('click',()=>{showEditorBounds=!showEditorBounds;$('editorBoundsToggle').textContent='カメラ表示範囲：'+(showEditorBounds?'ON':'OFF');$('editorBoundsToggle').setAttribute('aria-pressed',String(showEditorBounds));drawOverlay()});
   for(const id of ['battleWidth','battleHeight'])$(id).addEventListener('input',drawOverlay);
   function drawPalette(){
     for(let id=0;id<buttons.length;id++){
