@@ -77,7 +77,22 @@ $enemies = [ordered]@{}; $enabledEnemyKeys=@{}; for($i=0;$i-lt$enemyRows.Count;$
     $row=$enemyRows[$i]; $line=$i+2; if(-not(Test-Enabled $row 'sheet-enemy.csv' $line)){continue}; if($row.enabled-ne'1'){continue}
     if($row.super_armor-notin@('0','1')){Add-DataError 'sheet-enemy.csv' $line 'super_armor' '0または1を指定してください。'}
     $hp=To-Number $row.hp 'sheet-enemy.csv' $line 'hp' 1; $attack=To-Number $row.attack 'sheet-enemy.csv' $line 'attack' 0; $stop=To-Number $row.death_hit_stop_seconds 'sheet-enemy.csv' $line 'death_hit_stop_seconds' 0
-    $key=$row.enemy_key.Trim(); $enabledEnemyKeys[$key]=$true; $enemies[$key]=[ordered]@{description=$row.description;family=$row.family;variant=$row.variant;hp=[int]$hp;attack=[double]$attack;super_armor=($row.super_armor-eq'1');ai_type=$row.ai_type;sand_type=$row.sand_type;death_hit_stop_seconds=[double]$stop}
+    $key=$row.enemy_key.Trim(); $enabledEnemyKeys[$key]=$true; $enemyData=[ordered]@{description=$row.description;family=$row.family;variant=$row.variant;hp=[int]$hp;attack=[double]$attack;super_armor=($row.super_armor-eq'1');ai_type=$row.ai_type;sand_type=$row.sand_type;death_hit_stop_seconds=[double]$stop}
+    if($key -eq 'slime_blue'){
+        $tuningColumns=@(
+            [pscustomobject]@{name='move_speed_px_per_second';default=27.0;minimum=0.0;maximum=80.0},
+            [pscustomobject]@{name='animation_idle_seconds';default=0.38;minimum=0.10;maximum=1.20},
+            [pscustomobject]@{name='animation_jump_mid_seconds';default=0.12;minimum=0.04;maximum=0.50},
+            [pscustomobject]@{name='animation_jump_peak_seconds';default=0.12;minimum=0.04;maximum=0.50}
+        )
+        foreach($setting in $tuningColumns){
+            $column=$setting.name;$fallback=[double]$setting.default;$minimum=[double]$setting.minimum;$maximum=[double]$setting.maximum;$value=$fallback
+            if(-not [string]::IsNullOrWhiteSpace([string]$row.$column)){$value=To-Number $row.$column 'sheet-enemy.csv' $line $column $minimum}
+            if($value -gt $maximum){Add-DataError 'sheet-enemy.csv' $line $column "${maximum}以下を指定してください。"}
+            $enemyData[$column]=[double]$value
+        }
+    }
+    $enemies[$key]=$enemyData
 }
 
 $rounds=[ordered]@{}; $enabledRoundKeys=@{}; for($i=0;$i-lt$roundRows.Count;$i++){
