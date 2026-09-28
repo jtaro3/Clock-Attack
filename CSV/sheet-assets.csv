@@ -22,3 +22,8 @@
 0,sword_3,sword,player,剣3,,,,,
 0,effect_attack_hit,effect,common,攻撃エフェクト,,,,,
 0,effect_swing,effect,common,スイングエフェクト,,,,,
+,,,,,,,,,
+1,map_tiles_grass,map_tiles,map_tiles,草地,,1,grass.png,,
+1,map_tiles_soil,map_tiles,map_tiles,土壌,,1,soil.png,,
+1,map_tiles_flowers,map_tiles,map_tiles,花,,1,flowers.png,,
+1,map_tiles_grass-dark,map_tiles,map_tiles,草地（暗）,,1,grass-dark.png,,

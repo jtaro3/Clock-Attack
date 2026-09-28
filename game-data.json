@@ -1,6 +1,6 @@
 {
     "schema_version":  1,
-    "generated_at":  "2026-09-28T15:34:21.0146071+09:00",
+    "generated_at":  "2026-09-28T22:42:24.9757076+09:00",
     "general":  {
                     "start_energy":  100,
                     "max_enemies":  20,
@@ -287,6 +287,42 @@
                        "direction":  "",
                        "sprite_scale":  1,
                        "sprite_file":  "sword.svg"
+                   },
+                   {
+                       "asset_key":  "map_tiles_grass",
+                       "asset_type":  "map_tiles",
+                       "owner_key":  "map_tiles",
+                       "description":  "草地",
+                       "direction":  "",
+                       "sprite_scale":  1,
+                       "sprite_file":  "grass.png"
+                   },
+                   {
+                       "asset_key":  "map_tiles_soil",
+                       "asset_type":  "map_tiles",
+                       "owner_key":  "map_tiles",
+                       "description":  "土壌",
+                       "direction":  "",
+                       "sprite_scale":  1,
+                       "sprite_file":  "soil.png"
+                   },
+                   {
+                       "asset_key":  "map_tiles_flowers",
+                       "asset_type":  "map_tiles",
+                       "owner_key":  "map_tiles",
+                       "description":  "花",
+                       "direction":  "",
+                       "sprite_scale":  1,
+                       "sprite_file":  "flowers.png"
+                   },
+                   {
+                       "asset_key":  "map_tiles_grass-dark",
+                       "asset_type":  "map_tiles",
+                       "owner_key":  "map_tiles",
+                       "description":  "草地（暗）",
+                       "direction":  "",
+                       "sprite_scale":  1,
+                       "sprite_file":  "grass-dark.png"
                    }
                ],
     "difficulties":  {
