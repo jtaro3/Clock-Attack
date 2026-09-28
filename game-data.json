@@ -1,6 +1,6 @@
 {
     "schema_version":  1,
-    "generated_at":  "2026-09-29T01:55:20.4131632+09:00",
+    "generated_at":  "2026-09-29T02:26:35.5775908+09:00",
     "general":  {
                     "start_energy":  100,
                     "max_enemies":  20,
@@ -354,6 +354,42 @@
                        "direction":  "",
                        "sprite_scale":  1,
                        "sprite_file":  "log_vertical_32x64.png"
+                   },
+                   {
+                       "asset_key":  "map_tiles_crate_honey_oak_32x32.png",
+                       "asset_type":  "map_tiles",
+                       "owner_key":  "map_tiles",
+                       "description":  "木箱",
+                       "direction":  "",
+                       "sprite_scale":  1,
+                       "sprite_file":  "crate_honey_oak_32x32.png"
+                   },
+                   {
+                       "asset_key":  "map_tiles_crate_honey_oak_64x64.png",
+                       "asset_type":  "map_tiles",
+                       "owner_key":  "map_tiles",
+                       "description":  "木箱",
+                       "direction":  "",
+                       "sprite_scale":  1,
+                       "sprite_file":  "crate_honey_oak_64x64.png"
+                   },
+                   {
+                       "asset_key":  "map_tiles_crate_dark_walnut_32x32.png",
+                       "asset_type":  "map_tiles",
+                       "owner_key":  "map_tiles",
+                       "description":  "木箱",
+                       "direction":  "",
+                       "sprite_scale":  1,
+                       "sprite_file":  "crate_dark_walnut_32x32.png"
+                   },
+                   {
+                       "asset_key":  "map_tiles_crate_dark_walnut_64x64.png",
+                       "asset_type":  "map_tiles",
+                       "owner_key":  "map_tiles",
+                       "description":  "木箱",
+                       "direction":  "",
+                       "sprite_scale":  1,
+                       "sprite_file":  "crate_dark_walnut_64x64.png"
                    }
                ],
     "difficulties":  {
@@ -372,6 +408,8 @@
                      },
     "map_tiles":  [
                       {
+                          "destructible":  false,
+                          "hp":  0,
                           "asset_key":  "map_tiles_grass",
                           "sprite_file":  "grass.png",
                           "category":  "grassland",
@@ -381,6 +419,8 @@
                           "collision_width":  0
                       },
                       {
+                          "destructible":  false,
+                          "hp":  0,
                           "asset_key":  "map_tiles_soil",
                           "sprite_file":  "soil.png",
                           "category":  "grassland",
@@ -390,6 +430,8 @@
                           "collision_width":  0
                       },
                       {
+                          "destructible":  false,
+                          "hp":  0,
                           "asset_key":  "map_tiles_flowers",
                           "sprite_file":  "flowers.png",
                           "category":  "grassland",
@@ -399,6 +441,8 @@
                           "collision_width":  0
                       },
                       {
+                          "destructible":  false,
+                          "hp":  0,
                           "asset_key":  "map_tiles_grass-dark",
                           "sprite_file":  "grass-dark.png",
                           "category":  "grassland",
@@ -408,6 +452,8 @@
                           "collision_width":  0
                       },
                       {
+                          "destructible":  false,
+                          "hp":  0,
                           "asset_key":  "map_tiles_rock_64x64",
                           "sprite_file":  "rock_64x64.png",
                           "category":  "object",
@@ -417,6 +463,8 @@
                           "collision_width":  2
                       },
                       {
+                          "destructible":  false,
+                          "hp":  0,
                           "asset_key":  "map_tiles_log_horizontal_64x32",
                           "sprite_file":  "log_horizontal_64x32.png",
                           "category":  "object",
@@ -426,6 +474,8 @@
                           "collision_width":  2
                       },
                       {
+                          "destructible":  false,
+                          "hp":  0,
                           "asset_key":  "map_tiles_log_vertical_32x64",
                           "sprite_file":  "log_vertical_32x64.png",
                           "category":  "object",
@@ -433,6 +483,50 @@
                           "walkable":  false,
                           "collision_length":  2,
                           "collision_width":  1
+                      },
+                      {
+                          "destructible":  true,
+                          "hp":  3,
+                          "asset_key":  "map_tiles_crate_honey_oak_32x32.png",
+                          "sprite_file":  "crate_honey_oak_32x32.png",
+                          "category":  "object",
+                          "palette_color":  "#493e66",
+                          "walkable":  false,
+                          "collision_length":  1,
+                          "collision_width":  1
+                      },
+                      {
+                          "destructible":  true,
+                          "hp":  10,
+                          "asset_key":  "map_tiles_crate_honey_oak_64x64.png",
+                          "sprite_file":  "crate_honey_oak_64x64.png",
+                          "category":  "object",
+                          "palette_color":  "#493e66",
+                          "walkable":  false,
+                          "collision_length":  2,
+                          "collision_width":  2
+                      },
+                      {
+                          "destructible":  true,
+                          "hp":  3,
+                          "asset_key":  "map_tiles_crate_dark_walnut_32x32.png",
+                          "sprite_file":  "crate_dark_walnut_32x32.png",
+                          "category":  "object",
+                          "palette_color":  "#493e66",
+                          "walkable":  false,
+                          "collision_length":  1,
+                          "collision_width":  1
+                      },
+                      {
+                          "destructible":  true,
+                          "hp":  10,
+                          "asset_key":  "map_tiles_crate_dark_walnut_64x64.png",
+                          "sprite_file":  "crate_dark_walnut_64x64.png",
+                          "category":  "object",
+                          "palette_color":  "#493e66",
+                          "walkable":  false,
+                          "collision_length":  2,
+                          "collision_width":  2
                       }
                   ]
 }

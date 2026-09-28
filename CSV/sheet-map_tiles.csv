@@ -6,4 +6,7 @@
 1,map_tiles_rock_64x64,石,object,#202635,2,2,0,0,0,destructible / hp,破壊可否と耐久力として追加
 1,map_tiles_log_horizontal_64x32,大木横,object,#202635,1,2,0,0,0,,
 1,map_tiles_log_vertical_32x64,大木縦,object,#202635,2,1,0,0,0,,
-0,,,,,,,,,,,
+1,map_tiles_crate_honey_oak_32x32.png,木箱,object,#493e66,1,1,0,1,3,,
+1,map_tiles_crate_honey_oak_64x64.png,木箱,object,#493e66,2,2,0,1,10,,
+1,map_tiles_crate_dark_walnut_32x32.png,木箱,object,#493e66,1,1,0,1,3,,
+1,map_tiles_crate_dark_walnut_64x64.png,木箱,object,#493e66,2,2,0,1,10,,
