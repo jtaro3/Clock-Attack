@@ -171,11 +171,15 @@
     }
     const button=document.createElement('button');
     button.className='tile-button '+(category==='object'?'object-tile':'ground-tile');
+    if(/^#[0-9a-fA-F]{6}$/.test(tile.palette_color||''))button.style.backgroundColor=tile.palette_color;
     button.type='button';button.setAttribute('aria-label',`${name}を選択`);
     const preview=document.createElement('canvas');preview.width=64;preview.height=64;
     const label=document.createElement('span');label.textContent=name;
     if((tile.width_tiles||1)>1||(tile.height_tiles||1)>1)label.textContent+=' ('+tile.width_tiles+'×'+tile.height_tiles+')';
     button.append(preview,label);
+    if(tile.palette_category){
+      const badge=document.createElement('small');badge.className='palette-category';badge.textContent=tile.palette_category;button.append(badge);
+    }
     button.addEventListener('click',()=>{
       setTool(id);
       if(category==='object'){

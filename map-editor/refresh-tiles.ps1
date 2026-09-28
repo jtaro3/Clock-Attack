@@ -1,6 +1,15 @@
 param([switch]$OpenEditor)
 $ErrorActionPreference = 'Stop'
 try {
+    $masterPath = Join-Path (Split-Path -Parent $PSScriptRoot) 'game-data.json'
+    $paletteSettings = @{}
+    if (Test-Path -LiteralPath $masterPath -PathType Leaf) {
+        $master = Get-Content -LiteralPath $masterPath -Raw -Encoding UTF8 | ConvertFrom-Json
+        foreach ($setting in $master.map_tiles) {
+            if ($setting.palette_color -and $setting.palette_color -notmatch '^#[0-9a-fA-F]{6}$') { throw ('Invalid palette_color: '+$setting.sprite_file) }
+            $paletteSettings[$setting.sprite_file] = $setting
+        }
+    }
     $tileFolder = Join-Path $PSScriptRoot 'maps\tiles'
     $objectFolder = Join-Path $PSScriptRoot 'maps\object'
     $tileFiles = @(Get-ChildItem -LiteralPath $tileFolder -File -Filter '*.png' | Sort-Object Name)
@@ -28,7 +37,8 @@ try {
         $height = [Net.IPAddress]::NetworkToHostOrder([BitConverter]::ToInt32($pngBytes,20))
         if ($width -lt 32 -or $height -lt 32 -or $width % 32 -ne 0 -or $height % 32 -ne 0) { throw ('PNG size must be a multiple of 32: '+$pngFile.Name+' ('+$width+'x'+$height+')') }
         $category = if ($pngFile.DirectoryName -eq $objectFolder) { 'object' } else { 'ground' }
-        $catalog += [ordered]@{ file=$pngFile.Name; category=$category; width_tiles=($width/32); height_tiles=($height/32); image=('data:image/png;base64,'+[Convert]::ToBase64String($pngBytes)) }
+        $setting = $paletteSettings[$pngFile.Name]
+        $catalog += [ordered]@{ file=$pngFile.Name; category=$category; palette_category=if($setting){[string]$setting.category}else{''}; palette_color=if($setting){[string]$setting.palette_color}else{''}; width_tiles=($width/32); height_tiles=($height/32); image=('data:image/png;base64,'+[Convert]::ToBase64String($pngBytes)) }
     }
     $json = ConvertTo-Json -InputObject $catalog -Depth 4 -Compress
     [IO.File]::WriteAllText((Join-Path $PSScriptRoot 'tile-catalog.js'),('window.ClockAttackTileCatalog='+$json+';'),[Text.UTF8Encoding]::new($false))

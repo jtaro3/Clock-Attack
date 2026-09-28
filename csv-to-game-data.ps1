@@ -63,6 +63,10 @@ $roundRows = @(Read-Table 'round' @('enabled','round','kill_target','enemy_hp_mu
 $spawnRows = @(Read-Table 'round_spawn' @('enabled','round','enemy_key','spawn_weight','max_alive','max_per_round','start_elapsed_seconds','guaranteed_once')) | Where-Object { -not [string]::IsNullOrWhiteSpace($_.enemy_key) }
 $assetRows = @(Read-Table 'assets' @('enabled','asset_key','asset_type','owner_key','description','direction','sprite_scale','sprite_file')) | Where-Object { -not [string]::IsNullOrWhiteSpace($_.asset_key) }
 $difficultyRows = @(Read-Table 'difficulty' @('difficulty_key','description','max_round')) | Where-Object { -not [string]::IsNullOrWhiteSpace($_.difficulty_key) }
+$mapTileRows = @()
+if(Test-Path -LiteralPath (Join-Path $CsvFolder 'sheet-map_tiles.csv')){
+    $mapTileRows = @(Read-Table 'map_tiles' @('enabled','asset_key','category','palette_color'))
+}
 
 Test-UniqueKeys $generalRows 'key' 'sheet-general.csv'; Test-UniqueKeys $playerRows 'key' 'sheet-player.csv'; Test-UniqueKeys $enemyRows 'enemy_key' 'sheet-enemy.csv'; Test-UniqueKeys $roundRows 'round' 'sheet-round.csv'; Test-UniqueKeys $assetRows 'asset_key' 'sheet-assets.csv'; Test-UniqueKeys $difficultyRows 'difficulty_key' 'sheet-difficulty.csv'
 
@@ -97,9 +101,26 @@ foreach($roundKey in $enabledRoundKeys.Keys){if($rounds[$roundKey].spawns.Count-
 $assets=@(); for($i=0;$i-lt$assetRows.Count;$i++){$row=$assetRows[$i];$line=$i+2;if(-not(Test-Enabled $row 'sheet-assets.csv' $line)){continue};if($row.enabled-ne'1'){continue};foreach($column in @('asset_key','asset_type','owner_key','sprite_file')){if([string]::IsNullOrWhiteSpace($row.$column)){Add-DataError 'sheet-assets.csv' $line $column '有効なアセットでは必須です。'}};$assets += [ordered]@{asset_key=$row.asset_key.Trim();asset_type=$row.asset_type;owner_key=$row.owner_key.Trim();description=$row.description;direction=$row.direction;sprite_scale=if($row.sprite_scale){[double](To-Number $row.sprite_scale 'sheet-assets.csv' $line 'sprite_scale' 0.01)}else{1};sprite_file=$row.sprite_file}}
 $difficulties=[ordered]@{}; for($i=0;$i-lt$difficultyRows.Count;$i++){$row=$difficultyRows[$i];$difficulties[$row.difficulty_key.Trim()]=[ordered]@{description=$row.description;max_round=[int](To-Number $row.max_round 'sheet-difficulty.csv' ($i+2) 'max_round' 1)}}
 
+$mapTiles=@();$mapTileKeys=@{};$mapTileFiles=@{}
+for($i=0;$i-lt$mapTileRows.Count;$i++){
+    $row=$mapTileRows[$i];$line=$i+2;$file='sheet-map_tiles.csv'
+    if(-not(Test-Enabled $row $file $line)){continue}
+    if($row.enabled-ne'1'){continue}
+    $key=([string]$row.asset_key).Trim()
+    if(-not$key){Add-DataError $file $line 'asset_key' '有効な行では必須です。';continue}
+    if($mapTileKeys.ContainsKey($key)){Add-DataError $file $line 'asset_key' "キー${key}が重複しています。"};$mapTileKeys[$key]=$true
+    $asset=@($assets|Where-Object { $_.asset_key -eq $key -and $_.asset_type -eq 'map_tiles' })
+    if($asset.Count-ne1){Add-DataError $file $line 'asset_key' 'assetsに同じキーの有効なmap_tilesアセットが必要です。';continue}
+    $sprite=[string]$asset[0].sprite_file
+    if($mapTileFiles.ContainsKey($sprite)){Add-DataError $file $line 'asset_key' "画像${sprite}に複数の設定があります。"};$mapTileFiles[$sprite]=$true
+    $color=([string]$row.palette_color).Trim()
+    if($color -and $color -notmatch '^#[0-9a-fA-F]{6}$'){Add-DataError $file $line 'palette_color' '#と6桁の16進数で指定してください。例: #C6D6BC'}
+    $mapTiles += [ordered]@{asset_key=$key;sprite_file=$sprite;category=([string]$row.category).Trim();palette_color=$color}
+}
+
 if($errors.Count-gt0){$message="データ検証で$($errors.Count)件のエラーが見つかりました。`n"+($errors-join"`n");if(-not$Silent){Write-Host $message -ForegroundColor Red};[Console]::Error.WriteLine($message);exit 2}
 
-$data=[ordered]@{schema_version=1;generated_at=(Get-Date).ToString('o');general=$general;player=$player;enemies=$enemies;rounds=$rounds;assets=$assets;difficulties=$difficulties}
+$data=[ordered]@{schema_version=1;generated_at=(Get-Date).ToString('o');general=$general;player=$player;enemies=$enemies;rounds=$rounds;assets=$assets;difficulties=$difficulties;map_tiles=$mapTiles}
 $parent=Split-Path -Parent $OutputPath;if($parent){[IO.Directory]::CreateDirectory($parent)|Out-Null}
 [IO.File]::WriteAllText($OutputPath,($data|ConvertTo-Json -Depth 12),[Text.UTF8Encoding]::new($false))
 $result=[ordered]@{status='ok';output=$OutputPath;general=$general.Count;player=$player.Count;enemies=$enemies.Count;rounds=$rounds.Count;assets=$assets.Count;difficulties=$difficulties.Count}

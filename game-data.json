@@ -1,6 +1,6 @@
 {
     "schema_version":  1,
-    "generated_at":  "2026-09-28T22:42:24.9757076+09:00",
+    "generated_at":  "2026-09-28T22:48:20.6961635+09:00",
     "general":  {
                     "start_energy":  100,
                     "max_enemies":  20,
@@ -338,5 +338,31 @@
                                       "description":  "ハード",
                                       "max_round":  10
                                   }
-                     }
+                     },
+    "map_tiles":  [
+                      {
+                          "asset_key":  "map_tiles_grass",
+                          "sprite_file":  "grass.png",
+                          "category":  "grassland",
+                          "palette_color":  "#c6d6bc"
+                      },
+                      {
+                          "asset_key":  "map_tiles_soil",
+                          "sprite_file":  "soil.png",
+                          "category":  "grassland",
+                          "palette_color":  "#c6d6bc"
+                      },
+                      {
+                          "asset_key":  "map_tiles_flowers",
+                          "sprite_file":  "flowers.png",
+                          "category":  "grassland",
+                          "palette_color":  "#c6d6bc"
+                      },
+                      {
+                          "asset_key":  "map_tiles_grass-dark",
+                          "sprite_file":  "grass-dark.png",
+                          "category":  "grassland",
+                          "palette_color":  "#c6d6bc"
+                      }
+                  ]
 }

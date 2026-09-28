@@ -13,6 +13,7 @@
     @media(max-width:760px){header{padding:12px}h1{font-size:17px}main{display:block;padding:10px}.board{margin-bottom:10px}.tools{padding:12px}.palette{grid-template-columns:repeat(4,minmax(0,1fr))}.tile-button{min-height:72px}.tile-button canvas{width:34px;height:34px}.tools h2{margin-bottom:7px}.actions{grid-template-columns:repeat(3,minmax(0,1fr))}.actions button{font-size:12px;padding:9px 4px}.hint{margin:8px 0 12px}.divider{margin:10px 0}.viewport{height:min(54dvh,600px)}}
     @media(max-width:390px){.board-bar{gap:4px;padding:8px}.board-bar strong{font-size:12px}.zoom{gap:4px}.small-button{width:30px;height:32px}.pan-button,.edit-button{width:auto;min-width:42px;padding:0 5px;font-size:12px}.zoom span{min-width:34px}}
     .brushes{display:flex;gap:8px;padding:12px 20px;background:#10221f;flex-wrap:wrap}.brush-button{display:grid;justify-items:center;gap:4px;min-width:66px;padding:8px;border:1px solid #acc8a166;border-radius:8px;background:#234337;color:#fff;font:inherit;cursor:pointer}.brush-button.selected{border-color:#f5d58b;background:#6b7446}.brush-button svg{width:44px;height:44px}.brush-button span{font-size:12px}.brush-hint{align-self:center;font-size:12px;color:#c4d6bf;margin:0} .palette{max-height:min(48dvh,480px);overflow-y:auto;overflow-x:hidden;align-content:start;padding:4px 8px 4px 4px;scrollbar-gutter:stable;overscroll-behavior:contain;scrollbar-color:#a4c18a #10221f}.palette::-webkit-scrollbar{width:12px}.palette::-webkit-scrollbar-thumb{background:#a4c18a;border-radius:8px;border:3px solid #10221f}.palette::-webkit-scrollbar-track{background:#10221f}@media(max-width:760px){.palette{max-height:240px}} .view-options{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px;font-size:12px}.view-options button{border:1px solid #a6c498;border-radius:8px;background:#234337;color:#fff;padding:8px}.view-options input{width:68px;margin:0 4px}.map-layer{position:relative;width:max-content;margin:0 auto}#mapOverlay{position:absolute;left:0;top:0;pointer-events:none} main{grid-template-columns:minmax(0,1fr) 320px}.palette{grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:minmax(130px,auto)}.tile-button{min-height:130px;padding:10px;grid-template-rows:64px auto;align-items:start;align-content:start}.tile-button canvas{width:64px;height:64px;max-width:100%}.tile-button span{overflow-wrap:anywhere;line-height:1.35;max-width:100%}@media(max-width:760px){main{display:block}.palette{grid-template-columns:repeat(2,minmax(0,1fr));max-height:320px}} .palette-heading{grid-column:1/-1;padding:8px 4px 2px;font-size:13px;font-weight:900;letter-spacing:.05em}.ground-heading{color:#d6e8b7}.object-heading{color:#d3c5ff;border-top:1px solid #a4c18a44;margin-top:8px;padding-top:12px}.tile-button.object-tile{background:#202635;border-color:#8277a588}.tile-button.object-tile.selected{background:#504768;border-color:#d3c5ff;box-shadow:0 0 0 2px #d3c5ff55}
+    .palette-category{font-size:11px;overflow-wrap:anywhere}.tile-button.selected{outline:2px solid #ffe39a;outline-offset:1px}
   </style>
 </head>
 <body>
@@ -37,10 +38,10 @@
       <input id="file" type="file" accept=".json,application/json">
     </aside>
   </main>
-  <script src="tile-catalog.js?categories=1"></script>
+  <script src="tile-catalog.js?master=1"></script>
   <script src="map-data.js?catalog=1"></script>
   <script src="movement-bounds.js"></script>
   <script src="brush.js?objects=1"></script>
-  <script src="editor.js?categories=1"></script>
+  <script src="editor.js?master=1"></script>
 </body>
 </html>
