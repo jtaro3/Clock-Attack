@@ -13,6 +13,7 @@
   let selected=0,editing=false,erasingObjects=false,drag=null,changed=false,brushLength=1,brushShape='line';
   const brushDirections={3:0,5:0,7:0},brushButtons=[];
   const directionNames=['横','縦','右下がり斜め','右上がり斜め'];
+  const isObjectTile=tile=>tile.category==='object'||(tile.width_tiles||1)>1||(tile.height_tiles||1)>1;
 
   let showEditorGrid=true,showEditorBounds=true;
   const overlay=$('mapOverlay'),overlayCtx=overlay.getContext('2d');
@@ -119,7 +120,7 @@
       objects.splice(index,1);changed=true;draw();status('オブジェクトを削除しました。地面のチップは残ります。');return;
     }
     const tile=tools.catalog[selected],tw=tile.width_tiles||1,th=tile.height_tiles||1;
-    if(tw>1||th>1){
+    if(isObjectTile(tile)){
       if(cell.x+tw>map.width||cell.y+th>map.height){status('オブジェクトがマップ外にはみ出すため配置できません。');return}
       map.objects=map.objects||[];
       const overlaps=map.objects.filter(o=>{const t=tools.catalog[o.id];return cell.x<o.x+(t.width_tiles||1)&&cell.x+tw>o.x&&cell.y<o.y+(t.height_tiles||1)&&cell.y+th>o.y});
@@ -162,15 +163,26 @@
   eraser.addEventListener('click',()=>{erasingObjects=true;editing=true;updateToolUI();status('消したいオブジェクトをタップしてください。地面のチップは残ります。')});
   $('brushes').append(eraser);
 
+  let previousCategory='';
   tools.names.forEach((name,id)=>{
+    const tile=tools.catalog[id],category=isObjectTile(tile)?'object':'ground';
+    if(category!==previousCategory){
+      const heading=document.createElement('div');heading.className='palette-heading '+category+'-heading';heading.textContent=category==='object'?'オブジェクト':'地面チップ';$('palette').append(heading);previousCategory=category;
+    }
     const button=document.createElement('button');
-    button.className='tile-button';
+    button.className='tile-button '+(category==='object'?'object-tile':'ground-tile');
     button.type='button';button.setAttribute('aria-label',`${name}を選択`);
     const preview=document.createElement('canvas');preview.width=64;preview.height=64;
     const label=document.createElement('span');label.textContent=name;
-    const tile=tools.catalog[id];if((tile.width_tiles||1)>1||(tile.height_tiles||1)>1)label.textContent+=' ('+tile.width_tiles+'×'+tile.height_tiles+')';
+    if((tile.width_tiles||1)>1||(tile.height_tiles||1)>1)label.textContent+=' ('+tile.width_tiles+'×'+tile.height_tiles+')';
     button.append(preview,label);
-    button.addEventListener('click',()=>setTool(id));
+    button.addEventListener('click',()=>{
+      setTool(id);
+      if(category==='object'){
+        editing=true;updateToolUI();
+        status(`${name}を配置します。マップをタップしてください。`);
+      }
+    });
     $('palette').append(button);buttons.push(button);
   });
   let loadedTiles=0;

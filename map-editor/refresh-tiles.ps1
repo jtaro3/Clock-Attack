@@ -2,16 +2,24 @@ param([switch]$OpenEditor)
 $ErrorActionPreference = 'Stop'
 try {
     $tileFolder = Join-Path $PSScriptRoot 'maps\tiles'
-    $pngFiles = @(Get-ChildItem -LiteralPath $tileFolder -File -Filter '*.png' | Sort-Object Name)
-    if ($pngFiles.Count -eq 0) { throw 'No PNG tiles found in maps/tiles.' }
+    $objectFolder = Join-Path $PSScriptRoot 'maps\object'
+    $tileFiles = @(Get-ChildItem -LiteralPath $tileFolder -File -Filter '*.png' | Sort-Object Name)
+    $objectFiles = @()
+    if (Test-Path -LiteralPath $objectFolder -PathType Container) {
+        $objectFiles = @(Get-ChildItem -LiteralPath $objectFolder -File -Filter '*.png' | Sort-Object Name)
+    }
+    if ($tileFiles.Count + $objectFiles.Count -eq 0) { throw 'No PNG tiles or objects found in maps/tiles or maps/object.' }
     $orderedFiles = [Collections.Generic.List[object]]::new()
     foreach ($legacyName in @('grass.png','grass-dark.png','flowers.png','soil.png')) {
-        $match = $pngFiles | Where-Object Name -eq $legacyName
+        $match = $tileFiles | Where-Object Name -eq $legacyName
         if ($match) { $orderedFiles.Add($match) }
     }
-    foreach ($pngFile in $pngFiles) {
+    foreach ($pngFile in $tileFiles) {
         if ($pngFile.Name -notin @('grass.png','grass-dark.png','flowers.png','soil.png')) { $orderedFiles.Add($pngFile) }
     }
+    foreach ($pngFile in $objectFiles) { $orderedFiles.Add($pngFile) }
+    $duplicateNames = @($orderedFiles | Group-Object Name | Where-Object Count -gt 1)
+    if ($duplicateNames.Count -gt 0) { throw ('Duplicate PNG filenames across maps/tiles and maps/object: '+(($duplicateNames | ForEach-Object Name) -join ', ')) }
     $catalog = @()
     foreach ($pngFile in $orderedFiles) {
         $pngBytes = [IO.File]::ReadAllBytes($pngFile.FullName)
@@ -19,11 +27,14 @@ try {
         $width = [Net.IPAddress]::NetworkToHostOrder([BitConverter]::ToInt32($pngBytes,16))
         $height = [Net.IPAddress]::NetworkToHostOrder([BitConverter]::ToInt32($pngBytes,20))
         if ($width -lt 32 -or $height -lt 32 -or $width % 32 -ne 0 -or $height % 32 -ne 0) { throw ('PNG size must be a multiple of 32: '+$pngFile.Name+' ('+$width+'x'+$height+')') }
-        $catalog += [ordered]@{ file=$pngFile.Name; width_tiles=($width/32); height_tiles=($height/32); image=('data:image/png;base64,'+[Convert]::ToBase64String($pngBytes)) }
+        $category = if ($pngFile.DirectoryName -eq $objectFolder) { 'object' } else { 'ground' }
+        $catalog += [ordered]@{ file=$pngFile.Name; category=$category; width_tiles=($width/32); height_tiles=($height/32); image=('data:image/png;base64,'+[Convert]::ToBase64String($pngBytes)) }
     }
     $json = ConvertTo-Json -InputObject $catalog -Depth 4 -Compress
     [IO.File]::WriteAllText((Join-Path $PSScriptRoot 'tile-catalog.js'),('window.ClockAttackTileCatalog='+$json+';'),[Text.UTF8Encoding]::new($false))
-    Write-Host ('OK: '+$catalog.Count+' tiles registered.')
+    $groundCount = @($catalog | Where-Object category -eq 'ground').Count
+    $objectCount = @($catalog | Where-Object category -eq 'object').Count
+    Write-Host ('OK: '+$groundCount+' ground tiles and '+$objectCount+' objects registered.')
     if ($OpenEditor) { Start-Process -FilePath (Join-Path $PSScriptRoot 'index.html') -WindowStyle Hidden }
 } catch {
     Write-Host ('ERROR: '+$_.Exception.Message) -ForegroundColor Red
