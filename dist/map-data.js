@@ -1,8 +1,16 @@
 (()=>{
   'use strict';
   const width=24,height=18,tileSize=32,storageKey='clock-attack-grassland-v1';
-  const names=['草','濃い草','花','土'];
-  const tileFiles=['grass','grass-dark','flowers','soil'].map(name=>`maps/tiles/${name}.png`);
+  let names=['草','濃い草','花','土'];
+  let tileFiles=['grass','grass-dark','flowers','soil'].map(name=>`maps/tiles/${name}.png`);
+
+  function configureTiles(tileset){
+    if(!Array.isArray(tileset)||!tileset.length||tileset.some(tile=>!tile||typeof tile.file!=='string'||typeof tile.image!=='string'||!/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(tile.image)))return false;
+    if(new Set(tileset.map(tile=>tile.file)).size!==tileset.length)return false;
+    tileFiles=tileset.map(tile=>tile.image);names=tileset.map(tile=>tile.file);
+    window.ClockAttackMap.tileFiles=tileFiles;window.ClockAttackMap.names=names;
+    return true;
+  }
 
   function defaultMap(){
     const tiles=[];
@@ -39,5 +47,5 @@
     ctx.drawImage(image,x,y,size,size);
   }
 
-  window.ClockAttackMap={width,height,tileSize,names,tileFiles,defaultMap,normalize,load,save,drawTile};
+  window.ClockAttackMap={width,height,tileSize,names,tileFiles,configureTiles,defaultMap,normalize,load,save,drawTile};
 })();

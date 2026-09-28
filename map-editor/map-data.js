@@ -1,8 +1,10 @@
 (()=>{
   'use strict';
   const width=24,height=18,tileSize=32,storageKey='clock-attack-map-editor-v1';
-  const tileFiles=['grass','grass-dark','flowers','soil'].map(name=>`maps/tiles/${name}.png`);
-  const names=tileFiles.map(file=>file.split('/').pop());
+  const catalog=window.ClockAttackTileCatalog||[];
+  if(!catalog.length)throw Error('open-editor.cmdでチップ一覧を更新してください');
+  const tileFiles=catalog.map(tile=>tile.image);
+  const names=catalog.map(tile=>tile.file);
 
   function defaultMap(){
     const tiles=[];
@@ -11,13 +13,16 @@
       const random=((x*73856093)^(y*19349663)^(x*y*83492791))>>>0;
       tiles.push(x>1&&x<width-2&&Math.abs(y-pathY)<=1?3:random%100<9?1:random%100<18?2:0);
     }
-    return {version:1,width,height,tiles};
+    return {version:1,width,height,tiles,tileset:catalog};
   }
 
   function normalize(value){
     if(!value||value.version!==1||value.width!==width||value.height!==height||!Array.isArray(value.tiles)||value.tiles.length!==width*height)return null;
-    if(!value.tiles.every(id=>Number.isInteger(id)&&id>=0&&id<names.length))return null;
-    return {version:1,width,height,tiles:value.tiles.slice()};
+    const sourceNames=value.tileset?value.tileset.map(tile=>tile.file):['grass.png','grass-dark.png','flowers.png','soil.png'];
+    if(!value.tiles.every(id=>Number.isInteger(id)&&id>=0&&id<sourceNames.length))return null;
+    const translated=value.tiles.map(id=>names.indexOf(sourceNames[id]));
+    if(translated.some(id=>id<0))return null;
+    return {version:1,width,height,tiles:translated,tileset:catalog};
   }
 
   function load(){

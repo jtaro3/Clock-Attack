@@ -59,7 +59,11 @@
   try{
     const response=await fetch('maps/clock-attack-grassland.json',{cache:'no-store'});
     if(!response.ok)throw Error(`HTTP ${response.status}`);
-    const imported=mapTools.normalize(await response.json());
+    const mapJson=await response.json();
+    if(mapJson.tileset){
+      if(mapJson.version!==1||mapJson.width!==mapTools.width||mapJson.height!==mapTools.height||!Array.isArray(mapJson.tileset)||!Array.isArray(mapJson.tiles)||mapJson.tiles.length!==mapTools.width*mapTools.height||!mapJson.tiles.every(id=>Number.isInteger(id)&&id>=0&&id<mapJson.tileset.length)||!mapTools.configureTiles(mapJson.tileset))throw Error('チップ一覧が不正です');
+    }
+    const imported=mapTools.normalize(mapJson);
     if(!imported)throw Error('マップJSONの形式が不正です');
     map=imported;
   }catch(error){console.warn('マップJSONを読み込めないため標準マップで起動します。',error)}
