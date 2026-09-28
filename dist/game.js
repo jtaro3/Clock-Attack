@@ -8,6 +8,14 @@
   }catch(error){console.warn('game-data.jsonを読み込めないため内蔵値で起動します。',error)}
   const general=gameData.general||{},playerData=gameData.player||{},enemyData=gameData.enemies||{},roundData=gameData.rounds||{};
   const setting=(source,key,fallback)=>Number.isFinite(Number(source[key]))?Number(source[key]):fallback;
+  const blueSlimeTuning=(()=>{
+    const blueData=enemyData.slime_blue||{};
+    const values={moveSpeed:setting(blueData,'move_speed_px_per_second',27),idleTime:setting(blueData,'animation_idle_seconds',.38),midTime:setting(blueData,'animation_jump_mid_seconds',.12),peakTime:setting(blueData,'animation_jump_peak_seconds',.12)};
+    try{const saved=JSON.parse(localStorage.getItem('clock-attack-blue-slime-tuning-v1')||'{}');for(const key of Object.keys(values))if(Number.isFinite(Number(saved[key])))values[key]=Number(saved[key])}catch{}
+    values.moveSpeed=Math.max(0,Math.min(80,values.moveSpeed));
+    for(const key of ['idleTime','midTime','peakTime'])values[key]=Math.max(.04,Math.min(1.2,values[key]));
+    return values;
+  })();
   const $=id=>document.getElementById(id);
   const canvas=$('field'),ctx=canvas.getContext('2d');
   const query=new URLSearchParams(location.search),effectPreviewMode=query.has('effectPreview'),clearPreviewMode=query.has('clearPreview');
@@ -102,11 +110,11 @@
   const SLIME_TYPES={blue:enemyType('slime_blue','blue',1,1,'#66c8ee',14),green:enemyType('slime_green','green',2,1,'#74d590',16),red:enemyType('slime_red','red',3,1,'#e97a83',18),purple:enemyType('slime_purple','purple',10,5,'#b679e5',22),black:enemyType('slime_black','black',20,10,'#171a20',24),metal:enemyType('slime_metal','metal',50,20,'#bec8d1',26)};
 const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type.enemyKey,type]));
   const blueSlimeFrames=[
-    {file:'slime_blue_idle.png',duration:.38,image:new Image()},
-    {file:'slime_blue_jump_mid.png',duration:.12,image:new Image()},
-    {file:'slime_blue_jump_peak.png',duration:.12,image:new Image()},
-    {file:'slime_blue_jump_mid.png',duration:.12,image:new Image()},
-    {file:'slime_blue_idle.png',duration:.38,image:new Image()}
+    {file:'slime_blue_idle.png',duration:blueSlimeTuning.idleTime,image:new Image()},
+    {file:'slime_blue_jump_mid.png',duration:blueSlimeTuning.midTime,image:new Image()},
+    {file:'slime_blue_jump_peak.png',duration:blueSlimeTuning.peakTime,image:new Image()},
+    {file:'slime_blue_jump_mid.png',duration:blueSlimeTuning.midTime,image:new Image()},
+    {file:'slime_blue_idle.png',duration:blueSlimeTuning.idleTime,image:new Image()}
   ];
   const BLUE_SLIME_LOOP_SECONDS=blueSlimeFrames.reduce((sum,frame)=>sum+frame.duration,0);
   blueSlimeFrames.forEach(frame=>{
@@ -598,7 +606,7 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
     const point=WorldSpawn.around(player.x,player.y,320,map.width*32,map.height*32,r,obstacles);
     if(!point)return;
     const {x,y}=point;
-    enemies.push({x,y,r,hp,hpMax:hp,enemyKey:type.enemyKey,kind:type.kind,attack,deathHitStop:type.deathHitStop,knockback:type.knockback!==false,color:type.color,speed:(21+Math.random()*12+score*.3)*setting(config,'enemy_speed_multiplier',1),hit:0,wobble:Math.random()*6.28,animationTime:Math.random()*BLUE_SLIME_LOOP_SECONDS});
+    enemies.push({x,y,r,hp,hpMax:hp,enemyKey:type.enemyKey,kind:type.kind,attack,deathHitStop:type.deathHitStop,knockback:type.knockback!==false,color:type.color,speed:(type.enemyKey==='slime_blue'?blueSlimeTuning.moveSpeed:21+Math.random()*12+score*.3)*setting(config,'enemy_speed_multiplier',1),hit:0,wobble:Math.random()*6.28,animationTime:Math.random()*BLUE_SLIME_LOOP_SECONDS});
     roundSpawned++;roundSpawnCounts[type.enemyKey]=(roundSpawnCounts[type.enemyKey]||0)+1;
   }
   function update(dt){
