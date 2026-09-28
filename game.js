@@ -101,7 +101,11 @@
     return count>0&&count%WHITE_AURA_INTERVAL===0?WHITE_AURA_DAMAGE:BASE_ATTACK_DAMAGE;
   }
   const attackEffectScale=damage=>damage===RED_AURA_DAMAGE?RED_ATTACK_EFFECT_SCALE:damage===WHITE_AURA_DAMAGE?WHITE_ATTACK_EFFECT_SCALE:NORMAL_ATTACK_EFFECT_SCALE;
-  const minY=()=>Math.max(92/VIEW_SCALE,h*.12),maxY=()=>Math.max(minY()+60,h-130/VIEW_SCALE);
+  const minY=()=>BattleMapBounds.outer(w,h).top,maxY=()=>BattleMapBounds.outer(w,h).bottom;
+  const playerMovementBounds=()=>{
+    const maxRatio=Math.max(...spriteBounds.map(([l,t,r,b])=>(r-l+33)/(b-t+33)));
+    return BattleMapBounds.centers(BattleMapBounds.outer(w,h),{x:Math.max(player.r,56*PLAYER_SCALE*maxRatio/2),top:Math.max(player.r,56*PLAYER_SCALE-21),bottom:Math.max(player.r,21)});
+  };
 
   function renderTerrain(){
     if(!w||!h||!tileImage[0].naturalWidth)return;
@@ -124,7 +128,7 @@
     canvas.width=Math.round(app.clientWidth*dpr);canvas.height=Math.round(app.clientHeight*dpr);
     ctx.setTransform(dpr*VIEW_SCALE,0,0,dpr*VIEW_SCALE,0,0);
     if(!oldW){player.x=w/2;player.y=(minY()+maxY())/2}
-    else{player.x=clamp(player.x*w/oldW,18,w-18);player.y=clamp(player.y*h/oldH,minY()+18,maxY()-18)}
+    else{const bounds=playerMovementBounds();player.x=clamp(player.x*w/oldW,bounds.left,bounds.right);player.y=clamp(player.y*h/oldH,bounds.top,bounds.bottom)}
     renderTerrain();
   }
   addEventListener('resize',resize);
@@ -221,6 +225,8 @@
     ui.swordCounter.classList.toggle('aura-red',auraDamage===RED_AURA_DAMAGE);
     ui.gridToggle.setAttribute('aria-pressed',String(showGrid));
     ui.gridToggle.textContent=`グリッド表示：${showGrid?'ON':'OFF'}`;
+    $('battleGridToggle').textContent=`グリッド：${showGrid?'ON':'OFF'}`;
+    $('battleGridToggle').setAttribute('aria-pressed',String(showGrid));
     ui.energyBar.classList.toggle('hit',damageFlash>0);
     for(let i=0;i<stockSlots.length;i++){
       const bottle=sandBottles[i];
@@ -317,6 +323,7 @@
     localStorage.setItem('clock-attack-grid',showGrid?'1':'0');
     setHud();
   });
+  $('battleGridToggle').addEventListener('click',()=>ui.gridToggle.click());
   function updateZoom(){
     $('zoomValue').textContent=`${Math.round(cameraZoom()*100)}%`;
     $('zoomIn').disabled=zoomIndex===0;$('zoomOut').disabled=zoomIndex===zoomLevels.length-1;
@@ -411,8 +418,9 @@
     const length=Math.hypot(dx,dy);if(length<.1)return;
     player.angle=Math.atan2(dy,dx);
     const scale=Math.min(1,(energy*MOVE_DISTANCE_PER_ENERGY-moveProgress)/length),oldX=player.x,oldY=player.y;
-    player.x=clamp(player.x+dx*scale,player.r+4,w-player.r-4);
-    player.y=clamp(player.y+dy*scale,minY()+player.r,maxY()-player.r);
+    const bounds=playerMovementBounds();
+    player.x=clamp(player.x+dx*scale,bounds.left,bounds.right);
+    player.y=clamp(player.y+dy*scale,bounds.top,bounds.bottom);
     moveProgress+=Math.hypot(player.x-oldX,player.y-oldY);
     const spent=Math.floor((moveProgress+1e-6)/MOVE_DISTANCE_PER_ENERGY);
     if(spent>0){moveProgress=Math.max(0,moveProgress-spent*MOVE_DISTANCE_PER_ENERGY);spendEnergy(spent)}
@@ -591,8 +599,9 @@
       enemy.x+=ex/len*enemy.speed*dt;enemy.y+=ey/len*enemy.speed*dt;
       if(len<player.r+enemy.r-3&&invincible<=0){
         damageFlash=.5;
-        player.x=clamp(player.x+ex/len*16/VIEW_SCALE,player.r+4,w-player.r-4);
-        player.y=clamp(player.y+ey/len*16/VIEW_SCALE,minY()+player.r,maxY()-player.r);
+        const bounds=playerMovementBounds();
+        player.x=clamp(player.x+ex/len*16/VIEW_SCALE,bounds.left,bounds.right);
+        player.y=clamp(player.y+ey/len*16/VIEW_SCALE,bounds.top,bounds.bottom);
         if(energy===0&&unlocked>0){grayHits=Math.min(3,grayHits+1);setHud()}
         else spendEnergy(enemy.attack);
         invincible=1.15;shake=.2;burst(player.x,player.y,'#fff4dc',9);
@@ -631,8 +640,8 @@
       for(let y=0;y<=map.height;y++){const py=top+y*size;ctx.moveTo(left,py);ctx.lineTo(left+map.width*size,py)}
       ctx.stroke();ctx.restore();
     }
-    // 枠はプレイヤー中心の移動制限と同じ座標に合わせる。
-    const moveLeft=player.r+4,moveTop=minY()+player.r,moveWidth=w-2*(player.r+4),moveHeight=maxY()-minY()-2*player.r;
+    // 枠の内側にプレイヤー画像全体が収まるように中心位置を制限する。
+    const moveRect=BattleMapBounds.outer(w,h),moveLeft=moveRect.left,moveTop=moveRect.top,moveWidth=moveRect.right-moveRect.left,moveHeight=moveRect.bottom-moveRect.top;
     ctx.save();ctx.lineWidth=5/VIEW_SCALE;ctx.strokeStyle='#10211ecc';ctx.strokeRect(moveLeft,moveTop,moveWidth,moveHeight);
     ctx.lineWidth=2/VIEW_SCALE;ctx.strokeStyle='#fff2b6';ctx.strokeRect(moveLeft,moveTop,moveWidth,moveHeight);
     ctx.font='bold 12px system-ui';ctx.fillStyle='#10211ecc';ctx.fillRect(moveLeft+5,moveTop+5,76,22);
