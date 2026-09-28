@@ -1,8 +1,8 @@
 (()=>{
   'use strict';
   const width=24,height=18,tileSize=32,storageKey='clock-attack-map-editor-v1';
-  const names=['草','濃い草','花','土'];
   const tileFiles=['grass','grass-dark','flowers','soil'].map(name=>`maps/tiles/${name}.png`);
+  const names=tileFiles.map(file=>file.split('/').pop());
 
   function defaultMap(){
     const tiles=[];
