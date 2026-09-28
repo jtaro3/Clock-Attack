@@ -10,7 +10,9 @@
   const levels=[.4,.5,.75,1,1.25,1.5];
   const availableWidth=innerWidth-32;
   let zoomIndex=availableWidth>=tools.width*tools.tileSize?3:availableWidth>=tools.width*tools.tileSize*.75?2:availableWidth>=tools.width*tools.tileSize*.5?1:0;
-  let selected=0,editing=false,drag=null,changed=false;
+  let selected=0,editing=false,drag=null,changed=false,brushLength=1;
+  const brushDirections={3:0,5:0,7:0},brushButtons=[];
+  const directionNames=['横','縦','右下がり斜め','右上がり斜め'];
 
   function status(text){message.textContent=text}
   function setZoom(index){
@@ -48,6 +50,7 @@
     $('edit').classList.toggle('selected',editing);
     $('edit').setAttribute('aria-pressed',String(editing));
     $('edit').textContent=editing?'編集中':'編集';
+    updateBrushUI();
     canvas.style.cursor=editing?'crosshair':'grab';
     canvas.style.touchAction=editing?'none':'pan-y';
   }
@@ -67,12 +70,36 @@
   }
   function paint(event){
     const cell=cellAt(event);if(!cell)return;
-    const index=cell.y*map.width+cell.x;
-    if(map.tiles[index]===selected)return;
-    map.tiles[index]=selected;changed=true;
-    drawCell(cell.x,cell.y);
-    status('編集中');
+    for(const point of MapBrush.cells(cell.x,cell.y,brushLength,brushDirections[brushLength]||0,map.width,map.height)){
+      const index=point.y*map.width+point.x;
+      if(map.tiles[index]===selected)continue;
+      map.tiles[index]=selected;changed=true;drawCell(point.x,point.y);
+    }
+    status(brushLength+'マスで編集中');
   }
+  function updateBrushUI(){
+    for(const button of brushButtons){
+      const length=Number(button.dataset.length),direction=brushDirections[length]||0;
+      button.classList.toggle('selected',editing&&brushLength===length);
+      button.setAttribute('aria-pressed',String(editing&&brushLength===length));
+      button.setAttribute('aria-label',length+'マス'+(length===1?'':'・'+directionNames[direction])+'で描画');
+      button.title=button.getAttribute('aria-label')+(length===1?'':'（もう一度押すと回転）');
+      const [dx,dy]=MapBrush.directions[direction],count=length===1?1:3;
+      let squares='';
+      for(let i=-Math.floor(count/2);i<=Math.floor(count/2);i++)squares+='<rect x="'+(18+dx*i*12)+'" y="'+(18+dy*i*12)+'" width="9" height="9" rx="1" fill="currentColor"/>';
+      button.innerHTML='<svg viewBox="0 0 45 45" aria-hidden="true">'+squares+'</svg><span>'+length+'マス</span>';
+    }
+  }
+  for(const length of [1,3,5,7]){
+    const button=document.createElement('button');button.type='button';button.className='brush-button';button.dataset.length=length;
+    button.addEventListener('click',()=>{
+      if(editing&&brushLength===length&&length>1)brushDirections[length]=(brushDirections[length]+1)%4;
+      brushLength=length;editing=true;updateToolUI();
+      status(length+'マス'+(length===1?'':'・'+directionNames[brushDirections[length]])+'で描画します。クリック位置を中央に塗ります。');
+    });
+    brushButtons.push(button);$('brushes').append(button);
+  }
+  const brushHint=document.createElement('p');brushHint.className='brush-hint';brushHint.textContent='同じツールを押して向きを変更';$('brushes').append(brushHint);
 
   tools.names.forEach((name,id)=>{
     const button=document.createElement('button');
