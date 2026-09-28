@@ -2,7 +2,7 @@
   'use strict';
   const width=24,height=18,tileSize=32,storageKey='clock-attack-grassland-v1';
   const names=['草','濃い草','花','土'];
-  const tileSheet='maps/grassland-tiles.png';
+  const tileFiles=['grass','grass-dark','flowers','soil'].map(name=>`maps/tiles/${name}.png`);
 
   function defaultMap(){
     const tiles=[];
@@ -33,16 +33,11 @@
     try{localStorage.setItem(storageKey,JSON.stringify(valid));return true}catch{return false}
   }
 
-  function drawTile(ctx,image,id,x,y,size=tileSize){
-    if(!image.complete||!image.naturalWidth)return;
-    const quadrant=Math.floor(Math.min(image.width,image.height)/2);
-    const crop=Math.floor(quadrant*.34);
-    const offsets=[[.18,.18],[.15,.15],[.02,.02],[.16,.16]];
-    const [ox,oy]=offsets[id]||offsets[0];
-    const sx=(id%2)*quadrant+Math.floor(quadrant*ox);
-    const sy=Math.floor(id/2)*quadrant+Math.floor(quadrant*oy);
-    ctx.drawImage(image,sx,sy,crop,crop,x,y,size,size);
+  function drawTile(ctx,images,id,x,y,size=tileSize){
+    const image=images[id];
+    if(!image||!image.complete||!image.naturalWidth)return;
+    ctx.drawImage(image,x,y,size,size);
   }
 
-  window.ClockAttackMap={width,height,tileSize,names,tileSheet,defaultMap,normalize,load,save,drawTile};
+  window.ClockAttackMap={width,height,tileSize,names,tileFiles,defaultMap,normalize,load,save,drawTile};
 })();

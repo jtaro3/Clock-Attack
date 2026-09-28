@@ -63,10 +63,13 @@
     if(!imported)throw Error('マップJSONの形式が不正です');
     map=imported;
   }catch(error){console.warn('マップJSONを読み込めないため標準マップで起動します。',error)}
-  const tileImage=new Image();
+  const tileImage=mapTools.tileFiles.map(()=>new Image());
   let terrainCanvas=null;
-  tileImage.onload=()=>renderTerrain();
-  tileImage.src=mapTools.tileSheet;
+  tileImage.forEach((image,index)=>{
+    image.onload=()=>renderTerrain();
+    image.onerror=()=>console.warn('マップチップ画像を読み込めませんでした：'+mapTools.tileFiles[index]);
+    image.src=mapTools.tileFiles[index];
+  });
   const enemies=[],deadEnemies=[],particles=[],explosions=[],damageNumbers=[];
   const drag={pointer:null,x:0,y:0};
   const charge={pointer:null,start:0,timer:null};
@@ -97,7 +100,7 @@
   const minY=()=>Math.max(92/VIEW_SCALE,h*.12),maxY=()=>Math.max(minY()+60,h-130/VIEW_SCALE);
 
   function renderTerrain(){
-    if(!w||!h||!tileImage.naturalWidth)return;
+    if(!w||!h||!tileImage[0].naturalWidth)return;
     const terrain=document.createElement('canvas');
     terrain.width=Math.ceil(w);terrain.height=Math.ceil(h);
     const ground=terrain.getContext('2d');

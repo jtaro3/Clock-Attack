@@ -5,7 +5,7 @@
   const canvas=$('map'),ctx=canvas.getContext('2d');
   const viewport=$('viewport'),message=$('message');
   const map=tools.load();
-  const sheet=new Image();
+  const sheet=tools.tileFiles.map(()=>new Image());
   const buttons=[];
   const levels=[.4,.5,.75,1,1.25,1.5];
   const availableWidth=innerWidth-32;
@@ -111,9 +111,12 @@
     button.addEventListener('click',()=>setTool(id));
     $('palette').append(button);buttons.push(button);
   });
-  sheet.onload=()=>{drawPalette();draw();status('移動中です。塗るには「編集」を押してください。')};
-  sheet.onerror=()=>status('マップチップ画像を読み込めませんでした。');
-  sheet.src=tools.tileSheet;
+  let loadedTiles=0;
+  sheet.forEach((image,index)=>{
+    image.onload=()=>{drawPalette();draw();if(++loadedTiles===sheet.length)status('移動中です。塗るには「編集」を押してください。')};
+    image.onerror=()=>status('マップチップ画像を読み込めませんでした：'+tools.tileFiles[index]);
+    image.src=tools.tileFiles[index];
+  });
   setZoom(zoomIndex);
   updateToolUI();
   draw();
