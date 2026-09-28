@@ -65,7 +65,7 @@ $assetRows = @(Read-Table 'assets' @('enabled','asset_key','asset_type','owner_k
 $difficultyRows = @(Read-Table 'difficulty' @('difficulty_key','description','max_round')) | Where-Object { -not [string]::IsNullOrWhiteSpace($_.difficulty_key) }
 $mapTileRows = @()
 if(Test-Path -LiteralPath (Join-Path $CsvFolder 'sheet-map_tiles.csv')){
-    $mapTileRows = @(Read-Table 'map_tiles' @('enabled','asset_key','category','palette_color','walkable','collision_length','collision_width'))
+    $mapTileRows = @(Read-Table 'map_tiles' @('enabled','asset_key','category','palette_color','walkable','collision_length','collision_width','destructible','hp'))
 }
 
 Test-UniqueKeys $generalRows 'key' 'sheet-general.csv'; Test-UniqueKeys $playerRows 'key' 'sheet-player.csv'; Test-UniqueKeys $enemyRows 'enemy_key' 'sheet-enemy.csv'; Test-UniqueKeys $roundRows 'round' 'sheet-round.csv'; Test-UniqueKeys $assetRows 'asset_key' 'sheet-assets.csv'; Test-UniqueKeys $difficultyRows 'difficulty_key' 'sheet-difficulty.csv'
@@ -134,7 +134,11 @@ for($i=0;$i-lt$mapTileRows.Count;$i++){
     $length=To-Number $row.collision_length $file $line 'collision_length' 0
     $width=To-Number $row.collision_width $file $line 'collision_width' 0
     if($row.walkable -eq '0' -and ($length -le 0 -or $width -le 0)){Add-DataError $file $line 'collision_length/collision_width' '通行不可では縦・横とも0より大きいマス数が必要です。'}
-    $mapTiles += [ordered]@{asset_key=$key;sprite_file=$sprite;category=([string]$row.category).Trim();palette_color=$color;walkable=($row.walkable -eq '1');collision_length=[double]$length;collision_width=[double]$width}
+    if($row.destructible -notin @('0','1')){Add-DataError $file $line 'destructible' '0または1を指定してください。'}
+    $objectHp=To-Number $row.hp $file $line 'hp' 0
+    if($objectHp -ne [Math]::Floor($objectHp)){Add-DataError $file $line 'hp' '整数を指定してください。'}
+    if($row.destructible -eq '1' -and $objectHp -le 0){Add-DataError $file $line 'hp' '破壊可能なオブジェクトには1以上の耐久力が必要です。'}
+    $mapTiles += [ordered]@{destructible=($row.destructible -eq '1');hp=[int]$objectHp;asset_key=$key;sprite_file=$sprite;category=([string]$row.category).Trim();palette_color=$color;walkable=($row.walkable -eq '1');collision_length=[double]$length;collision_width=[double]$width}
 }
 
 if($errors.Count-gt0){$message="データ検証で$($errors.Count)件のエラーが見つかりました。`n"+($errors-join"`n");if(-not$Silent){Write-Host $message -ForegroundColor Red};[Console]::Error.WriteLine($message);exit 2}

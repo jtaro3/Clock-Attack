@@ -79,7 +79,8 @@
   }catch(error){console.warn('マップJSONを読み込めないため標準マップで起動します。',error)}
   const mapSettings=new Map((gameData.map_tiles||[]).map(tile=>[tile.sprite_file,tile]));
   collisionCatalog=collisionCatalog.map(tile=>({...tile,...(mapSettings.get(tile.file)||{})}));
-  const obstacles=MapCollision.build(map,collisionCatalog);
+  const objectDestruction=MapDestruction.create(map,collisionCatalog);
+  let obstacles=MapCollision.build(objectDestruction.activeMap(),collisionCatalog);
   const tileImage=mapTools.tileFiles.map(()=>new Image());
   let terrainCanvas=null,terrainOrigin={x:0,y:0};
   tileImage.forEach((image,index)=>{
@@ -169,6 +170,7 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
     for(let y=0;y<map.height;y++)for(let x=0;x<map.width;x++)
       mapTools.drawTile(ground,tileImage,map.tiles[y*map.width+x],left+x*mapTools.tileSize,top+y*mapTools.tileSize);
     for(const object of map.objects||[]){
+      if(object.destroyed)continue;
       const image=tileImage[object.id];
       if(image.complete&&image.naturalWidth)ground.drawImage(image,left+object.x*32,top+object.y*32,object.width_tiles*32,object.height_tiles*32);
     }
@@ -394,6 +396,7 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
     ui.killWarning.classList.add('hidden');
     enemies.length=0;deadEnemies.length=0;particles.length=0;explosions.length=0;damageNumbers.length=0;
     player.x=map.width*16;player.y=map.height*16;ensurePlayerFree();invincible=0;entryGray=0;swing=0;spin=0;hitStop=0;
+    objectDestruction.reset();obstacles=MapCollision.build(objectDestruction.activeMap(),collisionCatalog);renderTerrain();
     startSelection(true);
   }
   function gameClear(preview=false){
@@ -539,6 +542,14 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
     if(round>=MAX_EASY_ROUND){gameClear();return}
     round++;roundKills=0;roundSpawned=0;roundElapsed=0;roundSpawnCounts={};spawnTimer=0;enemies.length=0;
   }
+  function hitObjects(damage,fullCircle){
+    const hits=objectDestruction.hit(player.x,player.y,player.angle,player.r+51,damage,fullCircle);
+    for(const hit of hits){
+      showDamage(hit,damage);burst(hit.x,hit.y,hit.destroyed?'#c89860':'#fff1c3',hit.destroyed?18:8);
+      explosions.push({x:hit.x,y:hit.y,r:16,life:.25,max:.25});
+    }
+    if(hits.some(hit=>hit.destroyed)){obstacles=MapCollision.build(objectDestruction.activeMap(),collisionCatalog);renderTerrain();}
+  }
   function hitEnemies(damage,fullCircle){
     const ax=Math.cos(player.angle),ay=Math.sin(player.angle);
     let defeated=false,deathHitStop=0;
@@ -576,14 +587,14 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
     if(mode!=='play'||energy<=0||swing>0||spin>0||hitStop>0)return;
     const damage=attackDamage(swordCount);
     spendEnergy(1);swing=.27;swingAngle=player.angle;swingScale=attackEffectScale(damage);
-    hitEnemies(damage,false);
+    hitObjects(damage,false);hitEnemies(damage,false);
     setHud();checkExhausted();
   }
   function spinAttack(){
     if(mode!=='play'||energy<=0||swordCount<SPIN_SWORD_COST||swing>0||spin>0||hitStop>0)return;
     const damage=Math.max(SPIN_MIN_DAMAGE,attackDamage(swordCount));
     swordCount-=SPIN_SWORD_COST;spin=.55;swingAngle=player.angle;spinScale=attackEffectScale(damage);
-    hitEnemies(damage,true);
+    hitObjects(damage,true);hitEnemies(damage,true);
     setHud();checkExhausted();
   }
   function spawn(forcePurple=false){
