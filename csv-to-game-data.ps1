@@ -73,11 +73,15 @@ Test-UniqueKeys $generalRows 'key' 'sheet-general.csv'; Test-UniqueKeys $playerR
 $general = [ordered]@{}; for($i=0;$i-lt$generalRows.Count;$i++){ $row=$generalRows[$i]; $general[$row.key.Trim()] = Convert-TypedValue $row 'sheet-general.csv' ($i+2) }
 $player = [ordered]@{}; for($i=0;$i-lt$playerRows.Count;$i++){ $row=$playerRows[$i]; $player[$row.key.Trim()] = Convert-TypedValue $row 'sheet-player.csv' ($i+2) }
 
+if($player.Contains('damage_knockback_distance_px') -and $player['damage_knockback_distance_px'] -lt 0){Add-DataError 'sheet-player.csv' 0 'damage_knockback_distance_px' '0以上を指定してください。'}
 $enemies = [ordered]@{}; $enabledEnemyKeys=@{}; for($i=0;$i-lt$enemyRows.Count;$i++){
     $row=$enemyRows[$i]; $line=$i+2; if(-not(Test-Enabled $row 'sheet-enemy.csv' $line)){continue}; if($row.enabled-ne'1'){continue}
     if($row.super_armor-notin@('0','1')){Add-DataError 'sheet-enemy.csv' $line 'super_armor' '0または1を指定してください。'}
     $hp=To-Number $row.hp 'sheet-enemy.csv' $line 'hp' 1; $attack=To-Number $row.attack 'sheet-enemy.csv' $line 'attack' 0; $stop=To-Number $row.death_hit_stop_seconds 'sheet-enemy.csv' $line 'death_hit_stop_seconds' 0
     $key=$row.enemy_key.Trim(); $enabledEnemyKeys[$key]=$true; $enemyData=[ordered]@{description=$row.description;family=$row.family;variant=$row.variant;hp=[int]$hp;attack=[double]$attack;super_armor=($row.super_armor-eq'1');ai_type=$row.ai_type;sand_type=$row.sand_type;death_hit_stop_seconds=[double]$stop}
+    $knockback=18.75
+    if(-not [string]::IsNullOrWhiteSpace([string]$row.knockback_distance_px)){$knockback=To-Number $row.knockback_distance_px 'sheet-enemy.csv' $line 'knockback_distance_px' 0}
+    $enemyData['knockback_distance_px']=[double]$knockback
     if($key -eq 'slime_blue'){
         $tuningColumns=@(
             [pscustomobject]@{name='move_speed_px_per_second';default=27.0;minimum=0.0;maximum=80.0},

@@ -107,7 +107,7 @@
   const ROUND_KILL_TARGETS=[0,10,20,30,30,30];
   const currentRoundConfig=roundNumber=>roundData[String(roundNumber)]||{};
   const roundKillTarget=roundNumber=>setting(currentRoundConfig(roundNumber),'kill_target',ROUND_KILL_TARGETS[roundNumber]??ROUND_KILL_TARGETS.at(-1));
-  const enemyType=(key,kind,hp,attack,color,radius)=>{const data=enemyData[key]||{};return{enemyKey:key,kind,hp:setting(data,'hp',hp),attack:setting(data,'attack',attack),deathHitStop:setting(data,'death_hit_stop_seconds',.1),color,radius,knockback:data.super_armor===undefined?kind!=='black':!data.super_armor}};
+  const enemyType=(key,kind,hp,attack,color,radius)=>{const data=enemyData[key]||{};return{enemyKey:key,kind,hp:setting(data,'hp',hp),attack:setting(data,'attack',attack),deathHitStop:setting(data,'death_hit_stop_seconds',.1),knockbackDistance:Math.max(0,setting(data,'knockback_distance_px',18.75)),color,radius,knockback:data.super_armor===undefined?kind!=='black':!data.super_armor}};
   const SLIME_TYPES={blue:enemyType('slime_blue','blue',1,1,'#66c8ee',14),green:enemyType('slime_green','green',2,1,'#74d590',16),red:enemyType('slime_red','red',3,1,'#e97a83',18),purple:enemyType('slime_purple','purple',10,5,'#b679e5',22),black:enemyType('slime_black','black',20,10,'#171a20',24),metal:enemyType('slime_metal','metal',50,20,'#bec8d1',26)};
 const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type.enemyKey,type]));
   const blueSlimeFrames=[
@@ -557,7 +557,7 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
       const enemy=enemies[i],dx=enemy.x-player.x,dy=enemy.y-player.y,len=Math.hypot(dx,dy);
       if(len>=player.r+enemy.r+51||(!fullCircle&&len>=25&&(dx*ax+dy*ay)/len<=-.2))continue;
       const knockAngle=len>0?Math.atan2(dy,dx):player.angle;
-      if(enemy.knockback)moveBody(enemy,Math.cos(knockAngle)*15/VIEW_SCALE,Math.sin(knockAngle)*15/VIEW_SCALE,enemy.r);
+      if(enemy.knockback)moveBody(enemy,Math.cos(knockAngle)*enemy.knockbackDistance,Math.sin(knockAngle)*enemy.knockbackDistance,enemy.r);
       enemy.hp-=damage;enemy.hit=.18;
       explosions.push({x:enemy.x,y:enemy.y,r:enemy.r,life:.45,max:.45});
       burst(enemy.x,enemy.y,'#fff1c3',15);showDamage(enemy,damage);
@@ -617,7 +617,7 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
     const point=WorldSpawn.around(player.x,player.y,320,map.width*32,map.height*32,r,obstacles);
     if(!point)return;
     const {x,y}=point;
-    enemies.push({x,y,r,hp,hpMax:hp,enemyKey:type.enemyKey,kind:type.kind,attack,deathHitStop:type.deathHitStop,knockback:type.knockback!==false,color:type.color,speed:(type.enemyKey==='slime_blue'?blueSlimeTuning.moveSpeed:21+Math.random()*12+score*.3)*setting(config,'enemy_speed_multiplier',1),hit:0,wobble:Math.random()*6.28,animationTime:Math.random()*BLUE_SLIME_LOOP_SECONDS});
+    enemies.push({x,y,r,hp,hpMax:hp,enemyKey:type.enemyKey,kind:type.kind,attack,deathHitStop:type.deathHitStop,knockback:type.knockback!==false,knockbackDistance:type.knockbackDistance,color:type.color,speed:(type.enemyKey==='slime_blue'?blueSlimeTuning.moveSpeed:21+Math.random()*12+score*.3)*setting(config,'enemy_speed_multiplier',1),hit:0,wobble:Math.random()*6.28,animationTime:Math.random()*BLUE_SLIME_LOOP_SECONDS});
     roundSpawned++;roundSpawnCounts[type.enemyKey]=(roundSpawnCounts[type.enemyKey]||0)+1;
   }
   function update(dt){
@@ -661,7 +661,7 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
       if(len<player.r+enemy.r-3&&invincible<=0){
         damageFlash=.5;
         const bounds=playerMovementBounds();
-        moveBody(player,clamp(player.x+ex/len*16/VIEW_SCALE,bounds.left,bounds.right)-player.x,clamp(player.y+ey/len*16/VIEW_SCALE,bounds.top,bounds.bottom)-player.y,10,14);
+        moveBody(player,clamp(player.x+ex/len*Math.max(0,setting(playerData,'damage_knockback_distance_px',20)),bounds.left,bounds.right)-player.x,clamp(player.y+ey/len*Math.max(0,setting(playerData,'damage_knockback_distance_px',20)),bounds.top,bounds.bottom)-player.y,10,14);
         if(energy===0&&unlocked>0){grayHits=Math.min(3,grayHits+1);setHud()}
         else spendEnergy(enemy.attack);
         invincible=1.15;shake=.2;burst(player.x,player.y,'#fff4dc',9);

@@ -1,6 +1,6 @@
 {
     "schema_version":  1,
-    "generated_at":  "2026-09-29T02:26:35.5775908+09:00",
+    "generated_at":  "2026-09-29T02:36:26.1571692+09:00",
     "general":  {
                     "start_energy":  100,
                     "max_enemies":  20,
@@ -27,7 +27,8 @@
                    "spin_charge_seconds":  1.5,
                    "normal_attack_effect_scale":  1,
                    "white_attack_effect_scale":  1.5,
-                   "red_attack_effect_scale":  2
+                   "red_attack_effect_scale":  2,
+                   "damage_knockback_distance_px":  20
                },
     "enemies":  {
                     "slime_blue":  {
@@ -40,6 +41,7 @@
                                        "ai_type":  "chase",
                                        "sand_type":  "blue",
                                        "death_hit_stop_seconds":  0.1,
+                                       "knockback_distance_px":  19,
                                        "move_speed_px_per_second":  18,
                                        "animation_idle_seconds":  0.2,
                                        "animation_jump_mid_seconds":  0.23,
@@ -54,7 +56,8 @@
                                         "super_armor":  false,
                                         "ai_type":  "chase",
                                         "sand_type":  "green",
-                                        "death_hit_stop_seconds":  0.1
+                                        "death_hit_stop_seconds":  0.1,
+                                        "knockback_distance_px":  19
                                     },
                     "slime_red":  {
                                       "description":  "赤スライム",
@@ -65,7 +68,8 @@
                                       "super_armor":  false,
                                       "ai_type":  "chase",
                                       "sand_type":  "red",
-                                      "death_hit_stop_seconds":  0.1
+                                      "death_hit_stop_seconds":  0.1,
+                                      "knockback_distance_px":  19
                                   },
                     "slime_purple":  {
                                          "description":  "紫スライム",
@@ -76,7 +80,8 @@
                                          "super_armor":  false,
                                          "ai_type":  "chase",
                                          "sand_type":  "purple",
-                                         "death_hit_stop_seconds":  0.1
+                                         "death_hit_stop_seconds":  0.1,
+                                         "knockback_distance_px":  19
                                      },
                     "slime_black":  {
                                         "description":  "黒スライム",
@@ -87,7 +92,8 @@
                                         "super_armor":  true,
                                         "ai_type":  "chase",
                                         "sand_type":  "black",
-                                        "death_hit_stop_seconds":  0.3
+                                        "death_hit_stop_seconds":  0.3,
+                                        "knockback_distance_px":  19
                                     },
                     "slime_metal":  {
                                         "description":  "金属スライム",
@@ -98,7 +104,8 @@
                                         "super_armor":  false,
                                         "ai_type":  "chase",
                                         "sand_type":  "white",
-                                        "death_hit_stop_seconds":  0.3
+                                        "death_hit_stop_seconds":  0.3,
+                                        "knockback_distance_px":  19
                                     }
                 },
     "rounds":  {
