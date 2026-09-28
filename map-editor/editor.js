@@ -75,28 +75,28 @@
       if(map.tiles[index]===selected)continue;
       map.tiles[index]=selected;changed=true;drawCell(point.x,point.y);
     }
-    status((brushShape==='square'?'3×3':brushLength)+'マスで編集中');
+    status((brushShape==='square'?brushLength+'×'+brushLength:brushLength)+'マスで編集中');
   }
   function updateBrushUI(){
     for(const button of brushButtons){
       const length=Number(button.dataset.length),shape=button.dataset.shape,direction=brushDirections[length]||0;
       const active=editing&&brushLength===length&&brushShape===shape;
-      const label=shape==='square'?'3×3マス':length+'マス'+(length===1?'':'・'+directionNames[direction]);
+      const label=shape==='square'?length+'×'+length+'マス':length+'マス'+(length===1?'':'・'+directionNames[direction]);
       button.classList.toggle('selected',active);button.setAttribute('aria-pressed',String(active));
       button.setAttribute('aria-label',label+'で描画');
       button.title=label+(shape==='line'&&length>1?'（もう一度押すと回転）':'');
       const [dx,dy]=MapBrush.directions[direction];let squares='';
       const offsets=shape==='square'?[-1,0,1].flatMap(y=>[-1,0,1].map(x=>[x,y])):(length===1?[[0,0]]:[[-dx,-dy],[0,0],[dx,dy]]);
       for(const [x,y] of offsets)squares+='<rect x="'+(18+x*12)+'" y="'+(18+y*12)+'" width="9" height="9" rx="1" fill="currentColor"/>';
-      button.innerHTML='<svg viewBox="0 0 45 45" aria-hidden="true">'+squares+'</svg><span>'+(shape==='square'?'3×3':length+'マス')+'</span>';
+      button.innerHTML='<svg viewBox="0 0 45 45" aria-hidden="true">'+squares+'</svg><span>'+(shape==='square'?length+'×'+length:length+'マス')+'</span>';
     }
   }
-  for(const [length,shape] of [[1,'line'],[3,'line'],[5,'line'],[7,'line'],[3,'square']]){
+  for(const [length,shape] of [[1,'line'],[3,'line'],[5,'line'],[7,'line'],[3,'square'],[10,'square']]){
     const button=document.createElement('button');button.type='button';button.className='brush-button';button.dataset.length=length;button.dataset.shape=shape;
     button.addEventListener('click',()=>{
       if(editing&&brushLength===length&&brushShape===shape&&shape==='line'&&length>1)brushDirections[length]=(brushDirections[length]+1)%4;
       brushLength=length;brushShape=shape;editing=true;updateToolUI();
-      status((shape==='square'?'3×3':length)+'マスで描画します。クリック位置を中央に塗ります。');
+      status((shape==='square'?length+'×'+length:length)+'マスで描画します。クリック位置を中央に塗ります。');
     });
     brushButtons.push(button);$('brushes').append(button);
   }
