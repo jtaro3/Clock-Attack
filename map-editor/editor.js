@@ -10,7 +10,7 @@
   const levels=[.4,.5,.75,1,1.25,1.5];
   const availableWidth=innerWidth-32;
   let zoomIndex=availableWidth>=tools.width*tools.tileSize?3:availableWidth>=tools.width*tools.tileSize*.75?2:availableWidth>=tools.width*tools.tileSize*.5?1:0;
-  let selected=0,editing=false,drag=null,changed=false,brushLength=1,brushShape='line';
+  let selected=0,editing=false,erasingObjects=false,drag=null,changed=false,brushLength=1,brushShape='line';
   const brushDirections={3:0,5:0,7:0},brushButtons=[];
   const directionNames=['横','縦','右下がり斜め','右上がり斜め'];
 
@@ -87,12 +87,14 @@
     $('edit').classList.toggle('selected',editing);
     $('edit').setAttribute('aria-pressed',String(editing));
     $('edit').textContent=editing?'編集中':'編集';
+    $('eraseObjects').classList.toggle('selected',editing&&erasingObjects);
+    $('eraseObjects').setAttribute('aria-pressed',String(editing&&erasingObjects));
     updateBrushUI();
     canvas.style.cursor=editing?'crosshair':'grab';
     canvas.style.touchAction=editing?'none':'pan-y';
   }
   function setTool(id){
-    selected=id;updateToolUI();
+    selected=id;erasingObjects=false;updateToolUI();
     status(`${tools.names[id]}を選択しました。${editing?'マップをタップして塗れます。':'塗るには「編集」を押してください。'}`);
   }
   function save(){
@@ -107,6 +109,15 @@
   }
   function paint(event){
     const cell=cellAt(event);if(!cell)return;
+    if(erasingObjects){
+      const objects=map.objects||[];
+      const index=objects.findIndex(object=>{
+        const tile=tools.catalog[object.id];
+        return cell.x>=object.x&&cell.x<object.x+(tile.width_tiles||1)&&cell.y>=object.y&&cell.y<object.y+(tile.height_tiles||1);
+      });
+      if(index<0)return;
+      objects.splice(index,1);changed=true;draw();status('オブジェクトを削除しました。地面のチップは残ります。');return;
+    }
     const tile=tools.catalog[selected],tw=tile.width_tiles||1,th=tile.height_tiles||1;
     if(tw>1||th>1){
       if(cell.x+tw>map.width||cell.y+th>map.height){status('オブジェクトがマップ外にはみ出すため配置できません。');return}
@@ -147,6 +158,9 @@
     brushButtons.push(button);$('brushes').append(button);
   }
   const brushHint=document.createElement('p');brushHint.className='brush-hint';brushHint.textContent='同じツールを押して向きを変更';$('brushes').append(brushHint);
+  const eraser=document.createElement('button');eraser.type='button';eraser.id='eraseObjects';eraser.className='brush-button';eraser.setAttribute('aria-label','オブジェクト消しゴム');eraser.title='タップしたオブジェクトを削除します。地面は残ります。';eraser.innerHTML='<svg viewBox="0 0 45 45" aria-hidden="true"><path d="M8 27 24 10a4 4 0 0 1 6 0l8 8a4 4 0 0 1 0 6L22 40H13L8 35a6 6 0 0 1 0-8Z" fill="none" stroke="currentColor" stroke-width="3"/><path d="m17 18 14 14M22 40h16" fill="none" stroke="currentColor" stroke-width="3"/></svg><span>オブジェクト消しゴム</span>';
+  eraser.addEventListener('click',()=>{erasingObjects=true;editing=true;updateToolUI();status('消したいオブジェクトをタップしてください。地面のチップは残ります。')});
+  $('brushes').append(eraser);
 
   tools.names.forEach((name,id)=>{
     const button=document.createElement('button');
@@ -194,7 +208,7 @@
   });
   $('edit').addEventListener('click',()=>{
     editing=!editing;updateToolUI();
-    status(editing?`${tools.names[selected]}で編集中です。マップをタップして塗れます。`:'移動中です。塗るには「編集」を押してください。');
+    status(editing?(erasingObjects?'消したいオブジェクトをタップしてください。':`${tools.names[selected]}で編集中です。マップをタップして塗れます。`):'移動中です。塗るには「編集」を押してください。');
   });
   $('zoomOut').addEventListener('click',()=>setZoom(zoomIndex-1));
   $('zoomIn').addEventListener('click',()=>setZoom(zoomIndex+1));
