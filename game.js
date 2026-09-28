@@ -56,6 +56,7 @@
   const cameraZoom=()=>zoomLevels[zoomIndex];
   const mapTools=window.ClockAttackMap;
   let map=mapTools.defaultMap();
+  let collisionCatalog=['grass.png','grass-dark.png','flowers.png','soil.png'].map(file=>({file}));
   try{
     const response=await fetch('maps/clock-attack-grassland.json',{cache:'no-store'});
     if(!response.ok)throw Error(`HTTP ${response.status}`);
@@ -66,7 +67,11 @@
     const imported=mapTools.normalize(mapJson);
     if(!imported)throw Error('マップJSONの形式が不正です');
     map=imported;
+    if(mapJson.tileset)collisionCatalog=mapJson.tileset;
   }catch(error){console.warn('マップJSONを読み込めないため標準マップで起動します。',error)}
+  const mapSettings=new Map((gameData.map_tiles||[]).map(tile=>[tile.sprite_file,tile]));
+  collisionCatalog=collisionCatalog.map(tile=>({...tile,...(mapSettings.get(tile.file)||{})}));
+  const obstacles=MapCollision.build(map,collisionCatalog);
   const tileImage=mapTools.tileFiles.map(()=>new Image());
   let terrainCanvas=null,terrainOrigin={x:0,y:0};
   tileImage.forEach((image,index)=>{
@@ -106,6 +111,21 @@
     const maxRatio=Math.max(...spriteBounds.map(([l,t,r,b])=>(r-l+33)/(b-t+33)));
     return BattleMapBounds.centers(BattleMapBounds.outer(w,h),{x:Math.max(player.r,56*PLAYER_SCALE*maxRatio/2),top:Math.max(player.r,56*PLAYER_SCALE-21),bottom:Math.max(player.r,21)});
   };
+  const mapOffset=()=>({x:Math.round((w-map.width*32)/2),y:Math.round((h-map.height*32)/2)});
+  function moveBody(body,dx,dy,r,feet=0){
+    const origin=mapOffset(),next=MapCollision.move(body.x-origin.x,body.y+feet-origin.y,dx,dy,r,obstacles);
+    body.x=next.x+origin.x;body.y=next.y+origin.y-feet;
+  }
+  function ensurePlayerFree(){
+    const origin=mapOffset(),bounds=playerMovementBounds();
+    if(!MapCollision.blocked(player.x-origin.x,player.y+14-origin.y,10,obstacles))return;
+    let best=null,distance=Infinity;
+    for(let y=bounds.top;y<=bounds.bottom;y+=16)for(let x=bounds.left;x<=bounds.right;x+=16){
+      const d=Math.hypot(x-player.x,y-player.y);
+      if(d<distance&&!MapCollision.blocked(x-origin.x,y+14-origin.y,10,obstacles)){best={x,y};distance=d}
+    }
+    if(best){player.x=best.x;player.y=best.y}
+  }
 
   function renderTerrain(){
     if(!w||!h||!tileImage[0].naturalWidth)return;
@@ -140,6 +160,7 @@
     ctx.setTransform(dpr*VIEW_SCALE,0,0,dpr*VIEW_SCALE,0,0);
     if(!oldW){player.x=w/2;player.y=(minY()+maxY())/2}
     else{const bounds=playerMovementBounds();player.x=clamp(player.x*w/oldW,bounds.left,bounds.right);player.y=clamp(player.y*h/oldH,bounds.top,bounds.bottom)}
+    ensurePlayerFree();
     renderTerrain();
   }
   addEventListener('resize',resize);
@@ -349,7 +370,7 @@
     ui.clearScreen.classList.add('hidden');
     ui.killWarning.classList.add('hidden');
     enemies.length=0;deadEnemies.length=0;particles.length=0;explosions.length=0;damageNumbers.length=0;
-    player.x=w/2;player.y=(minY()+maxY())/2;invincible=0;entryGray=0;swing=0;spin=0;hitStop=0;
+    player.x=w/2;player.y=(minY()+maxY())/2;ensurePlayerFree();invincible=0;entryGray=0;swing=0;spin=0;hitStop=0;
     startSelection(true);
   }
   function gameClear(preview=false){
@@ -427,8 +448,7 @@
     player.angle=Math.atan2(dy,dx);
     const scale=Math.min(1,(energy*MOVE_DISTANCE_PER_ENERGY-moveProgress)/length),oldX=player.x,oldY=player.y;
     const bounds=playerMovementBounds();
-    player.x=clamp(player.x+dx*scale,bounds.left,bounds.right);
-    player.y=clamp(player.y+dy*scale,bounds.top,bounds.bottom);
+    moveBody(player,clamp(player.x+dx*scale,bounds.left,bounds.right)-player.x,clamp(player.y+dy*scale,bounds.top,bounds.bottom)-player.y,10,14);
     moveProgress+=Math.hypot(player.x-oldX,player.y-oldY);
     const spent=Math.floor((moveProgress+1e-6)/MOVE_DISTANCE_PER_ENERGY);
     if(spent>0){moveProgress=Math.max(0,moveProgress-spent*MOVE_DISTANCE_PER_ENERGY);spendEnergy(spent)}
@@ -503,7 +523,7 @@
       const enemy=enemies[i],dx=enemy.x-player.x,dy=enemy.y-player.y,len=Math.hypot(dx,dy);
       if(len>=player.r+enemy.r+51||(!fullCircle&&len>=25&&(dx*ax+dy*ay)/len<=-.2))continue;
       const knockAngle=len>0?Math.atan2(dy,dx):player.angle;
-      if(enemy.knockback){enemy.x+=Math.cos(knockAngle)*15/VIEW_SCALE;enemy.y+=Math.sin(knockAngle)*15/VIEW_SCALE}
+      if(enemy.knockback)moveBody(enemy,Math.cos(knockAngle)*15/VIEW_SCALE,Math.sin(knockAngle)*15/VIEW_SCALE,enemy.r);
       enemy.hp-=damage;enemy.hit=.18;
       explosions.push({x:enemy.x,y:enemy.y,r:enemy.r,life:.45,max:.45});
       burst(enemy.x,enemy.y,'#fff1c3',15);showDamage(enemy,damage);
@@ -565,6 +585,7 @@
     else if(edge===1){x=w+r;y=minY()+Math.random()*(maxY()-minY())}
     else if(edge===2){x=Math.random()*w;y=minY()-r}
     else{x=Math.random()*w;y=maxY()+r}
+    const origin=mapOffset();if(MapCollision.blocked(x-origin.x,y-origin.y,r,obstacles))return;
     enemies.push({x,y,r,hp,hpMax:hp,enemyKey:type.enemyKey,kind:type.kind,attack,deathHitStop:type.deathHitStop,knockback:type.knockback!==false,color:type.color,speed:(21+Math.random()*12+score*.3)*setting(config,'enemy_speed_multiplier',1),hit:0,wobble:Math.random()*6.28});
     roundSpawned++;roundSpawnCounts[type.enemyKey]=(roundSpawnCounts[type.enemyKey]||0)+1;
   }
@@ -604,12 +625,11 @@
     for(const enemy of enemies){
       enemy.wobble+=dt*5;enemy.hit=Math.max(0,enemy.hit-dt);
       const ex=player.x-enemy.x,ey=player.y-enemy.y,len=Math.hypot(ex,ey)||1;
-      enemy.x+=ex/len*enemy.speed*dt;enemy.y+=ey/len*enemy.speed*dt;
+      moveBody(enemy,ex/len*enemy.speed*dt,ey/len*enemy.speed*dt,enemy.r);
       if(len<player.r+enemy.r-3&&invincible<=0){
         damageFlash=.5;
         const bounds=playerMovementBounds();
-        player.x=clamp(player.x+ex/len*16/VIEW_SCALE,bounds.left,bounds.right);
-        player.y=clamp(player.y+ey/len*16/VIEW_SCALE,bounds.top,bounds.bottom);
+        moveBody(player,clamp(player.x+ex/len*16/VIEW_SCALE,bounds.left,bounds.right)-player.x,clamp(player.y+ey/len*16/VIEW_SCALE,bounds.top,bounds.bottom)-player.y,10,14);
         if(energy===0&&unlocked>0){grayHits=Math.min(3,grayHits+1);setHud()}
         else spendEnergy(enemy.attack);
         invincible=1.15;shake=.2;burst(player.x,player.y,'#fff4dc',9);

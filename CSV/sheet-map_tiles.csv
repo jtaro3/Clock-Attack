@@ -1,9 +1,9 @@
 ﻿enabled,asset_key,description,category,palette_color,collision_length,collision_width,walkable,destructible,hp,notes,notes2
-1,map_tiles_grass,草,grassland,#c6d6bc,0,0,1,0,0,collision_length,当たり判定の単位がマスかpxかを決める　縦
-1,map_tiles_soil,草,grassland,#c6d6bc,0,0,1,0,0, collision_width,当たり判定の単位がマスかpxかを決める　横
-1,map_tiles_flowers,草,grassland,#c6d6bc,0,0,1,0,0,width_tiles / height_tiles,画像の占有マス数として追加
-1,map_tiles_grass-dark,草,grassland,#c6d6bc,0,0,1,0,0,walkable,通行可能なら1、不可なら0
-0,,,,,,,,,,destructible / hp,破壊可否と耐久力として追加
-0,,,,,,,,,,,
-0,,,,,,,,,,,
+1,map_tiles_grass,草地,grassland,#c6d6bc,0,0,1,0,0,collision_length,当たり判定の単位がマスかpxかを決める　縦
+1,map_tiles_soil,土壌,grassland,#c6d6bc,0,0,1,0,0, collision_width,当たり判定の単位がマスかpxかを決める　横
+1,map_tiles_flowers,花,grassland,#c6d6bc,0,0,1,0,0,width_tiles / height_tiles,画像の占有マス数として追加
+1,map_tiles_grass-dark,草地（暗）,grassland,#c6d6bc,0,0,1,0,0,walkable,通行可能なら1、不可なら0
+1,map_tiles_rock_64x64,石,object,#202635,2,2,0,0,0,destructible / hp,破壊可否と耐久力として追加
+1,map_tiles_log_horizontal_64x32,大木横,object,#202635,1,2,0,0,0,,
+1,map_tiles_log_vertical_32x64,大木縦,object,#202635,2,1,0,0,0,,
 0,,,,,,,,,,,
