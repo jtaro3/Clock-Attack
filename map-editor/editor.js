@@ -5,6 +5,8 @@
   const canvas=$('map'),ctx=canvas.getContext('2d');
   const viewport=$('viewport'),message=$('message');
   const map=tools.load();
+  function syncSize(){canvas.width=map.width*32;canvas.height=map.height*32;document.querySelector(".board-bar strong").textContent=`マップ ${map.width} × ${map.height}`;$("mapWidth").value=map.width;$("mapHeight").value=map.height;}
+  syncSize();
   const sheet=tools.tileFiles.map(()=>new Image());
   const buttons=[];
   const levels=[.4,.5,.75,1,1.25,1.5];
@@ -227,6 +229,17 @@
     image.onerror=()=>status('マップチップ画像を読み込めませんでした：'+tools.tileFiles[index]);
     image.src=tools.tileFiles[index];
   });
+  $('resizeMap').addEventListener('click',()=>{
+    const width=Number($('mapWidth').value),height=Number($('mapHeight').value);
+    if(!Number.isInteger(width)||!Number.isInteger(height)||width<4||height<4||width>256||height>256){status('縦横4〜256マスの整数を指定してください。');return}
+    if(width===map.width&&height===map.height)return;
+    const kept=(map.objects||[]).filter(o=>o.x+(tools.catalog[o.id].width_tiles||1)<=width&&o.y+(tools.catalog[o.id].height_tiles||1)<=height);
+    if((width<map.width||height<map.height)&&!confirm('サイズを小さくすると、範囲外の地形とオブジェクトが削除されます。変更しますか？'))return;
+    const tiles=Array.from({length:width*height},(_,i)=>{const x=i%width,y=Math.floor(i/width);return x<map.width&&y<map.height?map.tiles[y*map.width+x]:0});
+    map.width=width;map.height=height;map.tiles=tiles;map.objects=kept;
+    if(previewPlayer&&(previewPlayer.x>=width*32||previewPlayer.y>=height*32))previewPlayer=null;
+    syncSize();setZoom(zoomIndex);draw();save();status('サイズを変更して保存しました。追加した部分は先頭の地面チップで埋めています。');
+  });
   setZoom(zoomIndex);
   updateToolUI();
   draw();
@@ -274,7 +287,7 @@
     try{
       const imported=tools.normalize(JSON.parse(await file.text()));
       if(!imported)throw Error('invalid map');
-      map.tiles.splice(0,map.tiles.length,...imported.tiles);map.objects=imported.objects;
+      map.width=imported.width;map.height=imported.height;map.tiles=imported.tiles;map.objects=imported.objects;previewPlayer=null;syncSize();setZoom(zoomIndex);
       draw();save();status('マップを読み込み、保存しました。');
     }catch{status('このマップデータは読み込めません。')}
     event.target.value='';

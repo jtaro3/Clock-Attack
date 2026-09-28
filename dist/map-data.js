@@ -1,6 +1,6 @@
 (()=>{
   'use strict';
-  const width=24,height=18,tileSize=32,storageKey='clock-attack-grassland-v1';
+  const width=64,height=64,tileSize=32,storageKey='clock-attack-grassland-v1';
   let names=['草','濃い草','花','土'];
   let tileFiles=['grass','grass-dark','flowers','soil'].map(name=>`maps/tiles/${name}.png`);
 
@@ -23,7 +23,8 @@
   }
 
   function normalize(value){
-    if(!value||value.version!==1||value.width!==width||value.height!==height||!Array.isArray(value.tiles)||value.tiles.length!==width*height)return null;
+    if(!value||value.version!==1||!Number.isInteger(value.width)||!Number.isInteger(value.height)||value.width<4||value.height<4||value.width>256||value.height>256||!Array.isArray(value.tiles)||value.tiles.length!==value.width*value.height)return null;
+    const {width,height}=value;
     if(!value.tiles.every(id=>Number.isInteger(id)&&id>=0&&id<names.length))return null;
     if(value.objects!==undefined&&!Array.isArray(value.objects))return null;
     const objects=[];

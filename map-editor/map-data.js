@@ -1,6 +1,6 @@
 (()=>{
   'use strict';
-  const width=24,height=18,tileSize=32,storageKey='clock-attack-map-editor-v1';
+  const width=64,height=64,tileSize=32,storageKey='clock-attack-map-editor-v1';
   const catalog=window.ClockAttackTileCatalog||[];
   if(!catalog.length)throw Error('open-editor.cmdでチップ一覧を更新してください');
   const tileFiles=catalog.map(tile=>tile.image);
@@ -17,7 +17,8 @@
   }
 
   function normalize(value){
-    if(!value||value.version!==1||value.width!==width||value.height!==height||!Array.isArray(value.tiles)||value.tiles.length!==width*height)return null;
+    if(!value||value.version!==1||!Number.isInteger(value.width)||!Number.isInteger(value.height)||value.width<4||value.height<4||value.width>256||value.height>256||!Array.isArray(value.tiles)||value.tiles.length!==value.width*value.height)return null;
+    const {width,height}=value;
     const sourceNames=value.tileset?value.tileset.map(tile=>tile.file):['grass.png','grass-dark.png','flowers.png','soil.png'];
     if(!value.tiles.every(id=>Number.isInteger(id)&&id>=0&&id<sourceNames.length))return null;
     const translated=value.tiles.map(id=>names.indexOf(sourceNames[id]));

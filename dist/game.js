@@ -62,7 +62,7 @@
     if(!response.ok)throw Error(`HTTP ${response.status}`);
     const mapJson=await response.json();
     if(mapJson.tileset){
-      if(mapJson.version!==1||mapJson.width!==mapTools.width||mapJson.height!==mapTools.height||!Array.isArray(mapJson.tileset)||!Array.isArray(mapJson.tiles)||mapJson.tiles.length!==mapTools.width*mapTools.height||!mapJson.tiles.every(id=>Number.isInteger(id)&&id>=0&&id<mapJson.tileset.length)||!mapTools.configureTiles(mapJson.tileset))throw Error('チップ一覧が不正です');
+      if(mapJson.version!==1||!Array.isArray(mapJson.tileset)||!Array.isArray(mapJson.tiles)||mapJson.tiles.length!==mapJson.width*mapJson.height||!mapJson.tiles.every(id=>Number.isInteger(id)&&id>=0&&id<mapJson.tileset.length)||!mapTools.configureTiles(mapJson.tileset))throw Error('チップ一覧が不正です');
     }
     const imported=mapTools.normalize(mapJson);
     if(!imported)throw Error('マップJSONの形式が不正です');
@@ -120,12 +120,11 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
     return count>0&&count%WHITE_AURA_INTERVAL===0?WHITE_AURA_DAMAGE:BASE_ATTACK_DAMAGE;
   }
   const attackEffectScale=damage=>damage===RED_AURA_DAMAGE?RED_ATTACK_EFFECT_SCALE:damage===WHITE_AURA_DAMAGE?WHITE_ATTACK_EFFECT_SCALE:NORMAL_ATTACK_EFFECT_SCALE;
-  const minY=()=>BattleMapBounds.outer(w,h).top,maxY=()=>BattleMapBounds.outer(w,h).bottom;
   const playerMovementBounds=()=>{
     const maxRatio=Math.max(...spriteBounds.map(([l,t,r,b])=>(r-l+33)/(b-t+33)));
-    return BattleMapBounds.centers(BattleMapBounds.outer(w,h),{x:Math.max(player.r,56*PLAYER_SCALE*maxRatio/2),top:Math.max(player.r,56*PLAYER_SCALE-21),bottom:Math.max(player.r,21)});
+    return BattleMapBounds.centers({left:0,top:0,right:map.width*32,bottom:map.height*32},{x:Math.max(player.r,56*PLAYER_SCALE*maxRatio/2),top:Math.max(player.r,56*PLAYER_SCALE-21),bottom:Math.max(player.r,21)});
   };
-  const mapOffset=()=>({x:Math.round((w-map.width*32)/2),y:Math.round((h-map.height*32)/2)});
+  const mapOffset=()=>({x:0,y:0});
   function moveBody(body,dx,dy,r,feet=0){
     const origin=mapOffset(),next=MapCollision.move(body.x-origin.x,body.y+feet-origin.y,dx,dy,r,obstacles);
     body.x=next.x+origin.x;body.y=next.y+origin.y-feet;
@@ -144,20 +143,10 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
   function renderTerrain(){
     if(!w||!h||!tileImage[0].naturalWidth)return;
     const terrain=document.createElement('canvas');
-    const size=mapTools.tileSize,minZoom=Math.min(...zoomLevels);
-    const left=Math.round((w-map.width*size)/2),top=Math.round((h-map.height*size)/2);
-    // 最大縮小時に見える範囲まで地面を作り、揺れの分も1マス余裕を持たせる。
-    const minX=Math.min(left,Math.floor((w-w/minZoom)/2))-size;
-    const minY=Math.min(top,Math.floor((h-h/minZoom)/2))-size;
-    const maxX=Math.max(left+map.width*size,Math.ceil((w+w/minZoom)/2))+size;
-    const maxY=Math.max(top+map.height*size,Math.ceil((h+h/minZoom)/2))+size;
-    terrain.width=maxX-minX;terrain.height=maxY-minY;
-    terrainOrigin={x:minX,y:minY};
-    const ground=terrain.getContext('2d');
-    ground.imageSmoothingEnabled=false;ground.translate(-minX,-minY);
-    const startX=left+Math.floor((minX-left)/size)*size,startY=top+Math.floor((minY-top)/size)*size;
-    for(let y=startY;y<maxY;y+=size)for(let x=startX;x<maxX;x+=size)
-      mapTools.drawTile(ground,tileImage,0,x,y);
+    const size=mapTools.tileSize,left=0,top=0;
+    terrain.width=map.width*size;terrain.height=map.height*size;
+    terrainOrigin={x:0,y:0};
+    const ground=terrain.getContext('2d');ground.imageSmoothingEnabled=false;
     for(let y=0;y<map.height;y++)for(let x=0;x<map.width;x++)
       mapTools.drawTile(ground,tileImage,map.tiles[y*map.width+x],left+x*mapTools.tileSize,top+y*mapTools.tileSize);
     for(const object of map.objects||[]){
@@ -168,12 +157,11 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
   }
 
   function resize(){
-    const oldW=w,oldH=h,app=$('app');
+    const oldW=w,app=$('app');
     w=app.clientWidth/VIEW_SCALE;h=app.clientHeight/VIEW_SCALE;dpr=Math.min(devicePixelRatio||1,2);
     canvas.width=Math.round(app.clientWidth*dpr);canvas.height=Math.round(app.clientHeight*dpr);
     ctx.setTransform(dpr*VIEW_SCALE,0,0,dpr*VIEW_SCALE,0,0);
-    if(!oldW){player.x=w/2;player.y=(minY()+maxY())/2}
-    else{const bounds=playerMovementBounds();player.x=clamp(player.x*w/oldW,bounds.left,bounds.right);player.y=clamp(player.y*h/oldH,bounds.top,bounds.bottom)}
+    if(!oldW){player.x=map.width*16;player.y=map.height*16}
     ensurePlayerFree();
     renderTerrain();
   }
@@ -384,7 +372,7 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
     ui.clearScreen.classList.add('hidden');
     ui.killWarning.classList.add('hidden');
     enemies.length=0;deadEnemies.length=0;particles.length=0;explosions.length=0;damageNumbers.length=0;
-    player.x=w/2;player.y=(minY()+maxY())/2;ensurePlayerFree();invincible=0;entryGray=0;swing=0;spin=0;hitStop=0;
+    player.x=map.width*16;player.y=map.height*16;ensurePlayerFree();invincible=0;entryGray=0;swing=0;spin=0;hitStop=0;
     startSelection(true);
   }
   function gameClear(preview=false){
@@ -471,7 +459,7 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
   function aimAt(clientX,clientY){
     if(mode!=='play'||energy<=0)return;
     const rect=canvas.getBoundingClientRect();
-    const dx=((clientX-rect.left)/VIEW_SCALE-w/2)/cameraZoom()+w/2-player.x,dy=((clientY-rect.top)/VIEW_SCALE-h/2)/cameraZoom()+h/2-player.y;
+    const dx=((clientX-rect.left)/VIEW_SCALE-w/2)/cameraZoom(),dy=((clientY-rect.top)/VIEW_SCALE-h/2)/cameraZoom();
     if(Math.hypot(dx,dy)>8)player.angle=Math.atan2(dy,dx);
   }
   canvas.addEventListener('pointerdown',e=>{
@@ -593,13 +581,10 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
       type=rule?SLIME_BY_KEY[rule.enemy_key]:null;
     }
     if(!type){const fallback=[SLIME_TYPES.blue,SLIME_TYPES.green,SLIME_TYPES.red];type=fallback[Math.floor(Math.random()*fallback.length)]}
-    const hp=Math.max(1,Math.round(type.hp*setting(config,'enemy_hp_multiplier',1))),attack=Math.max(0,type.attack*setting(config,'enemy_attack_multiplier',round)),edge=Math.floor(Math.random()*4),r=type.radius;
-    let x,y;
-    if(edge===0){x=-r;y=minY()+Math.random()*(maxY()-minY())}
-    else if(edge===1){x=w+r;y=minY()+Math.random()*(maxY()-minY())}
-    else if(edge===2){x=Math.random()*w;y=minY()-r}
-    else{x=Math.random()*w;y=maxY()+r}
-    const origin=mapOffset();if(MapCollision.blocked(x-origin.x,y-origin.y,r,obstacles))return;
+    const hp=Math.max(1,Math.round(type.hp*setting(config,'enemy_hp_multiplier',1))),attack=Math.max(0,type.attack*setting(config,'enemy_attack_multiplier',round)),r=type.radius;
+    const point=WorldSpawn.around(player.x,player.y,320,map.width*32,map.height*32,r,obstacles);
+    if(!point)return;
+    const {x,y}=point;
     enemies.push({x,y,r,hp,hpMax:hp,enemyKey:type.enemyKey,kind:type.kind,attack,deathHitStop:type.deathHitStop,knockback:type.knockback!==false,color:type.color,speed:(21+Math.random()*12+score*.3)*setting(config,'enemy_speed_multiplier',1),hit:0,wobble:Math.random()*6.28,animationTime:Math.random()*BLUE_SLIME_LOOP_SECONDS});
     roundSpawned++;roundSpawnCounts[type.enemyKey]=(roundSpawnCounts[type.enemyKey]||0)+1;
   }
@@ -671,23 +656,18 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
   function draw(now){
     ctx.clearRect(0,0,w,h);ctx.save();
     ctx.fillStyle='#447a45';ctx.fillRect(0,0,w,h);
-    ctx.translate(w/2,h/2);ctx.scale(cameraZoom(),cameraZoom());ctx.translate(-w/2,-h/2);
+    ctx.translate(w/2,h/2);ctx.scale(cameraZoom(),cameraZoom());ctx.translate(-player.x,-player.y);
     if(shake>0)ctx.translate((Math.random()-.5)*5,(Math.random()-.5)*5);
     if(terrainCanvas){ctx.imageSmoothingEnabled=false;ctx.drawImage(terrainCanvas,terrainOrigin.x,terrainOrigin.y);ctx.imageSmoothingEnabled=true}
     else{ctx.fillStyle='#447a45';ctx.fillRect(0,0,w,h)}
     if(showGrid){
-      const size=mapTools.tileSize,left=Math.round((w-map.width*size)/2),top=Math.round((h-map.height*size)/2);
+      const size=mapTools.tileSize,left=0,top=0;
       ctx.save();ctx.strokeStyle='#f6f1d399';ctx.lineWidth=1/VIEW_SCALE;ctx.beginPath();
       for(let x=0;x<=map.width;x++){const px=left+x*size;ctx.moveTo(px,top);ctx.lineTo(px,top+map.height*size)}
       for(let y=0;y<=map.height;y++){const py=top+y*size;ctx.moveTo(left,py);ctx.lineTo(left+map.width*size,py)}
       ctx.stroke();ctx.restore();
     }
-    // 枠の内側にプレイヤー画像全体が収まるように中心位置を制限する。
-    const moveRect=BattleMapBounds.outer(w,h),moveLeft=moveRect.left,moveTop=moveRect.top,moveWidth=moveRect.right-moveRect.left,moveHeight=moveRect.bottom-moveRect.top;
-    ctx.save();ctx.lineWidth=5/VIEW_SCALE;ctx.strokeStyle='#10211ecc';ctx.strokeRect(moveLeft,moveTop,moveWidth,moveHeight);
-    ctx.lineWidth=2/VIEW_SCALE;ctx.strokeStyle='#fff2b6';ctx.strokeRect(moveLeft,moveTop,moveWidth,moveHeight);
-    ctx.font='bold 12px system-ui';ctx.fillStyle='#10211ecc';ctx.fillRect(moveLeft+5,moveTop+5,76,22);
-    ctx.fillStyle='#fff2b6';ctx.fillText('移動範囲',moveLeft+11,moveTop+21);ctx.restore();
+    ctx.save();ctx.strokeStyle='#fff2b6';ctx.lineWidth=2;ctx.strokeRect(0,0,map.width*32,map.height*32);ctx.restore();
     for(const enemy of [...enemies,...deadEnemies]){
       const dying=enemy.deathTime!==undefined;
       if(dying&&Math.floor(now/55)%2===0)continue;
