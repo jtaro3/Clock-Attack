@@ -545,7 +545,7 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
   function hitObjects(damage,fullCircle){
     const hits=objectDestruction.hit(player.x,player.y,player.angle,player.r+51,damage,fullCircle);
     for(const hit of hits){
-      showDamage(hit,damage);burst(hit.x,hit.y,hit.destroyed?'#c89860':'#fff1c3',hit.destroyed?18:8);
+      showDamage({...hit,r:0},damage);burst(hit.x,hit.y,hit.destroyed?'#c89860':'#fff1c3',hit.destroyed?18:8);
       explosions.push({x:hit.x,y:hit.y,r:16,life:.25,max:.25});
     }
     if(hits.some(hit=>hit.destroyed)){obstacles=MapCollision.build(objectDestruction.activeMap(),collisionCatalog);renderTerrain();}
