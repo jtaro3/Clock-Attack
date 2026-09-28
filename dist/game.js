@@ -109,7 +109,18 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
     {file:'slime_blue_idle.png',duration:.38,image:new Image()}
   ];
   const BLUE_SLIME_LOOP_SECONDS=blueSlimeFrames.reduce((sum,frame)=>sum+frame.duration,0);
-  blueSlimeFrames.forEach(frame=>{frame.image.src='design/enemies/'+frame.file});
+  blueSlimeFrames.forEach(frame=>{
+    frame.image.onload=()=>{
+      const flash=document.createElement('canvas');
+      flash.width=frame.image.naturalWidth;flash.height=frame.image.naturalHeight;
+      const flashCtx=flash.getContext('2d');
+      flashCtx.drawImage(frame.image,0,0);
+      flashCtx.globalCompositeOperation='source-in';
+      flashCtx.fillStyle='#fff';flashCtx.fillRect(0,0,flash.width,flash.height);
+      frame.flash=flash;
+    };
+    frame.image.src='design/enemies/'+frame.file;
+  });
   function blueSlimeFrame(enemy){
     let time=enemy.animationTime%BLUE_SLIME_LOOP_SECONDS;
     for(const frame of blueSlimeFrames){if(time<frame.duration)return frame;time-=frame.duration}
@@ -677,9 +688,9 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
       if(blueImageReady){
         const spriteSize=56;
         ctx.drawImage(blueFrame.image,enemy.x-spriteSize/2,y-spriteSize/2,spriteSize,spriteSize);
-        if(enemy.hit>0){
-          ctx.save();ctx.globalCompositeOperation='source-atop';ctx.globalAlpha=clamp(enemy.hit/.18,0,.9);
-          ctx.fillStyle='#fff';ctx.fillRect(enemy.x-spriteSize/2,y-spriteSize/2,spriteSize,spriteSize);ctx.restore();
+        if(enemy.hit>0&&blueFrame.flash){
+          ctx.save();ctx.globalAlpha=clamp(enemy.hit/.18,0,.9);
+          ctx.drawImage(blueFrame.flash,enemy.x-spriteSize/2,y-spriteSize/2,spriteSize,spriteSize);ctx.restore();
         }
       }else{
         ctx.fillStyle='#0b172277';ctx.beginPath();ctx.ellipse(enemy.x,y+enemy.r*.8,enemy.r,5,0,0,Math.PI*2);ctx.fill();
