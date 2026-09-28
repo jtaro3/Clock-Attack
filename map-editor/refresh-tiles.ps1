@@ -3,8 +3,10 @@ $ErrorActionPreference = 'Stop'
 try {
     $masterPath = Join-Path (Split-Path -Parent $PSScriptRoot) 'game-data.json'
     $paletteSettings = @{}
+    $previewScale = 1
     if (Test-Path -LiteralPath $masterPath -PathType Leaf) {
         $master = Get-Content -LiteralPath $masterPath -Raw -Encoding UTF8 | ConvertFrom-Json
+        if ($master.player.player_scale -gt 0) { $previewScale = $master.player.player_scale }
         foreach ($setting in $master.map_tiles) {
             if ($setting.palette_color -and $setting.palette_color -notmatch '^#[0-9a-fA-F]{6}$') { throw ('Invalid palette_color: '+$setting.sprite_file) }
             $paletteSettings[$setting.sprite_file] = $setting
@@ -38,10 +40,10 @@ try {
         if ($width -lt 32 -or $height -lt 32 -or $width % 32 -ne 0 -or $height % 32 -ne 0) { throw ('PNG size must be a multiple of 32: '+$pngFile.Name+' ('+$width+'x'+$height+')') }
         $category = if ($pngFile.DirectoryName -eq $objectFolder) { 'object' } else { 'ground' }
         $setting = $paletteSettings[$pngFile.Name]
-        $catalog += [ordered]@{ file=$pngFile.Name; category=$category; palette_category=if($setting){[string]$setting.category}else{''}; palette_color=if($setting){[string]$setting.palette_color}else{''}; width_tiles=($width/32); height_tiles=($height/32); image=('data:image/png;base64,'+[Convert]::ToBase64String($pngBytes)) }
+        $catalog += [ordered]@{ file=$pngFile.Name; category=$category; palette_category=if($setting){[string]$setting.category}else{''}; palette_color=if($setting){[string]$setting.palette_color}else{''}; walkable=if($setting -and $null -ne $setting.walkable){[bool]$setting.walkable}else{$true}; collision_length=if($setting){[double]$setting.collision_length}else{0}; collision_width=if($setting){[double]$setting.collision_width}else{0}; width_tiles=($width/32); height_tiles=($height/32); image=('data:image/png;base64,'+[Convert]::ToBase64String($pngBytes)) }
     }
     $json = ConvertTo-Json -InputObject $catalog -Depth 4 -Compress
-    [IO.File]::WriteAllText((Join-Path $PSScriptRoot 'tile-catalog.js'),('window.ClockAttackTileCatalog='+$json+';'),[Text.UTF8Encoding]::new($false))
+    [IO.File]::WriteAllText((Join-Path $PSScriptRoot 'tile-catalog.js'),('window.ClockAttackTileCatalog='+$json+';window.ClockAttackPreviewScale='+$previewScale.ToString([Globalization.CultureInfo]::InvariantCulture)+';'),[Text.UTF8Encoding]::new($false))
     $groundCount = @($catalog | Where-Object category -eq 'ground').Count
     $objectCount = @($catalog | Where-Object category -eq 'object').Count
     Write-Host ('OK: '+$groundCount+' ground tiles and '+$objectCount+' objects registered.')

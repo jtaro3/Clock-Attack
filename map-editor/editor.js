@@ -14,6 +14,16 @@
   const brushDirections={3:0,5:0,7:0},brushButtons=[];
   const directionNames=['横','縦','右下がり斜め','右上がり斜め'];
   const isObjectTile=tile=>tile.category==='object'||(tile.width_tiles||1)>1||(tile.height_tiles||1)>1;
+  let placingPlayer=false,previewPlayer=null,previewSprite=null;
+  const previewImage=new Image();
+  previewImage.onload=()=>{
+    const sprite=document.createElement('canvas');sprite.width=513;sprite.height=629;
+    const context=sprite.getContext('2d',{willReadFrequently:true});context.drawImage(previewImage,370,334,513,629,0,0,513,629);
+    const pixels=context.getImageData(0,0,513,629);
+    for(let i=0;i<pixels.data.length;i+=4)if(Math.max(pixels.data[i],pixels.data[i+1],pixels.data[i+2])<=2)pixels.data[i+3]=0;
+    context.putImageData(pixels,0,0);previewSprite=sprite;drawOverlay();
+  };
+  previewImage.src=window.ClockAttackPlayerPreview;
 
   let showEditorGrid=true,showEditorBounds=true;
   const overlay=$('mapOverlay'),overlayCtx=overlay.getContext('2d');
@@ -67,6 +77,14 @@
       overlayCtx.fillStyle='#10211ecc';overlayCtx.fillRect(x+5,y+5,170,24);
       overlayCtx.fillStyle='#fff2b6';overlayCtx.font='12px system-ui';overlayCtx.fillText('移動範囲 '+cssWidth+'×'+cssHeight,x+10,y+22);
     }
+    if(placingPlayer||previewPlayer){
+      overlayCtx.strokeStyle='#ff7070';overlayCtx.lineWidth=2;
+      for(const rect of MapCollision.build(map,tools.catalog))overlayCtx.strokeRect(mapX+rect.left,mapY+rect.top,rect.right-rect.left,rect.bottom-rect.top);
+    }
+    if(previewPlayer&&previewSprite){
+      const height=56*(window.ClockAttackPreviewScale||1),width=height*previewSprite.width/previewSprite.height;
+      overlayCtx.imageSmoothingEnabled=false;overlayCtx.drawImage(previewSprite,mapX+previewPlayer.x-width/2,mapY+previewPlayer.y+21-height,width,height);
+    }
   }
   $('editorGridToggle').addEventListener('click',()=>{showEditorGrid=!showEditorGrid;$('editorGridToggle').textContent='グリッド：'+(showEditorGrid?'ON':'OFF');$('editorGridToggle').setAttribute('aria-pressed',String(showEditorGrid));drawOverlay()});
   $('editorBoundsToggle').addEventListener('click',()=>{showEditorBounds=!showEditorBounds;$('editorBoundsToggle').textContent='移動範囲：'+(showEditorBounds?'ON':'OFF');$('editorBoundsToggle').setAttribute('aria-pressed',String(showEditorBounds));drawOverlay()});
@@ -90,12 +108,14 @@
     $('edit').textContent=editing?'編集中':'編集';
     $('eraseObjects').classList.toggle('selected',editing&&erasingObjects);
     $('eraseObjects').setAttribute('aria-pressed',String(editing&&erasingObjects));
+    $('placePlayer').classList.toggle('selected',placingPlayer);
+    $('placePlayer').setAttribute('aria-pressed',String(placingPlayer));
     updateBrushUI();
     canvas.style.cursor=editing?'crosshair':'grab';
     canvas.style.touchAction=editing?'none':'pan-y';
   }
   function setTool(id){
-    selected=id;erasingObjects=false;updateToolUI();
+    selected=id;erasingObjects=false;placingPlayer=false;updateToolUI();
     status(`${tools.names[id]}を選択しました。${editing?'マップをタップして塗れます。':'塗るには「編集」を押してください。'}`);
   }
   function save(){
@@ -110,6 +130,11 @@
   }
   function paint(event){
     const cell=cellAt(event);if(!cell)return;
+    if(placingPlayer){
+      previewPlayer={x:cell.x*32+16,y:cell.y*32+16};drawOverlay();
+      const blocked=MapCollision.blocked(previewPlayer.x,previewPlayer.y+14,10,MapCollision.build(map,tools.catalog));
+      status(blocked?'プレイヤーを配置しました。足元が通行不可の範囲に重なっています。':'確認用プレイヤーを配置しました。別のマスを押すと置き直せます。');return;
+    }
     if(erasingObjects){
       const objects=map.objects||[];
       const index=objects.findIndex(object=>{
@@ -138,7 +163,7 @@
   function updateBrushUI(){
     for(const button of brushButtons){
       const length=Number(button.dataset.length),shape=button.dataset.shape,direction=brushDirections[length]||0;
-      const active=editing&&brushLength===length&&brushShape===shape;
+      const active=editing&&!erasingObjects&&!placingPlayer&&brushLength===length&&brushShape===shape;
       const label=shape==='square'?length+'×'+length+'マス':length+'マス'+(length===1?'':'・'+directionNames[direction]);
       button.classList.toggle('selected',active);button.setAttribute('aria-pressed',String(active));
       button.setAttribute('aria-label',label+'で描画');
@@ -153,15 +178,17 @@
     const button=document.createElement('button');button.type='button';button.className='brush-button';button.dataset.length=length;button.dataset.shape=shape;
     button.addEventListener('click',()=>{
       if(editing&&brushLength===length&&brushShape===shape&&shape==='line'&&length>1)brushDirections[length]=(brushDirections[length]+1)%4;
-      brushLength=length;brushShape=shape;editing=true;updateToolUI();
+      brushLength=length;brushShape=shape;editing=true;placingPlayer=false;erasingObjects=false;updateToolUI();
       status((shape==='square'?length+'×'+length:length)+'マスで描画します。クリック位置を中央に塗ります。');
     });
     brushButtons.push(button);$('brushes').append(button);
   }
   const brushHint=document.createElement('p');brushHint.className='brush-hint';brushHint.textContent='同じツールを押して向きを変更';$('brushes').append(brushHint);
   const eraser=document.createElement('button');eraser.type='button';eraser.id='eraseObjects';eraser.className='brush-button';eraser.setAttribute('aria-label','オブジェクト消しゴム');eraser.title='タップしたオブジェクトを削除します。地面は残ります。';eraser.innerHTML='<svg viewBox="0 0 45 45" aria-hidden="true"><path d="M8 27 24 10a4 4 0 0 1 6 0l8 8a4 4 0 0 1 0 6L22 40H13L8 35a6 6 0 0 1 0-8Z" fill="none" stroke="currentColor" stroke-width="3"/><path d="m17 18 14 14M22 40h16" fill="none" stroke="currentColor" stroke-width="3"/></svg><span>オブジェクト消しゴム</span>';
-  eraser.addEventListener('click',()=>{erasingObjects=true;editing=true;updateToolUI();status('消したいオブジェクトをタップしてください。地面のチップは残ります。')});
+  eraser.addEventListener('click',()=>{erasingObjects=true;placingPlayer=false;editing=true;updateToolUI();status('消したいオブジェクトをタップしてください。地面のチップは残ります。')});
   $('brushes').append(eraser);
+  const playerTool=document.createElement('button');playerTool.type='button';playerTool.id='placePlayer';playerTool.className='brush-button';playerTool.textContent='プレイヤー配置';
+  playerTool.addEventListener('click',()=>{placingPlayer=!placingPlayer;erasingObjects=false;editing=true;if(!placingPlayer)previewPlayer=null;updateToolUI();drawOverlay();status(placingPlayer?'マップを押して確認用プレイヤーを配置してください。もう一度ボタンを押すと非表示になります。':'確認用プレイヤーを非表示にしました。')});$('brushes').append(playerTool);
 
   let previousCategory='';
   tools.names.forEach((name,id)=>{
