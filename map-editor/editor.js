@@ -36,6 +36,10 @@
   function draw(){
     ctx.imageSmoothingEnabled=false;
     for(let y=0;y<map.height;y++)for(let x=0;x<map.width;x++)drawCell(x,y);
+    for(const object of map.objects||[]){
+      const tile=tools.catalog[object.id],image=sheet[object.id];
+      if(image.complete&&image.naturalWidth)ctx.drawImage(image,object.x*32,object.y*32,(tile.width_tiles||1)*32,(tile.height_tiles||1)*32);
+    }
     drawOverlay();
   }
   function drawOverlay(){
@@ -71,8 +75,9 @@
       const preview=buttons[id].querySelector('canvas');
       const previewCtx=preview.getContext('2d');
       previewCtx.imageSmoothingEnabled=false;
-      previewCtx.fillStyle='#518046';previewCtx.fillRect(0,0,32,32);
-      tools.drawTile(previewCtx,sheet,id,0,0);
+      previewCtx.clearRect(0,0,64,64);
+      const image=sheet[id];
+      if(image.complete&&image.naturalWidth){const scale=Math.min(64/image.naturalWidth,64/image.naturalHeight);previewCtx.drawImage(image,(64-image.naturalWidth*scale)/2,(64-image.naturalHeight*scale)/2,image.naturalWidth*scale,image.naturalHeight*scale)};
     }
   }
   function updateToolUI(){
@@ -102,11 +107,20 @@
   }
   function paint(event){
     const cell=cellAt(event);if(!cell)return;
+    const tile=tools.catalog[selected],tw=tile.width_tiles||1,th=tile.height_tiles||1;
+    if(tw>1||th>1){
+      if(cell.x+tw>map.width||cell.y+th>map.height){status('オブジェクトがマップ外にはみ出すため配置できません。');return}
+      map.objects=map.objects||[];
+      const overlaps=map.objects.filter(o=>{const t=tools.catalog[o.id];return cell.x<o.x+(t.width_tiles||1)&&cell.x+tw>o.x&&cell.y<o.y+(t.height_tiles||1)&&cell.y+th>o.y});
+      if(overlaps.length){status('配置済みオブジェクトと重なっています。');return}
+      map.objects.push({id:selected,x:cell.x,y:cell.y});changed=true;draw();status(tw+'×'+th+'マスのオブジェクトを配置しました。');return;
+    }
     for(const point of MapBrush.cells(cell.x,cell.y,brushLength,brushDirections[brushLength]||0,map.width,map.height,brushShape)){
       const index=point.y*map.width+point.x;
       if(map.tiles[index]===selected)continue;
       map.tiles[index]=selected;changed=true;drawCell(point.x,point.y);
     }
+    draw();
     status((brushShape==='square'?brushLength+'×'+brushLength:brushLength)+'マスで編集中');
   }
   function updateBrushUI(){
@@ -138,8 +152,9 @@
     const button=document.createElement('button');
     button.className='tile-button';
     button.type='button';button.setAttribute('aria-label',`${name}を選択`);
-    const preview=document.createElement('canvas');preview.width=32;preview.height=32;
+    const preview=document.createElement('canvas');preview.width=64;preview.height=64;
     const label=document.createElement('span');label.textContent=name;
+    const tile=tools.catalog[id];if((tile.width_tiles||1)>1||(tile.height_tiles||1)>1)label.textContent+=' ('+tile.width_tiles+'×'+tile.height_tiles+')';
     button.append(preview,label);
     button.addEventListener('click',()=>setTool(id));
     $('palette').append(button);buttons.push(button);
@@ -197,7 +212,7 @@
     try{
       const imported=tools.normalize(JSON.parse(await file.text()));
       if(!imported)throw Error('invalid map');
-      map.tiles.splice(0,map.tiles.length,...imported.tiles);
+      map.tiles.splice(0,map.tiles.length,...imported.tiles);map.objects=imported.objects;
       draw();save();status('マップを読み込み、保存しました。');
     }catch{status('このマップデータは読み込めません。')}
     event.target.value='';

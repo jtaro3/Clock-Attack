@@ -13,7 +13,7 @@
       const random=((x*73856093)^(y*19349663)^(x*y*83492791))>>>0;
       tiles.push(x>1&&x<width-2&&Math.abs(y-pathY)<=1?3:random%100<9?1:random%100<18?2:0);
     }
-    return {version:1,width,height,tiles,tileset:catalog};
+    return {version:1,width,height,tiles,objects:[],tileset:catalog};
   }
 
   function normalize(value){
@@ -22,7 +22,14 @@
     if(!value.tiles.every(id=>Number.isInteger(id)&&id>=0&&id<sourceNames.length))return null;
     const translated=value.tiles.map(id=>names.indexOf(sourceNames[id]));
     if(translated.some(id=>id<0))return null;
-    return {version:1,width,height,tiles:translated,tileset:catalog};
+    if(value.objects!==undefined&&!Array.isArray(value.objects))return null;
+    const objects=[];
+    for(const object of value.objects||[]){
+      const id=names.indexOf(sourceNames[object.id]),tile=catalog[id];
+      if(!tile||!Number.isInteger(object.x)||!Number.isInteger(object.y)||object.x<0||object.y<0||object.x+(tile.width_tiles||1)>width||object.y+(tile.height_tiles||1)>height)return null;
+      objects.push({id,x:object.x,y:object.y});
+    }
+    return {version:1,width,height,tiles:translated,objects,tileset:catalog};
   }
 
   function load(){
@@ -44,5 +51,5 @@
     ctx.drawImage(image,x,y,size,size);
   }
 
-  window.ClockAttackMap={width,height,tileSize,names,tileFiles,defaultMap,normalize,load,save,drawTile};
+  window.ClockAttackMap={width,height,tileSize,names,tileFiles,catalog,defaultMap,normalize,load,save,drawTile};
 })();
