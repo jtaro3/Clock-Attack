@@ -81,7 +81,7 @@
   let w=0,h=0,dpr=1,last=performance.now(),clockOrigin=last-61/1440*3000;
   let mode='select',selectionReason='start',selectionIcons=0,selectionRecovery=0,selectionBottles=[],transitionTimer=null;
   let energy=0,moveProgress=0,unlocked=0,score=0,round=1,roundKills=0,roundSpawned=0,roundElapsed=0,swordCount=0,elapsed=0,timeSinceKill=0,purpleSpawned=false,spawnTimer=0,invincible=0,damageFlash=0,grayHits=0,entryGray=0,lowEnergyGray=false,swing=0,spin=0,swingAngle=0,swingScale=1,spinScale=1,shake=0,hitStop=0,timeScale=1,roundSpawnCounts={};
-  let showGrid=localStorage.getItem('clock-attack-grid')==='1';
+  let showGrid=localStorage.getItem('clock-attack-grid')!=='0';
   const sandBottles=[];
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
   const START_ENERGY=setting(general,'start_energy',100),MOVE_DISTANCE_PER_ENERGY=setting(playerData,'move_distance_per_energy',16);
@@ -631,7 +631,12 @@
       for(let y=0;y<=map.height;y++){const py=top+y*size;ctx.moveTo(left,py);ctx.lineTo(left+map.width*size,py)}
       ctx.stroke();ctx.restore();
     }
-    ctx.strokeStyle='#e7d49e55';ctx.lineWidth=2;ctx.strokeRect(8,minY(),w-16,maxY()-minY());
+    // 枠はプレイヤー中心の移動制限と同じ座標に合わせる。
+    const moveLeft=player.r+4,moveTop=minY()+player.r,moveWidth=w-2*(player.r+4),moveHeight=maxY()-minY()-2*player.r;
+    ctx.save();ctx.lineWidth=5/VIEW_SCALE;ctx.strokeStyle='#10211ecc';ctx.strokeRect(moveLeft,moveTop,moveWidth,moveHeight);
+    ctx.lineWidth=2/VIEW_SCALE;ctx.strokeStyle='#fff2b6';ctx.strokeRect(moveLeft,moveTop,moveWidth,moveHeight);
+    ctx.font='bold 12px system-ui';ctx.fillStyle='#10211ecc';ctx.fillRect(moveLeft+5,moveTop+5,76,22);
+    ctx.fillStyle='#fff2b6';ctx.fillText('移動範囲',moveLeft+11,moveTop+21);ctx.restore();
     for(const enemy of [...enemies,...deadEnemies]){
       const dying=enemy.deathTime!==undefined;
       if(dying&&Math.floor(now/55)%2===0)continue;
