@@ -56,7 +56,7 @@
     status(`${tools.names[id]}を選択しました。${editing?'マップをタップして塗れます。':'塗るには「編集」を押してください。'}`);
   }
   function save(){
-    if(tools.save(map)){changed=false;status('保存しました。ゲームに戻ると反映されます。')}
+    if(tools.save(map)){changed=false;status('エディター内に保存しました。ゲームへの反映にはJSONを書き出してください。')}
     else status('保存できませんでした。書き出しでデータを残してください。');
   }
   function cellAt(event){
@@ -126,7 +126,7 @@
     const url=URL.createObjectURL(data),link=document.createElement('a');
     link.href=url;link.download='clock-attack-grassland.json';link.click();
     setTimeout(()=>URL.revokeObjectURL(url),1000);
-    status('マップデータを書き出しました。');
+    status('JSONを書き出しました。ゲーム側のmapsフォルダへ同名で置き換えてください。');
   });
   $('import').addEventListener('click',()=>$('file').click());
   $('file').addEventListener('change',async event=>{

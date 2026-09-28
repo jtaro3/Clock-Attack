@@ -54,7 +54,15 @@
   const zoomLevels=[1,.85,.6,.5];
   let zoomIndex=0;
   const cameraZoom=()=>zoomLevels[zoomIndex];
-  const mapTools=window.ClockAttackMap,map=mapTools.load();
+  const mapTools=window.ClockAttackMap;
+  let map=mapTools.defaultMap();
+  try{
+    const response=await fetch('maps/clock-attack-grassland.json',{cache:'no-store'});
+    if(!response.ok)throw Error(`HTTP ${response.status}`);
+    const imported=mapTools.normalize(await response.json());
+    if(!imported)throw Error('マップJSONの形式が不正です');
+    map=imported;
+  }catch(error){console.warn('マップJSONを読み込めないため標準マップで起動します。',error)}
   const tileImage=new Image();
   let terrainCanvas=null;
   tileImage.onload=()=>renderTerrain();
