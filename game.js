@@ -119,6 +119,10 @@
     const top=Math.round((h-map.height*mapTools.tileSize)/2);
     for(let y=0;y<map.height;y++)for(let x=0;x<map.width;x++)
       mapTools.drawTile(ground,tileImage,map.tiles[y*map.width+x],left+x*mapTools.tileSize,top+y*mapTools.tileSize);
+    for(const object of map.objects||[]){
+      const image=tileImage[object.id];
+      if(image.complete&&image.naturalWidth)ground.drawImage(image,left+object.x*32,top+object.y*32,object.width_tiles*32,object.height_tiles*32);
+    }
     terrainCanvas=terrain;
   }
 

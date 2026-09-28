@@ -25,7 +25,14 @@
   function normalize(value){
     if(!value||value.version!==1||value.width!==width||value.height!==height||!Array.isArray(value.tiles)||value.tiles.length!==width*height)return null;
     if(!value.tiles.every(id=>Number.isInteger(id)&&id>=0&&id<names.length))return null;
-    return {version:1,width,height,tiles:value.tiles.slice()};
+    if(value.objects!==undefined&&!Array.isArray(value.objects))return null;
+    const objects=[];
+    for(const object of value.objects||[]){
+      const tile=value.tileset?.[object.id],tw=tile?.width_tiles||1,th=tile?.height_tiles||1;
+      if(!Number.isInteger(object.id)||object.id<0||object.id>=names.length||!Number.isInteger(tw)||!Number.isInteger(th)||tw<1||th<1||!Number.isInteger(object.x)||!Number.isInteger(object.y)||object.x<0||object.y<0||object.x+tw>width||object.y+th>height)return null;
+      objects.push({id:object.id,x:object.x,y:object.y,width_tiles:tw,height_tiles:th});
+    }
+    return {version:1,width,height,tiles:value.tiles.slice(),objects};
   }
 
   function load(){
