@@ -14,26 +14,58 @@
   const brushDirections={3:0,5:0,7:0},brushButtons=[];
   const directionNames=['横','縦','右下がり斜め','右上がり斜め'];
 
+  let showEditorGrid=true,showEditorBounds=true;
+  const overlay=$('mapOverlay'),overlayCtx=overlay.getContext('2d');
   function status(text){message.textContent=text}
   function setZoom(index){
     zoomIndex=Math.max(0,Math.min(levels.length-1,index));
     const zoom=levels[zoomIndex];
     canvas.style.width=`${canvas.width*zoom}px`;
     canvas.style.height=`${canvas.height*zoom}px`;
+    overlay.style.width=canvas.style.width;overlay.style.height=canvas.style.height;
     viewport.style.height=`${Math.min(Math.round(innerHeight*.7),Math.round(canvas.height*zoom+16))}px`;
     $('zoomValue').textContent=`${Math.round(zoom*100)}%`;
+    drawOverlay();
   }
   function drawCell(x,y){
     const size=tools.tileSize,left=x*size,top=y*size;
     ctx.fillStyle='#518046';ctx.fillRect(left,top,size,size);
     tools.drawTile(ctx,sheet,map.tiles[y*map.width+x],left,top);
-    ctx.strokeStyle='#122a254d';ctx.lineWidth=1;
-    ctx.strokeRect(left+.5,top+.5,size,size);
+
   }
   function draw(){
     ctx.imageSmoothingEnabled=false;
     for(let y=0;y<map.height;y++)for(let x=0;x<map.width;x++)drawCell(x,y);
+    drawOverlay();
   }
+  function drawOverlay(){
+    const cssWidth=Number($('battleWidth').value),cssHeight=Number($('battleHeight').value);
+    const valid=Number.isFinite(cssWidth)&&Number.isFinite(cssHeight)&&cssWidth>=240&&cssWidth<=3840&&cssHeight>=320&&cssHeight<=2160;
+    const w=cssWidth/BattleMapBounds.viewScale,h=cssHeight/BattleMapBounds.viewScale;
+    const stageW=showEditorBounds&&valid?Math.max(canvas.width,Math.ceil(w)):canvas.width;
+    const stageH=showEditorBounds&&valid?Math.max(canvas.height,Math.ceil(h)):canvas.height;
+    const mapX=Math.round((stageW-canvas.width)/2),mapY=Math.round((stageH-canvas.height)/2),zoom=levels[zoomIndex];
+    const layer=canvas.parentElement;layer.style.width=stageW*zoom+'px';layer.style.height=stageH*zoom+'px';
+    canvas.style.position='absolute';canvas.style.left=mapX*zoom+'px';canvas.style.top=mapY*zoom+'px';
+    overlay.width=stageW;overlay.height=stageH;overlay.style.width=stageW*zoom+'px';overlay.style.height=stageH*zoom+'px';
+    if(showEditorGrid){
+      overlayCtx.strokeStyle='#10211e88';overlayCtx.lineWidth=1;overlayCtx.beginPath();
+      for(let x=0;x<=map.width;x++){overlayCtx.moveTo(mapX+x*32+.5,mapY);overlayCtx.lineTo(mapX+x*32+.5,mapY+canvas.height)}
+      for(let y=0;y<=map.height;y++){overlayCtx.moveTo(mapX,mapY+y*32+.5);overlayCtx.lineTo(mapX+canvas.width,mapY+y*32+.5)}
+      overlayCtx.stroke();
+    }
+    if(showEditorBounds&&valid){
+      const rect=BattleMapBounds.outer(w,h),worldX=Math.round((stageW-w)/2),worldY=Math.round((stageH-h)/2);
+      const x=rect.left+worldX,y=rect.top+worldY,width=rect.right-rect.left,height=rect.bottom-rect.top;
+      overlayCtx.strokeStyle='#10211e';overlayCtx.lineWidth=5;overlayCtx.strokeRect(x,y,width,height);
+      overlayCtx.strokeStyle='#fff2b6';overlayCtx.lineWidth=2;overlayCtx.strokeRect(x,y,width,height);
+      overlayCtx.fillStyle='#10211ecc';overlayCtx.fillRect(x+5,y+5,170,24);
+      overlayCtx.fillStyle='#fff2b6';overlayCtx.font='12px system-ui';overlayCtx.fillText('移動範囲 '+cssWidth+'×'+cssHeight,x+10,y+22);
+    }
+  }
+  $('editorGridToggle').addEventListener('click',()=>{showEditorGrid=!showEditorGrid;$('editorGridToggle').textContent='グリッド：'+(showEditorGrid?'ON':'OFF');$('editorGridToggle').setAttribute('aria-pressed',String(showEditorGrid));drawOverlay()});
+  $('editorBoundsToggle').addEventListener('click',()=>{showEditorBounds=!showEditorBounds;$('editorBoundsToggle').textContent='移動範囲：'+(showEditorBounds?'ON':'OFF');$('editorBoundsToggle').setAttribute('aria-pressed',String(showEditorBounds));drawOverlay()});
+  for(const id of ['battleWidth','battleHeight'])$(id).addEventListener('input',drawOverlay);
   function drawPalette(){
     for(let id=0;id<buttons.length;id++){
       const preview=buttons[id].querySelector('canvas');
