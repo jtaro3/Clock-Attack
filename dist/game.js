@@ -68,7 +68,7 @@
     map=imported;
   }catch(error){console.warn('マップJSONを読み込めないため標準マップで起動します。',error)}
   const tileImage=mapTools.tileFiles.map(()=>new Image());
-  let terrainCanvas=null;
+  let terrainCanvas=null,terrainOrigin={x:0,y:0};
   tileImage.forEach((image,index)=>{
     image.onload=()=>renderTerrain();
     image.onerror=()=>console.warn('マップチップ画像を読み込めませんでした：'+mapTools.tileFiles[index]);
@@ -110,13 +110,20 @@
   function renderTerrain(){
     if(!w||!h||!tileImage[0].naturalWidth)return;
     const terrain=document.createElement('canvas');
-    terrain.width=Math.ceil(w);terrain.height=Math.ceil(h);
+    const size=mapTools.tileSize,minZoom=Math.min(...zoomLevels);
+    const left=Math.round((w-map.width*size)/2),top=Math.round((h-map.height*size)/2);
+    // 最大縮小時に見える範囲まで地面を作り、揺れの分も1マス余裕を持たせる。
+    const minX=Math.min(left,Math.floor((w-w/minZoom)/2))-size;
+    const minY=Math.min(top,Math.floor((h-h/minZoom)/2))-size;
+    const maxX=Math.max(left+map.width*size,Math.ceil((w+w/minZoom)/2))+size;
+    const maxY=Math.max(top+map.height*size,Math.ceil((h+h/minZoom)/2))+size;
+    terrain.width=maxX-minX;terrain.height=maxY-minY;
+    terrainOrigin={x:minX,y:minY};
     const ground=terrain.getContext('2d');
-    ground.imageSmoothingEnabled=false;
-    for(let y=0;y<h;y+=mapTools.tileSize)for(let x=0;x<w;x+=mapTools.tileSize)
+    ground.imageSmoothingEnabled=false;ground.translate(-minX,-minY);
+    const startX=left+Math.floor((minX-left)/size)*size,startY=top+Math.floor((minY-top)/size)*size;
+    for(let y=startY;y<maxY;y+=size)for(let x=startX;x<maxX;x+=size)
       mapTools.drawTile(ground,tileImage,0,x,y);
-    const left=Math.round((w-map.width*mapTools.tileSize)/2);
-    const top=Math.round((h-map.height*mapTools.tileSize)/2);
     for(let y=0;y<map.height;y++)for(let x=0;x<map.width;x++)
       mapTools.drawTile(ground,tileImage,map.tiles[y*map.width+x],left+x*mapTools.tileSize,top+y*mapTools.tileSize);
     for(const object of map.objects||[]){
@@ -635,7 +642,7 @@
     ctx.fillStyle='#447a45';ctx.fillRect(0,0,w,h);
     ctx.translate(w/2,h/2);ctx.scale(cameraZoom(),cameraZoom());ctx.translate(-w/2,-h/2);
     if(shake>0)ctx.translate((Math.random()-.5)*5,(Math.random()-.5)*5);
-    if(terrainCanvas){ctx.imageSmoothingEnabled=false;ctx.drawImage(terrainCanvas,0,0);ctx.imageSmoothingEnabled=true}
+    if(terrainCanvas){ctx.imageSmoothingEnabled=false;ctx.drawImage(terrainCanvas,terrainOrigin.x,terrainOrigin.y);ctx.imageSmoothingEnabled=true}
     else{ctx.fillStyle='#447a45';ctx.fillRect(0,0,w,h)}
     if(showGrid){
       const size=mapTools.tileSize,left=Math.round((w-map.width*size)/2),top=Math.round((h-map.height*size)/2);
