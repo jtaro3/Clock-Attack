@@ -100,7 +100,21 @@
   const roundKillTarget=roundNumber=>setting(currentRoundConfig(roundNumber),'kill_target',ROUND_KILL_TARGETS[roundNumber]??ROUND_KILL_TARGETS.at(-1));
   const enemyType=(key,kind,hp,attack,color,radius)=>{const data=enemyData[key]||{};return{enemyKey:key,kind,hp:setting(data,'hp',hp),attack:setting(data,'attack',attack),deathHitStop:setting(data,'death_hit_stop_seconds',.1),color,radius,knockback:data.super_armor===undefined?kind!=='black':!data.super_armor}};
   const SLIME_TYPES={blue:enemyType('slime_blue','blue',1,1,'#66c8ee',14),green:enemyType('slime_green','green',2,1,'#74d590',16),red:enemyType('slime_red','red',3,1,'#e97a83',18),purple:enemyType('slime_purple','purple',10,5,'#b679e5',22),black:enemyType('slime_black','black',20,10,'#171a20',24),metal:enemyType('slime_metal','metal',50,20,'#bec8d1',26)};
-  const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type.enemyKey,type]));
+const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type.enemyKey,type]));
+  const blueSlimeFrames=[
+    {file:'slime_blue_idle.png',duration:.38,image:new Image()},
+    {file:'slime_blue_jump_mid.png',duration:.12,image:new Image()},
+    {file:'slime_blue_jump_peak.png',duration:.12,image:new Image()},
+    {file:'slime_blue_jump_mid.png',duration:.12,image:new Image()},
+    {file:'slime_blue_idle.png',duration:.38,image:new Image()}
+  ];
+  const BLUE_SLIME_LOOP_SECONDS=blueSlimeFrames.reduce((sum,frame)=>sum+frame.duration,0);
+  blueSlimeFrames.forEach(frame=>{frame.image.src='design/enemies/'+frame.file});
+  function blueSlimeFrame(enemy){
+    let time=enemy.animationTime%BLUE_SLIME_LOOP_SECONDS;
+    for(const frame of blueSlimeFrames){if(time<frame.duration)return frame;time-=frame.duration}
+    return blueSlimeFrames[0];
+  }
   function attackDamage(count){
     if(count>0&&count%RED_AURA_INTERVAL===0)return RED_AURA_DAMAGE;
     return count>0&&count%WHITE_AURA_INTERVAL===0?WHITE_AURA_DAMAGE:BASE_ATTACK_DAMAGE;
@@ -586,7 +600,7 @@
     else if(edge===2){x=Math.random()*w;y=minY()-r}
     else{x=Math.random()*w;y=maxY()+r}
     const origin=mapOffset();if(MapCollision.blocked(x-origin.x,y-origin.y,r,obstacles))return;
-    enemies.push({x,y,r,hp,hpMax:hp,enemyKey:type.enemyKey,kind:type.kind,attack,deathHitStop:type.deathHitStop,knockback:type.knockback!==false,color:type.color,speed:(21+Math.random()*12+score*.3)*setting(config,'enemy_speed_multiplier',1),hit:0,wobble:Math.random()*6.28});
+    enemies.push({x,y,r,hp,hpMax:hp,enemyKey:type.enemyKey,kind:type.kind,attack,deathHitStop:type.deathHitStop,knockback:type.knockback!==false,color:type.color,speed:(21+Math.random()*12+score*.3)*setting(config,'enemy_speed_multiplier',1),hit:0,wobble:Math.random()*6.28,animationTime:Math.random()*BLUE_SLIME_LOOP_SECONDS});
     roundSpawned++;roundSpawnCounts[type.enemyKey]=(roundSpawnCounts[type.enemyKey]||0)+1;
   }
   function update(dt){
@@ -623,7 +637,7 @@
     invincible=Math.max(0,invincible-dt);damageFlash=Math.max(0,damageFlash-dt);ui.energyBar.classList.toggle('hit',damageFlash>0);
     swing=Math.max(0,swing-dt);spin=Math.max(0,spin-dt);shake=Math.max(0,shake-dt);
     for(const enemy of enemies){
-      enemy.wobble+=dt*5;enemy.hit=Math.max(0,enemy.hit-dt);
+      enemy.wobble+=dt*5;if(enemy.enemyKey==='slime_blue')enemy.animationTime=(enemy.animationTime+dt)%BLUE_SLIME_LOOP_SECONDS;enemy.hit=Math.max(0,enemy.hit-dt);
       const ex=player.x-enemy.x,ey=player.y-enemy.y,len=Math.hypot(ex,ey)||1;
       moveBody(enemy,ex/len*enemy.speed*dt,ey/len*enemy.speed*dt,enemy.r);
       if(len<player.r+enemy.r-3&&invincible<=0){
@@ -678,13 +692,24 @@
       const dying=enemy.deathTime!==undefined;
       if(dying&&Math.floor(now/55)%2===0)continue;
       const y=enemy.y+Math.sin(enemy.wobble)*2;
-      ctx.fillStyle='#0b172277';ctx.beginPath();ctx.ellipse(enemy.x,y+enemy.r*.8,enemy.r,5,0,0,Math.PI*2);ctx.fill();
-      ctx.fillStyle=enemy.hit>0?'#fff':enemy.color;ctx.beginPath();ctx.arc(enemy.x,y,enemy.r,Math.PI,0);
-      ctx.quadraticCurveTo(enemy.x+enemy.r,y+enemy.r*.85,enemy.x,y+enemy.r*.7);
-      ctx.quadraticCurveTo(enemy.x-enemy.r,y+enemy.r*.85,enemy.x-enemy.r,y);ctx.fill();
-      ctx.fillStyle='#24333b';ctx.beginPath();ctx.arc(enemy.x-5,y-2,2,0,7);ctx.arc(enemy.x+5,y-2,2,0,7);ctx.fill();
+      const blueFrame=enemy.enemyKey==='slime_blue'?blueSlimeFrame(enemy):null;
+      const blueImageReady=!!blueFrame?.image.complete&&blueFrame.image.naturalWidth>0;
+      if(blueImageReady){
+        const spriteSize=56;
+        ctx.drawImage(blueFrame.image,enemy.x-spriteSize/2,y-spriteSize/2,spriteSize,spriteSize);
+        if(enemy.hit>0){
+          ctx.save();ctx.globalCompositeOperation='source-atop';ctx.globalAlpha=clamp(enemy.hit/.18,0,.9);
+          ctx.fillStyle='#fff';ctx.fillRect(enemy.x-spriteSize/2,y-spriteSize/2,spriteSize,spriteSize);ctx.restore();
+        }
+      }else{
+        ctx.fillStyle='#0b172277';ctx.beginPath();ctx.ellipse(enemy.x,y+enemy.r*.8,enemy.r,5,0,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle=enemy.hit>0?'#fff':enemy.color;ctx.beginPath();ctx.arc(enemy.x,y,enemy.r,Math.PI,0);
+        ctx.quadraticCurveTo(enemy.x+enemy.r,y+enemy.r*.85,enemy.x,y+enemy.r*.7);
+        ctx.quadraticCurveTo(enemy.x-enemy.r,y+enemy.r*.85,enemy.x-enemy.r,y);ctx.fill();
+        ctx.fillStyle='#24333b';ctx.beginPath();ctx.arc(enemy.x-5,y-2,2,0,7);ctx.arc(enemy.x+5,y-2,2,0,7);ctx.fill();
+      }
       if(dying)continue;
-      const barW=Math.max(34,enemy.r*2),barX=enemy.x-barW/2,barY=y-enemy.r-12;
+      const barW=Math.max(34,enemy.r*2),barX=enemy.x-barW/2,barY=y-(blueImageReady?56/2:enemy.r)-12;
       ctx.fillStyle='#17242adf';ctx.fillRect(barX-2,barY-2,barW+4,8);
       ctx.fillStyle='#642d35';ctx.fillRect(barX,barY,barW,4);
       ctx.fillStyle=enemy.hp/enemy.hpMax>.5?'#80d98a':enemy.hp/enemy.hpMax>.25?'#f1c66b':'#f07773';

@@ -17,3 +17,6 @@
 各 SVG は 64×64 の座標で作成しています。`sword.svg` は攻撃時の剣としてゲームで使用し、公開用のコピーは `dist/design/sword.svg` にあります。その他の SVG はデザインの編集・管理用で、編集しただけでは公開中のゲーム画面には自動反映されません。
 
 草原チップは画像生成で作成した仮素材です。公開用コピーは `dist/maps/grassland-tiles.png` にあります。マップ配置は `editor.html` で編集でき、同じブラウザーの保存領域からゲームへ反映されます。エディターから JSON の書き出し・読み込みもできます。
+
+
+青スライムの動作画像は enemies/slime_blue_idle.png、enemies/slime_blue_jump_mid.png、enemies/slime_blue_jump_peak.png に置きます。ゲームは idle → jump_mid → jump_peak → jump_mid → idle の順に再生します。公開時に dist/design/enemies/ へコピーします。画像は56×56 PNGです。
