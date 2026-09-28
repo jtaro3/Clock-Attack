@@ -247,8 +247,11 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
     ui.score.textContent=roundKills;
     ui.roundNumber.textContent=round;
     ui.roundTarget.textContent=roundKillTarget(round);
-    ui.energyValue.textContent=energy;
-    ui.energyFill.style.width=`${Math.min(100,energy)}%`;
+    const entryProgress=mode==='entry'&&BATTLE_START_DELAY_SECONDS>0?clamp(1-entryGray/BATTLE_START_DELAY_SECONDS,0,1):1;
+    const displayedEnergy=mode==='entry'?Math.round(energy*entryProgress):energy;
+    ui.energyBar.classList.toggle('recovering',mode==='entry'&&entryGray>0);
+    ui.energyValue.textContent=displayedEnergy;
+    ui.energyFill.style.width=`${Math.min(100,energy)*entryProgress}%`;
     ui.grayDamageFill.style.width=energy===0?`${grayHits/3*100}%`:'0%';
     ui.energyBar.setAttribute('aria-valuenow',String(energy));
     ui.energyBar.setAttribute('aria-valuemax',String(Math.max(100,energy)));
@@ -601,7 +604,8 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
   function update(dt){
     if(mode==='entry'){
       entryGray=Math.max(0,entryGray-dt);
-      if(entryGray===0){mode='play';setHud()}
+      if(entryGray===0)mode='play';
+      setHud();
       return;
     }
     if(mode!=='play')return;
