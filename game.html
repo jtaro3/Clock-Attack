@@ -38,7 +38,7 @@
 <body>
 <main id="app">
   <canvas id="field" aria-label="ゲーム盤面"></canvas>
-  <div class="hud"><div><div class="brand">針の刻</div><div class="round-label">ラウンド <span id="roundNumber">1</span></div><div class="score">討伐 <span id="score">0</span>/<span id="roundTarget">10</span></div><div class="elapsed">経過 <span id="elapsedTime">0:00</span></div></div><div class="status"><div class="resource-row"><div id="swordCounter" class="sword-counter" aria-label="剣カウント"><span class="sword-counter-icon" aria-hidden="true">🗡️</span><b id="attackCount">0</b></div><div class="energy-wrap"><div class="energy-bar" role="progressbar" aria-label="行動力" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="energyFill" class="energy-fill"></div><div id="grayDamageFill" class="gray-damage-fill"></div><b id="energyValue">0</b></div></div></div><div class="top-actions"><button id="battleGridToggle" class="map-link" type="button" aria-pressed="true">グリッド：ON</button><button id="speedButton" class="map-link speed-control" type="button">速度×1</button><button id="instantKillButton" class="map-link instant-kill" type="button">即死</button><button id="pauseButton" class="map-link" type="button">一時停止</button></div></div></div>
+  <div class="hud"><div><div class="brand">針の刻</div><div class="round-label">ラウンド <span id="roundNumber">1</span></div><div class="score">討伐 <span id="score">0</span>/<span id="roundTarget">10</span></div><div class="elapsed">経過 <span id="elapsedTime">0:00</span></div></div><div class="status"><div class="resource-row"><div id="swordCounter" class="sword-counter" aria-label="剣カウント"><span class="sword-counter-icon" aria-hidden="true">🗡️</span><b id="attackCount">0</b></div><div class="energy-wrap"><div class="energy-bar" role="progressbar" aria-label="行動力" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="energyFill" class="energy-fill"></div><div id="grayDamageFill" class="gray-damage-fill"></div><b id="energyValue">0</b></div></div></div><div class="top-actions"><button id="speedButton" class="map-link speed-control" type="button">速度×1</button><button id="instantKillButton" class="map-link instant-kill" type="button">即死</button><button id="pauseButton" class="map-link" type="button">一時停止</button></div></div></div>
   <div class="hint">ドラッグ移動・タップで向き変更・剣2秒で一回転斬り</div>
   <div id="killWarning" class="kill-warning hidden" role="alert" aria-live="assertive"><span>撃破まであと</span><b id="killCountdown">5</b></div>
   <div class="controls"><div id="clockStock" class="clock-stock" aria-label="砂のビンのストック"></div><div class="actions"><button id="clockButton" class="action clock-action" aria-label="砂時計を使う" disabled><span id="buttonHourglass" class="icon"></span><b id="clockCount">0</b></button><button id="attack" class="action attack-action" aria-label="剣で攻撃。2秒長押しで一回転斬り"><span class="icon">🗡️</span></button></div></div>
@@ -51,7 +51,7 @@
   <div id="clearScreen" class="overlay clear-screen hidden"><div id="clearAnnouncement" class="clear-announcement">討伐完了</div><div class="panel clear-panel"><div class="clear-rays"></div><div id="clearHourglass" class="clear-hourglass"></div><div class="eyebrow">ALL ROUNDS COMPLETE</div><h1 class="clear-title">GAME CLEAR</h1><p class="clear-stats">ラウンド3を制覇<br>討伐数 <span id="clearScore">0</span>・経過 <span id="clearTime">0:00</span></p><div id="clearActions" class="clear-actions"><button id="clearRetry" class="primary clear-retry" type="button">もう一度遊ぶ</button><a id="clearTitleLink" class="map-link" href="index.html">タイトルへ</a></div></div></div>
 </main>
 <script src="movement-bounds.js"></script>
-<script src="map-data.js?terrain=1"></script>
-<script src="game.js?terrain=1"></script>
+<script src="map-data.js?grid=1"></script>
+<script src="game.js?grid=1"></script>
 </body>
 </html>

@@ -236,8 +236,6 @@
     ui.swordCounter.classList.toggle('aura-red',auraDamage===RED_AURA_DAMAGE);
     ui.gridToggle.setAttribute('aria-pressed',String(showGrid));
     ui.gridToggle.textContent=`グリッド表示：${showGrid?'ON':'OFF'}`;
-    $('battleGridToggle').textContent=`グリッド：${showGrid?'ON':'OFF'}`;
-    $('battleGridToggle').setAttribute('aria-pressed',String(showGrid));
     ui.energyBar.classList.toggle('hit',damageFlash>0);
     for(let i=0;i<stockSlots.length;i++){
       const bottle=sandBottles[i];
@@ -334,7 +332,6 @@
     localStorage.setItem('clock-attack-grid',showGrid?'1':'0');
     setHud();
   });
-  $('battleGridToggle').addEventListener('click',()=>ui.gridToggle.click());
   function updateZoom(){
     $('zoomValue').textContent=`${Math.round(cameraZoom()*100)}%`;
     $('zoomIn').disabled=zoomIndex===0;$('zoomOut').disabled=zoomIndex===zoomLevels.length-1;
