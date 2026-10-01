@@ -96,7 +96,7 @@
   let mode='select',selectionReason='start',selectionIcons=0,selectionRecovery=0,selectionBottles=[],transitionTimer=null;
   let energy=0,moveProgress=0,unlocked=0,score=0,round=1,roundKills=0,roundSpawned=0,roundElapsed=0,swordCount=0,elapsed=0,timeSinceKill=0,purpleSpawned=false,spawnTimer=0,invincible=0,damageFlash=0,grayHits=0,entryGray=0,lowEnergyGray=false,swing=0,spin=0,swingAngle=0,swingScale=1,spinScale=1,shake=0,hitStop=0,timeScale=1,roundSpawnCounts={};
   let recoveryGaugeFrom=0,recoveryGaugeRemaining=0;
-  const RECOVERY_GAUGE_SECONDS=1;
+  const RECOVERY_GAUGE_SECONDS=1/1.3;
   let showGrid=localStorage.getItem('clock-attack-grid')!=='0';
   const sandBottles=[];
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -260,7 +260,7 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
     ui.roundTarget.textContent=roundKillTarget(round);
     const entryProgress=mode==='entry'&&BATTLE_START_DELAY_SECONDS>0?clamp(1-entryGray/BATTLE_START_DELAY_SECONDS,0,1):1;
     const refillProgress=mode==='refill-entry'?clamp(1-recoveryGaugeRemaining/RECOVERY_GAUGE_SECONDS,0,1):1;
-    const displayedEnergy=mode==='entry'?Math.round(energy*entryProgress):mode==='refill-entry'?Math.round(recoveryGaugeFrom+(energy-recoveryGaugeFrom)*refillProgress):energy;
+    const displayedEnergy=mode==='entry'?Math.round(energy*entryProgress):mode==='refill-entry'?Math.round(recoveryGaugeFrom+(energy-recoveryGaugeFrom)*refillProgress):mode==='confirmed'&&selectionReason==='refill'?recoveryGaugeFrom:energy;
     ui.energyBar.classList.toggle('recovering',mode==='entry'&&entryGray>0||mode==='refill-entry'&&recoveryGaugeRemaining>0);
     ui.energyValue.textContent=displayedEnergy;
     ui.energyFill.style.width=`${Math.min(100,displayedEnergy)}%`;
