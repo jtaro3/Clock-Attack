@@ -192,12 +192,6 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
   window.visualViewport?.addEventListener('resize',resize);
   resize();
 
-  const face=$('clock');
-  for(let i=0;i<60;i++){
-    const tick=document.createElement('i'),angle=i*6*Math.PI/180,r=face.offsetWidth*.43;
-    tick.className='tick';tick.style.transform=`translate(-50%,-50%) translate(${Math.sin(angle)*r}px,${-Math.cos(angle)*r}px) rotate(${i*6}deg)`;
-    tick.style.height=i%5?'5px':'10px';face.insertBefore(tick,ui.hourHand);
-  }
   const stockSlots=[];
   const hourglassSvg=(colors=[],gradientId='mixedSand')=>{
     const stops=colors.length?colors.map((color,i)=>`<stop offset="${colors.length===1?0:i/(colors.length-1)*100}%" stop-color="${color}"/>`).join(''):'<stop offset="0" stop-color="#fff9e8"/>';
