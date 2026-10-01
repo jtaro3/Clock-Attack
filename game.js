@@ -213,7 +213,7 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
     bottles.forEach((bottle,i)=>{
       const item=document.createElement('span'),columns=Math.min(5,bottles.length),column=i%5,row=Math.floor(i/5);
       const center=(Math.min(columns,bottles.length-row*5)-1)/2;
-      item.className='merge-bottle';
+      item.className=bottle.empty?'merge-bottle empty':'merge-bottle';
       item.style.setProperty('--bottle-color',bottle.color);
       item.style.setProperty('--start-x',`${(column-center)*64}px`);
       item.style.setProperty('--start-y',`${row*66-(bottles.length>5?33:0)}px`);
@@ -222,7 +222,7 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
       ui.mergeBottles.appendChild(item);
     });
     const initialLevel=clamp(energy/MAX_SAND_DISPLAY,0,1);
-    const finalLevel=clamp((energy+selectionRecovery)/MAX_SAND_DISPLAY,0,1);
+    const finalLevel=selectionReason==='start'?0:clamp((energy+selectionRecovery)/MAX_SAND_DISPLAY,0,1);
     ui.mergeHourglass.innerHTML=hourglassSvg([],'mergeSand');
     ui.mergeHourglass.style.setProperty('--sand-level',String(initialLevel));
     ui.mergeHourglass.style.setProperty('--sand-color','#fff9e8');
@@ -234,7 +234,7 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
     ui.stop.disabled=true;
     requestAnimationFrame(()=>requestAnimationFrame(()=>{
       ui.mergeStage.classList.add('collapsing','absorbing');
-      ui.mergeHourglass.classList.remove('empty');
+      if(selectionReason!=='start')ui.mergeHourglass.classList.remove('empty');
       ui.mergeHourglass.style.setProperty('--sand-level',String(finalLevel));
     }));
     transitionTimer=setTimeout(()=>{
@@ -306,11 +306,7 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
     ui.description.textContent='';
     ui.resultValue.textContent='';ui.stop.disabled=false;ui.stop.textContent='光を';
     ui.sub.textContent='';setHud();
-    if(initial){
-      ui.previewHourglass.innerHTML=hourglassSvg([],'previewSand');
-      ui.sandPreview.style.setProperty('--sand-color','#fff9e8');
-      ui.previewHourglass.style.setProperty('--sand-level',String(clamp(selectionRecovery/MAX_SAND_DISPLAY,0,1)));
-    }else showBottleMerge(selectionBottles);
+    showBottleMerge(initial?[{color:'#fff9e8',empty:true}]:selectionBottles);
   }
   function stopClock(){
     if(mode==='gameover'){restart();return}
@@ -321,6 +317,7 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
   }
   function flowSand(){
     if(mode!=='turning')return;
+    if(selectionReason==='start')ui.previewHourglass.style.setProperty('--sand-level',String(clamp(selectionRecovery/MAX_SAND_DISPLAY,0,1)));
     ui.sandPreview.classList.add('flowing');
     transitionTimer=setTimeout(()=>{
       if(mode!=='turning')return;
