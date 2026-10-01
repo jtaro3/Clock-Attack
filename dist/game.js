@@ -263,10 +263,9 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
     ui.score.textContent=roundKills;
     ui.roundNumber.textContent=round;
     ui.roundTarget.textContent=roundKillTarget(round);
-    const entryProgress=mode==='entry'&&BATTLE_START_DELAY_SECONDS>0?clamp(1-entryGray/BATTLE_START_DELAY_SECONDS,0,1):1;
-    const refillProgress=mode==='refill-entry'?clamp(1-recoveryGaugeRemaining/RECOVERY_GAUGE_SECONDS,0,1):1;
-    const displayedEnergy=mode==='entry'?Math.round(energy*entryProgress):mode==='refill-entry'?Math.round(recoveryGaugeFrom+(energy-recoveryGaugeFrom)*refillProgress):mode==='confirmed'&&selectionReason==='refill'?recoveryGaugeFrom:energy;
-    ui.energyBar.classList.toggle('recovering',mode==='entry'&&entryGray>0||mode==='refill-entry'&&recoveryGaugeRemaining>0);
+    const recoveryProgress=(mode==='entry'||mode==='refill-entry')?clamp(1-recoveryGaugeRemaining/RECOVERY_GAUGE_SECONDS,0,1):1;
+    const displayedEnergy=mode==='entry'||mode==='refill-entry'?Math.round(recoveryGaugeFrom+(energy-recoveryGaugeFrom)*recoveryProgress):mode==='confirmed'?recoveryGaugeFrom:energy;
+    ui.energyBar.classList.toggle('recovering',(mode==='entry'||mode==='refill-entry')&&recoveryGaugeRemaining>0);
     ui.energyValue.textContent=displayedEnergy;
     ui.energyFill.style.width=`${Math.min(100,displayedEnergy)}%`;
     ui.grayDamageFill.style.width=energy===0?`${grayHits/3*100}%`:'0%';
@@ -352,7 +351,7 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
       if(mode!=='confirmed')return;
       if(effectPreviewMode){energy=0;transitionTimer=null;startEffectPreview();return}
       mode=selectionReason==='start'?'entry':'refill-entry';entryGray=selectionReason==='start'?BATTLE_START_DELAY_SECONDS:0;
-      recoveryGaugeRemaining=selectionReason==='refill'?RECOVERY_GAUGE_SECONDS:0;
+      recoveryGaugeRemaining=RECOVERY_GAUGE_SECONDS;
       if(selectionReason==='refill')invincible=Math.max(invincible,RECOVERY_INVINCIBLE_SECONDS);
       ui.overlay.classList.add('hidden');spawnTimer=0;shake=0;transitionTimer=null;last=performance.now();setHud();
     },1000);
@@ -627,7 +626,8 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
   function update(dt){
     if(mode==='entry'){
       entryGray=Math.max(0,entryGray-dt);
-      if(entryGray===0)mode='play';
+      recoveryGaugeRemaining=Math.max(0,recoveryGaugeRemaining-dt);
+      if(entryGray===0&&recoveryGaugeRemaining===0)mode='play';
       setHud();
       return;
     }

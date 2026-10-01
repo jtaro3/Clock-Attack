@@ -42,7 +42,7 @@
   <div class="hint">ドラッグ移動・タップで向き変更・剣2秒で一回転斬り</div>
   <div id="killWarning" class="kill-warning hidden" role="alert" aria-live="assertive"><span>撃破まであと</span><b id="killCountdown">5</b></div>
   <div class="controls"><div id="clockStock" class="clock-stock" aria-label="砂のビンのストック"></div><div class="actions"><button id="clockButton" class="action clock-action" aria-label="砂時計を使う" disabled><span id="buttonHourglass" class="icon"></span><b id="clockCount">0</b></button><button id="attack" class="action attack-action" aria-label="剣で攻撃。2秒長押しで一回転斬り"><span class="icon">🗡️</span></button></div></div>
-<div id="overlay" class="overlay hidden" tabindex="0"><div id="panel" class="panel selecting refill"><div class="eyebrow" id="eyebrow"></div><h1 id="title"></h1><p id="description"></p><div id="mergeStage" class="merge-stage" aria-label="砂の瓶を砂時計へ合体"><div id="mergeBottles" class="merge-bottles"></div><div id="mergeHourglass" class="merge-hourglass"></div><div class="merge-flash"></div></div><div id="sandPreview" class="sand-preview"><div id="previewHourglass"></div><div class="powder-fall" aria-hidden="true"><i style="--grain-x:-7px;--grain-size:3px;--grain-delay:0s"></i><i style="--grain-x:4px;--grain-size:2px;--grain-delay:.08s"></i><i style="--grain-x:-2px;--grain-size:2px;--grain-delay:.15s"></i><i style="--grain-x:7px;--grain-size:3px;--grain-delay:.22s"></i><i style="--grain-x:-5px;--grain-size:2px;--grain-delay:.3s"></i></div><span id="previewSandCount">0/10</span></div><div id="resultValue" class="result-value" aria-live="polite"></div><button id="stop" class="primary">光を</button><p class="recovery-prompt">光を</p><p class="sub" id="sub"></p></div></div>
+<div id="overlay" class="overlay" tabindex="0"><div id="panel" class="panel selecting refill merging"><div class="eyebrow" id="eyebrow"></div><h1 id="title"></h1><p id="description"></p><div id="mergeStage" class="merge-stage" aria-label="砂の瓶を砂時計へ合体"><div id="mergeBottles" class="merge-bottles"><span class="merge-bottle empty" style="--bottle-color:#fff9e8;--start-x:0px;--start-y:0px;--merge-rotate:-18deg"><svg viewBox="0 0 32 42" aria-hidden="true"><path d="M12 2h8v6l4 4v24c0 3-2 4-5 4h-6c-3 0-5-1-5-4V12l4-4z"/><path d="M10 9h12"/></svg></span></div><div id="mergeHourglass" class="merge-hourglass empty" style="--sand-level:0"><svg class="hourglass-svg" viewBox="0 0 32 32" aria-hidden="true"><path d="M7 2h18M7 30h18M9 3v4c0 4 7 7 7 9s-7 5-7 9v4M23 3v4c0 4-7 7-7 9s7 5 7 9v4"/><path class="sand-source" d="M10 24Q16 21 22 24V28H10Z"/></svg></div><div class="merge-flash"></div></div><div id="sandPreview" class="sand-preview"><div id="previewHourglass"></div><div class="powder-fall" aria-hidden="true"><i style="--grain-x:-7px;--grain-size:3px;--grain-delay:0s"></i><i style="--grain-x:4px;--grain-size:2px;--grain-delay:.08s"></i><i style="--grain-x:-2px;--grain-size:2px;--grain-delay:.15s"></i><i style="--grain-x:7px;--grain-size:3px;--grain-delay:.22s"></i><i style="--grain-x:-5px;--grain-size:2px;--grain-delay:.3s"></i></div><span id="previewSandCount">0/10</span></div><div id="resultValue" class="result-value" aria-live="polite"></div><button id="stop" class="primary">光を</button><p class="recovery-prompt">光を</p><p class="sub" id="sub"></p></div></div>
   <div id="pauseScreen" class="overlay pause-screen hidden"><div class="panel pause-panel">
     <div id="pauseMenu"><div class="eyebrow">PAUSE</div><p class="pause-message">ゲームを一時停止しています</p><div class="pause-actions"><button id="resumeButton" class="primary" type="button">再開</button><button id="gridToggle" class="grid-toggle" type="button" aria-pressed="false">グリッド表示：OFF</button><button id="pauseTitleButton" class="pause-title" type="button">タイトルへ</button></div>
     <div class="zoom-controls" role="group" aria-label="カメラのズーム"><span aria-hidden="true">📷</span><button id="zoomIn" type="button" aria-label="ズームイン">＋</button><output id="zoomValue" aria-live="polite">100%</output><button id="zoomOut" type="button" aria-label="ズームアウト">−</button></div></div>
@@ -56,21 +56,14 @@
 <script src="map-data.js?world=1"></script>
 <script src="map-destruction.js?v=1"></script>
 <script>
-  if(!new URLSearchParams(location.search).has('effectPreview')&&!new URLSearchParams(location.search).has('clearPreview')){
-    const overlay=document.getElementById('overlay');
-    const panel=document.getElementById('panel');
-    const stage=document.getElementById('mergeStage');
-    document.getElementById('mergeBottles').innerHTML='<span class="merge-bottle empty" style="--bottle-color:#fff9e8;--start-x:0px;--start-y:0px;--merge-rotate:-18deg"><svg viewBox="0 0 32 42" aria-hidden="true"><path d="M12 2h8v6l4 4v24c0 3-2 4-5 4h-6c-3 0-5-1-5-4V12l4-4z"/><path d="M10 9h12"/></svg></span>';
-    const firstHourglass=document.getElementById('mergeHourglass');
-    firstHourglass.classList.add('empty');
-    firstHourglass.style.setProperty('--sand-level','0');
-    firstHourglass.innerHTML='<svg class="hourglass-svg" viewBox="0 0 32 32" aria-hidden="true"><path d="M7 2h18M7 30h18M9 3v4c0 4 7 7 7 9s-7 5-7 9v4M23 3v4c0 4-7 7-7 9s7 5 7 9v4"/><path class="sand-source" d="M10 24Q16 21 22 24V28H10Z"/></svg>';
+  const initialPreview=new URLSearchParams(location.search);
+  if(initialPreview.has('effectPreview')||initialPreview.has('clearPreview')){
+    document.getElementById('overlay').classList.add('hidden');
+  }else{
     window.__clockAttackInitialMergeStartedAt=performance.now();
-    panel.classList.add('merging');
-    overlay.classList.remove('hidden');
-    requestAnimationFrame(()=>requestAnimationFrame(()=>stage.classList.add('collapsing','absorbing')));
+    requestAnimationFrame(()=>requestAnimationFrame(()=>document.getElementById('mergeStage').classList.add('collapsing','absorbing')));
   }
 </script>
-<script src="game.js?initial-merge=93"></script>
+<script src="game.js?initial-merge=94"></script>
 </body>
 </html>
