@@ -14,4 +14,4 @@ spin_charge_seconds,回転斬りの長押し時間,1.5,number,0.1,10,seconds,,0
 normal_attack_effect_scale,通常攻撃のエフェクト,1,number,0.25,3,scale,攻撃時にエネミー側に出すエフェクト,0
 white_attack_effect_scale,白攻撃のエフェクト,1.5,number,0.25,3,scale,攻撃時にエネミー側に出すエフェクト,0
 red_attack_effect_scale,赤攻撃のエフェクト,2,number,0.25,3,scale,攻撃時にエネミー側に出すエフェクト,0
-damage_knockback_distance_px,プレイヤーが被弾したときに押される距離 ,20,number,1,100,pixel_per_point,,0
+damage_knockback_distance_px,プレイヤーが被弾したときに押される距離 ,20,number,0,100,pixel_per_point,,0
