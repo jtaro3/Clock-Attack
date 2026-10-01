@@ -55,6 +55,19 @@
   <script src="map-collision.js"></script>
 <script src="map-data.js?world=1"></script>
 <script src="map-destruction.js?v=1"></script>
-<script src="game.js?initial-merge=91"></script>
+<script>
+  if(!new URLSearchParams(location.search).has('effectPreview')&&!new URLSearchParams(location.search).has('clearPreview')){
+    const overlay=document.getElementById('overlay');
+    const panel=document.getElementById('panel');
+    const stage=document.getElementById('mergeStage');
+    document.getElementById('mergeBottles').innerHTML='<span class="merge-bottle empty" style="--bottle-color:#fff9e8;--start-x:0px;--start-y:0px;--merge-rotate:-18deg"><svg viewBox="0 0 32 42" aria-hidden="true"><path d="M12 2h8v6l4 4v24c0 3-2 4-5 4h-6c-3 0-5-1-5-4V12l4-4z"/><path d="M10 9h12"/></svg></span>';
+    document.getElementById('mergeHourglass').innerHTML='<svg class="hourglass-svg" viewBox="0 0 32 32" aria-hidden="true"><path d="M7 2h18M7 30h18M9 3v4c0 4 7 7 7 9s-7 5-7 9v4M23 3v4c0 4-7 7-7 9s7 5 7 9v4"/></svg>';
+    window.__clockAttackInitialMergeStartedAt=performance.now();
+    panel.classList.add('merging');
+    overlay.classList.remove('hidden');
+    requestAnimationFrame(()=>requestAnimationFrame(()=>stage.classList.add('collapsing','absorbing')));
+  }
+</script>
+<script src="game.js?initial-merge=92"></script>
 </body>
 </html>

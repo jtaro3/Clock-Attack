@@ -209,6 +209,18 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
     ui.previewSandCount.textContent=`砂のビン ${steps}/${MAX_HOURGLASS_STOCK}`;
   }
   function showBottleMerge(bottles){
+    if(selectionReason==='start'&&Number.isFinite(window.__clockAttackInitialMergeStartedAt)){
+      const remaining=Math.max(0,700-(performance.now()-window.__clockAttackInitialMergeStartedAt));
+      delete window.__clockAttackInitialMergeStartedAt;
+      ui.mergeStage.classList.add('collapsing','absorbing');
+      ui.panel.classList.add('merging');
+      ui.stop.disabled=true;
+      transitionTimer=setTimeout(()=>{
+        ui.panel.classList.remove('merging');ui.mergeStage.classList.remove('collapsing','absorbing');
+        ui.stop.disabled=false;transitionTimer=null;
+      },remaining);
+      return;
+    }
     ui.mergeBottles.innerHTML='';
     bottles.forEach((bottle,i)=>{
       const item=document.createElement('span'),columns=Math.min(5,bottles.length),column=i%5,row=Math.floor(i/5);
