@@ -92,7 +92,7 @@
   const drag={pointer:null,x:0,y:0};
   const charge={pointer:null,start:0,timer:null};
   const keys=new Set();
-  let w=0,h=0,dpr=1,last=performance.now(),;
+  let w=0,h=0,dpr=1,last=performance.now();
   let mode='select',selectionReason='start',selectionIcons=0,selectionRecovery=0,selectionBottles=[],transitionTimer=null;
   let energy=0,moveProgress=0,unlocked=0,score=0,round=1,roundKills=0,roundSpawned=0,roundElapsed=0,swordCount=0,elapsed=0,timeSinceKill=0,purpleSpawned=false,spawnTimer=0,invincible=0,damageFlash=0,grayHits=0,entryGray=0,lowEnergyGray=false,swing=0,spin=0,swingAngle=0,swingScale=1,spinScale=1,shake=0,hitStop=0,timeScale=1,roundSpawnCounts={};
   let recoveryGaugeFrom=0,recoveryGaugeRemaining=0;
