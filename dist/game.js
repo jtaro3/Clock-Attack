@@ -209,16 +209,20 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
     ui.previewSandCount.textContent=`砂のビン ${steps}/${MAX_HOURGLASS_STOCK}`;
   }
   function showBottleMerge(bottles){
+    const finalLevel=clamp((energy+selectionRecovery)/MAX_SAND_DISPLAY,0,1);
     if(selectionReason==='start'&&Number.isFinite(window.__clockAttackInitialMergeStartedAt)){
       const remaining=Math.max(0,700-(performance.now()-window.__clockAttackInitialMergeStartedAt));
       delete window.__clockAttackInitialMergeStartedAt;
       ui.mergeStage.classList.add('collapsing','absorbing');
+      ui.mergeHourglass.classList.remove('empty');
+      ui.mergeHourglass.style.setProperty('--sand-level',String(finalLevel));
+      ui.previewHourglass.style.setProperty('--sand-level',String(finalLevel));
       ui.panel.classList.add('merging');
       ui.stop.disabled=true;
       transitionTimer=setTimeout(()=>{
         ui.panel.classList.remove('merging');ui.mergeStage.classList.remove('collapsing','absorbing');
         ui.stop.disabled=false;transitionTimer=null;
-      },remaining);
+      },Math.max(remaining,600));
       return;
     }
     ui.mergeBottles.innerHTML='';
@@ -234,7 +238,7 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
       ui.mergeBottles.appendChild(item);
     });
     const initialLevel=clamp(energy/MAX_SAND_DISPLAY,0,1);
-    const finalLevel=selectionReason==='start'?0:clamp((energy+selectionRecovery)/MAX_SAND_DISPLAY,0,1);
+
     ui.mergeHourglass.innerHTML=hourglassSvg([],'mergeSand');
     ui.mergeHourglass.style.setProperty('--sand-level',String(initialLevel));
     ui.mergeHourglass.style.setProperty('--sand-color','#fff9e8');
@@ -246,7 +250,7 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
     ui.stop.disabled=true;
     requestAnimationFrame(()=>requestAnimationFrame(()=>{
       ui.mergeStage.classList.add('collapsing','absorbing');
-      if(selectionReason!=='start')ui.mergeHourglass.classList.remove('empty');
+      ui.mergeHourglass.classList.remove('empty');
       ui.mergeHourglass.style.setProperty('--sand-level',String(finalLevel));
     }));
     transitionTimer=setTimeout(()=>{
@@ -329,7 +333,6 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
   }
   function flowSand(){
     if(mode!=='turning')return;
-    if(selectionReason==='start')ui.previewHourglass.style.setProperty('--sand-level',String(clamp(selectionRecovery/MAX_SAND_DISPLAY,0,1)));
     ui.sandPreview.classList.add('flowing');
     transitionTimer=setTimeout(()=>{
       if(mode!=='turning')return;
