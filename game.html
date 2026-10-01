@@ -33,7 +33,7 @@
     .panel.refill{height:min(360px,100%);padding:16px 20px;display:flex;flex-direction:column;align-items:center;justify-content:safe center;overflow:hidden}.panel.refill>.merge-stage{width:calc(100% + 16px);height:300px;margin:0 -8px;flex-shrink:0}.panel.refill>.sand-preview{margin:10px auto;flex-shrink:0}.panel.refill .sand-preview .hourglass-svg,.panel.refill .merge-hourglass,.panel.refill .merge-hourglass .hourglass-svg{width:108px;height:135px}.panel.refill>.result-value{font-size:clamp(56px,18vw,88px);margin:12px 0 0;flex-shrink:0}.panel.refill.selecting:not(.merging):not(.turning) .recovery-prompt{margin:16px 0 8px;font-size:25px;flex-shrink:0}.panel.refill .powder-fall{top:55px;height:68px}.panel.refill>.sub:empty{display:none}
     @media(max-height:380px){.panel.refill{height:100%;padding:8px 16px}.panel.refill>.merge-stage{height:230px}.panel.refill .merge-bottles{height:94px;flex-basis:94px}.panel.refill .sand-preview .hourglass-svg,.panel.refill .merge-hourglass,.panel.refill .merge-hourglass .hourglass-svg{width:80px;height:100px}.panel.refill>.result-value{font-size:56px;margin-top:4px}.panel.refill .powder-fall{top:40px}.panel.refill .merge-stage.collapsing .merge-bottle{transform:translate(-50%,calc(-50% + 105px)) scale(.18) rotate(var(--merge-rotate))}}
     .panel.refill .merge-bottles{transform:scale(.9)}
-.top-actions{flex-wrap:wrap;justify-content:flex-end} .energy-bar.recovering{animation:energy-recovery-glow .55s ease-in-out infinite alternate;border-color:#fff2a8}.energy-bar.recovering .energy-fill{background:linear-gradient(90deg,#e9b94b,#fff2a8);box-shadow:inset -8px 0 12px #fff8}@keyframes energy-recovery-glow{from{box-shadow:0 0 8px #ffd65b99,0 0 18px #ffcd4566}to{box-shadow:0 0 16px #ffe899,0 0 34px #ffd65baa}}</style>
+.top-actions{flex-wrap:wrap;justify-content:flex-end} .energy-bar.recovering{animation:energy-recovery-glow .55s ease-in-out infinite alternate;border-color:#fff2a8}.energy-bar.recovering .energy-fill{background:linear-gradient(90deg,#e9b94b,#fff2a8);box-shadow:inset -8px 0 12px #fff8}@keyframes energy-recovery-glow{from{box-shadow:0 0 8px #ffd65b99,0 0 18px #ffcd4566}to{box-shadow:0 0 16px #ffe899,0 0 34px #ffd65baa}}.stock-slot{background:transparent;border-color:transparent;box-shadow:none}.stock-slot.unlocked{border-color:transparent;box-shadow:none}.stock-slot svg{stroke:#fffaf0;stroke-width:2.2;filter:drop-shadow(0 1px 2px #14292f)}.stock-slot .bottle-sand{opacity:0}.stock-slot.unlocked .bottle-sand{opacity:1}.clock-action.ready .icon svg{transform-origin:50% 50%;animation:hourglass-ready-sway .55s ease-in-out infinite alternate}@keyframes hourglass-ready-sway{from{transform:rotate(-13deg)}to{transform:rotate(13deg)}}@media(prefers-reduced-motion:reduce){.clock-action.ready .icon svg{animation:none}}</style>
 </head>
 <body>
 <main id="app">
@@ -55,6 +55,6 @@
   <script src="map-collision.js"></script>
 <script src="map-data.js?world=1"></script>
 <script src="map-destruction.js?v=1"></script>
-<script src="game.js?knockback=83"></script>
+<script src="game.js?bottles=84"></script>
 </body>
 </html>

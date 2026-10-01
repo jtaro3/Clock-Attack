@@ -202,11 +202,10 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
     return `<svg class="hourglass-svg" viewBox="0 0 32 32" aria-hidden="true"><defs><linearGradient id="${gradientId}" x1="0" y1="0" x2="1" y2="1">${stops}</linearGradient></defs><path d="M7 2h18M7 30h18M9 3v4c0 4 7 7 7 9s-7 5-7 9v4M23 3v4c0 4-7 7-7 9s7 5 7 9v4"/>${Array.from({length:10},(_,i)=>`<rect class="sand-step" x="${10+i*.5}" y="${26-i}" width="${12-i}" height=".8"/>`).join('')}<path class="sand-source" d="M10 24Q16 21 22 24V28H10Z"/><path class="sand-target" d="M10 4H22V8Q16 11 10 8Z"/><path class="sand-stream" d="M16 16V6"/></svg>`;
   };
   ui.buttonHourglass.innerHTML=hourglassSvg([],'buttonSand');
-  ui.buttonHourglass.querySelectorAll('.sand-step').forEach((step,i)=>step.classList.toggle('filled',i<5));
   ui.previewHourglass.innerHTML=hourglassSvg([],'previewSand');
   for(let i=0;i<MAX_HOURGLASS_STOCK;i++){
     const slot=document.createElement('span');slot.className='stock-slot';
-    slot.innerHTML='<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M12 3h8v5l3 3v16c0 2-2 3-4 3h-6c-2 0-4-1-4-3V11l3-3z"/><path d="M11 8h10"/><path class="bottle-sand" d="M11 21h10v6H11z"/></svg>';
+    slot.innerHTML='<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M12 3h8v5l3 3v16c0 2-2 3-4 3h-6c-2 0-4-1-4-3V11l3-3z"/><path d="M11 8h10"/><path class="bottle-sand" d="M11 21h10v6H11z"/></svg>'; 
     ui.clockStock.appendChild(slot);stockSlots.push(slot);
   }
   function showSand(steps){
