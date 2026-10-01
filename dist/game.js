@@ -95,6 +95,8 @@
   let w=0,h=0,dpr=1,last=performance.now(),clockOrigin=last-61/1440*3000;
   let mode='select',selectionReason='start',selectionIcons=0,selectionRecovery=0,selectionBottles=[],transitionTimer=null;
   let energy=0,moveProgress=0,unlocked=0,score=0,round=1,roundKills=0,roundSpawned=0,roundElapsed=0,swordCount=0,elapsed=0,timeSinceKill=0,purpleSpawned=false,spawnTimer=0,invincible=0,damageFlash=0,grayHits=0,entryGray=0,lowEnergyGray=false,swing=0,spin=0,swingAngle=0,swingScale=1,spinScale=1,shake=0,hitStop=0,timeScale=1,roundSpawnCounts={};
+  let recoveryGaugeFrom=0,recoveryGaugeRemaining=0;
+  const RECOVERY_GAUGE_SECONDS=1;
   let showGrid=localStorage.getItem('clock-attack-grid')!=='0';
   const sandBottles=[];
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -257,14 +259,15 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
     ui.roundNumber.textContent=round;
     ui.roundTarget.textContent=roundKillTarget(round);
     const entryProgress=mode==='entry'&&BATTLE_START_DELAY_SECONDS>0?clamp(1-entryGray/BATTLE_START_DELAY_SECONDS,0,1):1;
-    const displayedEnergy=mode==='entry'?Math.round(energy*entryProgress):energy;
-    ui.energyBar.classList.toggle('recovering',mode==='entry'&&entryGray>0);
+    const refillProgress=mode==='refill-entry'?clamp(1-recoveryGaugeRemaining/RECOVERY_GAUGE_SECONDS,0,1):1;
+    const displayedEnergy=mode==='entry'?Math.round(energy*entryProgress):mode==='refill-entry'?Math.round(recoveryGaugeFrom+(energy-recoveryGaugeFrom)*refillProgress):energy;
+    ui.energyBar.classList.toggle('recovering',mode==='entry'&&entryGray>0||mode==='refill-entry'&&recoveryGaugeRemaining>0);
     ui.energyValue.textContent=displayedEnergy;
-    ui.energyFill.style.width=`${Math.min(100,energy)*entryProgress}%`;
+    ui.energyFill.style.width=`${Math.min(100,displayedEnergy)}%`;
     ui.grayDamageFill.style.width=energy===0?`${grayHits/3*100}%`:'0%';
-    ui.energyBar.setAttribute('aria-valuenow',String(energy));
+    ui.energyBar.setAttribute('aria-valuenow',String(displayedEnergy));
     ui.energyBar.setAttribute('aria-valuemax',String(Math.max(100,energy)));
-    ui.energyBar.setAttribute('aria-valuetext',energy===0&&unlocked>0?`行動力0、灰色状態での被弾 ${grayHits} / 3`:`行動力 ${energy}`);
+    ui.energyBar.setAttribute('aria-valuetext',energy===0&&unlocked>0?`行動力0、灰色状態での被弾 ${grayHits} / 3`:`行動力 ${displayedEnergy}`);
     ui.attackCount.textContent=swordCount;
     ui.clockCount.textContent=unlocked;
     if(mode!=='turning'&&mode!=='confirmed')showSand(selectionReason==='refill'&&mode==='select'?selectionIcons:unlocked);
@@ -339,7 +342,7 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
   }
   function finishClock(){
     const gained=selectionReason==='start'?START_ENERGY:selectionRecovery;
-    energy+=gained;moveProgress=0;grayHits=0;lowEnergyGray=false;
+    recoveryGaugeFrom=energy;energy+=gained;moveProgress=0;grayHits=0;lowEnergyGray=false;
     mode='confirmed';ui.panel.classList.remove('selecting','turning');ui.panel.classList.add('confirmed');
     ui.resultValue.textContent=gained;
     ui.eyebrow.textContent='';ui.title.textContent='';
@@ -348,7 +351,8 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
     transitionTimer=setTimeout(()=>{
       if(mode!=='confirmed')return;
       if(effectPreviewMode){energy=0;transitionTimer=null;startEffectPreview();return}
-      mode=selectionReason==='start'?'entry':'play';entryGray=selectionReason==='start'?BATTLE_START_DELAY_SECONDS:0;
+      mode=selectionReason==='start'?'entry':'refill-entry';entryGray=selectionReason==='start'?BATTLE_START_DELAY_SECONDS:0;
+      recoveryGaugeRemaining=selectionReason==='refill'?RECOVERY_GAUGE_SECONDS:0;
       if(selectionReason==='refill')invincible=Math.max(invincible,RECOVERY_INVINCIBLE_SECONDS);
       ui.overlay.classList.add('hidden');spawnTimer=0;shake=0;transitionTimer=null;last=performance.now();setHud();
     },1000);
@@ -394,6 +398,7 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
     ui.clearScreen.classList.add('hidden');
     ui.killWarning.classList.add('hidden');
     enemies.length=0;deadEnemies.length=0;particles.length=0;explosions.length=0;damageNumbers.length=0;
+    recoveryGaugeFrom=0;recoveryGaugeRemaining=0;
     player.x=map.width*16;player.y=map.height*16;ensurePlayerFree();invincible=0;entryGray=0;swing=0;spin=0;hitStop=0;
     objectDestruction.reset();obstacles=MapCollision.build(objectDestruction.activeMap(),collisionCatalog);renderTerrain();
     startSelection(true);
@@ -532,7 +537,7 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
     deadEnemies.push({...enemy,deathTime:.45});score++;roundKills++;swordCount=Math.min(MAX_SWORD_COUNT,swordCount+1);
     if(sandBottles.length<MAX_HOURGLASS_STOCK)sandBottles.push({kind:enemy.kind,color:enemy.color,recovery:enemy.hpMax*10});
     unlocked=sandBottles.length;timeSinceKill=0;ui.killWarning.classList.add('hidden');burst(enemy.x,enemy.y,enemy.color,11);
-    enemies.splice(i,1);
+    enemies.splice(i,1);setHud();
     return enemy.deathHitStop||.1;
   }
   function finishEnemyDamage(defeated,deathHitStop=.1){
@@ -625,6 +630,11 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
       if(entryGray===0)mode='play';
       setHud();
       return;
+    }
+    if(mode==='refill-entry'){
+      recoveryGaugeRemaining=Math.max(0,recoveryGaugeRemaining-dt);
+      if(recoveryGaugeRemaining===0)mode='play';
+      setHud();return;
     }
     if(mode!=='play')return;
     if(hitStop>0){hitStop=Math.max(0,hitStop-dt);updateHitEffects(dt);return}
