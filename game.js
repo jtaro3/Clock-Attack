@@ -12,8 +12,8 @@
   const setting=(source,key,fallback)=>Number.isFinite(Number(source[key]))?Number(source[key]):fallback;
   const blueSlimeTuning=(()=>{
     const blueData=enemyData.slime_blue||{};
-    const values={moveSpeed:setting(blueData,'move_speed_px_per_second',27),idleTime:setting(blueData,'animation_idle_seconds',.38),midTime:setting(blueData,'animation_jump_mid_seconds',.12),peakTime:setting(blueData,'animation_jump_peak_seconds',.12),attackTimes:[]};
-    try{const saved=JSON.parse(localStorage.getItem('clock-attack-blue-slime-tuning-v1')||'{}');for(const key of ['moveSpeed','idleTime','midTime','peakTime'])if(Number.isFinite(Number(saved[key])))values[key]=Number(saved[key]);if(Array.isArray(saved.attackTimes))values.attackTimes=saved.attackTimes}catch{}
+    const values={moveSpeed:setting(blueData,'move_speed_px_per_second',27),idleTime:setting(blueData,'animation_idle_seconds',.38),midTime:setting(blueData,'animation_jump_mid_seconds',.12),peakTime:setting(blueData,'animation_jump_peak_seconds',.12),moveTimes:[],attackTimes:[]};
+    try{const saved=JSON.parse(localStorage.getItem('clock-attack-blue-slime-tuning-v1')||'{}');for(const key of ['moveSpeed','idleTime','midTime','peakTime'])if(Number.isFinite(Number(saved[key])))values[key]=Number(saved[key]);if(Array.isArray(saved.moveTimes))values.moveTimes=saved.moveTimes;if(Array.isArray(saved.attackTimes))values.attackTimes=saved.attackTimes}catch{}
     values.moveSpeed=Math.max(0,Math.min(80,values.moveSpeed));
     for(const key of ['idleTime','midTime','peakTime'])values[key]=Math.max(.04,Math.min(1.2,values[key]));
     return values;
@@ -120,7 +120,11 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
   const defaultAttackFrames=['design/enemies/slime-blue-attack-01.png','design/enemies/slime-blue-attack-02.png','design/enemies/slime-blue-attack-03.png','design/enemies/slime-blue-attack-04.png'];
   const blueMoveFiles=animationManifest.enemies?.slime_blue?.move?.length?animationManifest.enemies.slime_blue.move:defaultMoveFrames;
   const blueAttackFiles=animationManifest.enemies?.slime_blue?.attack?.length?animationManifest.enemies.slime_blue.attack:defaultAttackFrames;
-  const blueSlimeFrames=blueMoveFiles.map((file,index)=>({file,duration:index===0?blueSlimeTuning.idleTime:blueSlimeTuning.midTime,image:new Image()}));
+  const blueSlimeFrames=blueMoveFiles.map((file,index)=>{
+    const configured=Number(blueSlimeTuning.moveTimes[index]);
+    const fallback=[blueSlimeTuning.idleTime,blueSlimeTuning.midTime,blueSlimeTuning.peakTime,blueSlimeTuning.midTime][index]??blueSlimeTuning.midTime;
+    return {file,duration:Number.isFinite(configured)&&configured>0?Math.max(.04,Math.min(1.2,configured)):fallback,image:new Image()};
+  });
   /* legacy movement frame sequence retained in the manifest defaults */
   /*
     {file:'slime_blue_idle.png',duration:blueSlimeTuning.idleTime,image:new Image()},

@@ -3,8 +3,7 @@
   const $=id=>document.getElementById(id);
   const home=$('home'),previewScreen=$('previewScreen'),gameFrame=$('gameFrame'),canvas=$('assetCanvas'),ctx=canvas.getContext('2d');
   const hint=$('hint'),panel=$('debugPanel'),subChoices=$('subChoices'),fileList=$('fileList'),loopToggle=$('loopToggle'),tuningPanel=$('tuning');
-  const inputs={moveSpeed:$('moveSpeed'),idleTime:$('idleTime'),midTime:$('midTime'),peakTime:$('peakTime')};
-  const outputs={moveSpeed:$('moveSpeedValue'),idleTime:$('idleTimeValue'),midTime:$('midTimeValue'),peakTime:$('peakTimeValue')};
+  const moveSpeedInput=$('moveSpeed'),moveSpeedOutput=$('moveSpeedValue');
   const STORAGE_KEY='clock-attack-blue-slime-tuning-v1';
   const defaults={moveSpeed:27,idleTime:.38,midTime:.12,peakTime:.12};
   let tuningEdited=false;
@@ -12,46 +11,51 @@
   const playerBounds=[[386,362,850,928],[396,376,846,930],[432,356,812,956],[396,344,836,952],[386,350,866,946],[374,340,862,916],[394,344,828,926],[396,324,828,922]];
   const playerNames=['man1.png','man2.png','man3.png','man4.png','man5.png','man6.png','man7.png','man8.png'];
   let enemyMoveImages=[],enemyAttackImages=[];
-  const attackSettings=$('attackSettings');
+  const moveSettings=$('moveSettings'),attackSettings=$('attackSettings');
   const attackFrameDefault=.105;
-  const enemySequence=[0,1,2,1,0];
-  const enemyDurations=()=>[tuning.idleTime,tuning.midTime,tuning.peakTime,tuning.midTime,tuning.idleTime];
   const menuButtons=[...document.querySelectorAll('[data-category]')];
   function readTuning(){
     try{
       const saved=JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}');
-      return {...defaults,...saved,attackTimes:Array.isArray(saved.attackTimes)?saved.attackTimes:[]};
-    }catch{return {...defaults,attackTimes:[]}}
+      return {...defaults,...saved,moveTimes:Array.isArray(saved.moveTimes)?saved.moveTimes:[],attackTimes:Array.isArray(saved.attackTimes)?saved.attackTimes:[]};
+    }catch{return {...defaults,moveTimes:[],attackTimes:[]}}
+  }
+  function moveTime(index){
+    const value=Number(tuning.moveTimes[index]);
+    const fallback=[tuning.idleTime,tuning.midTime,tuning.peakTime,tuning.midTime][index]??tuning.midTime;
+    return Number.isFinite(value)&&value>0?Math.max(.04,Math.min(1.2,value)):fallback;
+  }
+  function buildFrameSettings(container,frames,actionName,timeFor){
+    container.replaceChildren();
+    frames.forEach((frame,index)=>{
+      const row=document.createElement('div'),label=document.createElement('label'),output=document.createElement('output'),input=document.createElement('input');
+      row.className='slider-row';label.htmlFor=`${actionName}Time${index}`;label.textContent=`画像${index+1}の速度`;
+      input.id=label.htmlFor;input.type='range';input.min='.04';input.max=actionName==='move'?'1.20':'.50';input.step='.01';input.value=String(timeFor(index));
+      output.textContent=`${Number(input.value).toFixed(2)} s`;
+      input.addEventListener('input',()=>{
+        tuning[actionName+'Times'][index]=Number(input.value);output.textContent=`${Number(input.value).toFixed(2)} s`;
+        tuningEdited=true;localStorage.setItem(STORAGE_KEY,JSON.stringify(tuning));startedAt=performance.now();draw();
+      });
+      row.append(label,output,input);container.append(row);
+    });
   }
   function attackTime(index){
     const value=Number(tuning.attackTimes[index]);
     return Number.isFinite(value)&&value>0?Math.max(.04,Math.min(.5,value)):attackFrameDefault;
   }
-  function buildAttackSettings(){
-    attackSettings.replaceChildren();
-    enemyAttackImages.forEach((frame,index)=>{
-      const row=document.createElement('div'),label=document.createElement('label'),output=document.createElement('output'),input=document.createElement('input');
-      row.className='slider-row';label.htmlFor=`attackTime${index}`;label.textContent=`${frame.file} 表示時間`;
-      input.id=label.htmlFor;input.type='range';input.min='.04';input.max='.50';input.step='.01';input.value=String(attackTime(index));
-      output.textContent=`${Number(input.value).toFixed(2)} s`;
-      input.addEventListener('input',()=>{
-        tuning.attackTimes[index]=Number(input.value);output.textContent=`${Number(input.value).toFixed(2)} s`;
-        tuningEdited=true;localStorage.setItem(STORAGE_KEY,JSON.stringify(tuning));startedAt=performance.now();draw();
-      });
-      row.append(label,output,input);attackSettings.append(row);
-    });
-  }
-  for(const key of Object.keys(inputs))inputs[key].value=String(tuning[key]);
+  function buildAttackSettings(){buildFrameSettings(attackSettings,enemyAttackImages,'attack',attackTime)}
+  function buildMoveSettings(){buildFrameSettings(moveSettings,enemyMoveImages,'move',moveTime)}
+  moveSpeedInput.value=String(tuning.moveSpeed);
   function saveTuning(){
     tuningEdited=true;
-    for(const key of Object.keys(inputs))tuning[key]=Number(inputs[key].value);
+    tuning.moveSpeed=Number(moveSpeedInput.value);
     localStorage.setItem(STORAGE_KEY,JSON.stringify(tuning));
     updateOutputs();draw();
   }
   function updateOutputs(){
-    for(const key of Object.keys(inputs))outputs[key].textContent=key==='moveSpeed'?tuning[key]+' px/s':tuning[key].toFixed(2)+' s';
+    moveSpeedOutput.textContent=tuning.moveSpeed+' px/s';
   }
-  for(const key of Object.keys(inputs))inputs[key].addEventListener('input',saveTuning);
+  moveSpeedInput.addEventListener('input',saveTuning);
   updateOutputs();
   if(!localStorage.getItem(STORAGE_KEY)){
     fetch('game-data.json',{cache:'no-store'}).then(response=>{
@@ -61,10 +65,8 @@
       if(tuningEdited)return;
       const enemy=data.enemies?.slime_blue||{};
       const values={moveSpeed:enemy.move_speed_px_per_second,idleTime:enemy.animation_idle_seconds,midTime:enemy.animation_jump_mid_seconds,peakTime:enemy.animation_jump_peak_seconds};
-      for(const key of Object.keys(inputs))if(values[key]!=null&&Number.isFinite(Number(values[key]))){
-        inputs[key].value=String(values[key]);tuning[key]=Number(inputs[key].value);
-      }
-      updateOutputs();draw();
+      for(const key of Object.keys(values))if(values[key]!=null&&Number.isFinite(Number(values[key])))tuning[key]=Number(values[key]);
+      moveSpeedInput.value=String(tuning.moveSpeed);buildMoveSettings();updateOutputs();draw();
     }).catch(()=>{$('notice').textContent='ゲームデータを読み込めないため初期値を表示しています'});
   }
   $('loadDataSettings').addEventListener('click',async()=>{
@@ -73,8 +75,9 @@
       if(!response.ok)throw new Error('HTTP '+response.status);
       const data=await response.json(),enemy=data.enemies?.slime_blue||{};
       const values={moveSpeed:enemy.move_speed_px_per_second,idleTime:enemy.animation_idle_seconds,midTime:enemy.animation_jump_mid_seconds,peakTime:enemy.animation_jump_peak_seconds};
-      for(const key of Object.keys(inputs))if(Number.isFinite(Number(values[key])))inputs[key].value=String(values[key]);
-      tuning.attackTimes=[];buildAttackSettings();saveTuning();$('notice').textContent='ゲームデータの青スライム設定を読み込みました';
+      for(const key of Object.keys(values))if(values[key]!=null&&Number.isFinite(Number(values[key])))tuning[key]=Number(values[key]);
+      moveSpeedInput.value=String(tuning.moveSpeed);tuning.moveTimes=[];tuning.attackTimes=[];
+      buildMoveSettings();buildAttackSettings();saveTuning();$('notice').textContent='ゲームデータの青スライム設定を読み込みました';
     }catch{$('notice').textContent='game-data.jsonを読み込めませんでした'}
   });
   function loadSprite(file,index){
@@ -113,7 +116,7 @@
       loadImage('sword.svg','sword.svg'),
       ...attacks.map(path=>loadImage(path.split('/').pop(),path))
     ]).then(items=>({items,moveCount:moves.length,attackCount:attacks.length}));
-  }).then(({items,moveCount,attackCount})=>{actorImages=items.slice(0,8);enemyMoveImages=items.slice(8,8+moveCount);swordImage=items[8+moveCount];enemyAttackImages=items.slice(9+moveCount,9+moveCount+attackCount);buildAttackSettings();buildFileList();draw()});
+  }).then(({items,moveCount,attackCount})=>{actorImages=items.slice(0,8);enemyMoveImages=items.slice(8,8+moveCount);swordImage=items[8+moveCount];enemyAttackImages=items.slice(9+moveCount,9+moveCount+attackCount);buildMoveSettings();buildAttackSettings();buildFileList();draw()});
   function setCanvasSize(){
     const rect=canvas.getBoundingClientRect();if(!rect.width||!rect.height)return;
     dpr=Math.max(1,Math.min(2,devicePixelRatio||1));canvas.width=Math.round(rect.width*dpr);canvas.height=Math.round(rect.height*dpr);
@@ -157,6 +160,7 @@
     fileList.hidden=false;loopToggle.closest('.loop-row').hidden=false;
     tuningPanel.hidden=category!=='enemy';
     document.querySelectorAll('.move-setting').forEach(row=>row.hidden=next==='attack');
+    moveSettings.hidden=next==='attack';
     attackSettings.hidden=next!=='attack';
     buildFileList();setCanvasSize();draw();
   }
@@ -184,7 +188,7 @@
   }
   loopToggle.addEventListener('change',()=>{loop=loopToggle.checked;startedAt=performance.now();draw()});
   $('copySettings').addEventListener('click',async()=>{
-    const result={enemy_key:'slime_blue',move_speed_px_per_second:tuning.moveSpeed,animation_idle_seconds:tuning.idleTime,animation_jump_mid_seconds:tuning.midTime,animation_jump_peak_seconds:tuning.peakTime,animation_attack_frame_seconds:enemyAttackImages.map((_,index)=>attackTime(index))};
+    const result={enemy_key:'slime_blue',move_speed_px_per_second:tuning.moveSpeed,animation_move_frame_seconds:enemyMoveImages.map((_,index)=>moveTime(index)),animation_attack_frame_seconds:enemyAttackImages.map((_,index)=>attackTime(index))};
     try{await navigator.clipboard.writeText(JSON.stringify(result,null,2));$('notice').textContent='設定値をコピーしました'}
     catch{$('notice').textContent=JSON.stringify(result)}
   });
@@ -198,8 +202,8 @@
         for(let index=0;index<files.length;index++){if(time<durations[index])return files[index];time-=durations[index]}
         return files.at(-1);
       }
-      const seq=files.map((_,index)=>index),durations=files.map((_,index)=>index===0?tuning.idleTime:tuning.midTime);let time=elapsed%durations.reduce((a,b)=>a+b,0);
-      for(let i=0;i<seq.length;i++){if(time<durations[i])return files[seq[i]];time-=durations[i]}
+      const durations=files.map((_,index)=>moveTime(index));let time=elapsed%durations.reduce((a,b)=>a+b,0);
+      for(let i=0;i<files.length;i++){if(time<durations[i])return files[i];time-=durations[i]}
       return files[0];
     }
     const index=Math.floor(elapsed/.14)%files.length;
