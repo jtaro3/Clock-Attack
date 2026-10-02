@@ -1,0 +1,18 @@
+{
+  "enemies": {
+    "slime_blue": {
+      "move": [
+        "design/Animation/enemies/move/slime_blue_1.png",
+        "design/Animation/enemies/move/slime_blue_2.png",
+        "design/Animation/enemies/move/slime_blue_3.png",
+        "design/Animation/enemies/move/slime_blue_4.png"
+      ],
+      "attack": [
+        "design/Animation/enemies/attack/slime_blue_1.png",
+        "design/Animation/enemies/attack/slime_blue_2.png",
+        "design/Animation/enemies/attack/slime_blue_3.png",
+        "design/Animation/enemies/attack/slime_blue_4.png"
+      ]
+    }
+  }
+}

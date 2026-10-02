@@ -11,10 +11,8 @@
   let tuning=readTuning(),category='',action='',selection=0,loop=false,startedAt=performance.now(),canvasWidth=0,canvasHeight=0,dpr=1,actorImages=[],swordImage=null;
   const playerBounds=[[386,362,850,928],[396,376,846,930],[432,356,812,956],[396,344,836,952],[386,350,866,946],[374,340,862,916],[394,344,828,926],[396,324,828,922]];
   const playerNames=['man1.png','man2.png','man3.png','man4.png','man5.png','man6.png','man7.png','man8.png'];
-  const enemyNames=['slime_blue_idle.png','slime_blue_jump_mid.png','slime_blue_jump_peak.png'];
-  const enemyAttackNames=['slime-blue-attack-01.png','slime-blue-attack-02.png','slime-blue-attack-03.png','slime-blue-attack-04.png'];
+  let enemyMoveImages=[],enemyAttackImages=[];
   const enemyAttackDuration=.42;
-  let enemyAttackImages=[];
   const enemySequence=[0,1,2,1,0];
   const enemyDurations=()=>[tuning.idleTime,tuning.midTime,tuning.peakTime,tuning.midTime,tuning.idleTime];
   const menuButtons=[...document.querySelectorAll('[data-category]')];
@@ -79,15 +77,21 @@
       const image=new Image();
       image.onload=()=>resolve({file,label,image});
       image.onerror=()=>resolve({file,label,image:null});
-      image.src=file==='sword.svg'?'design/sword.svg':'design/enemies/'+file;
+      image.src=file==='sword.svg'?'design/sword.svg':label;
     });
   }
-  Promise.all([
-    ...playerNames.map((name,i)=>loadSprite(name,i)),
-    ...enemyNames.map(name=>loadImage(name,name)),
-    loadImage('sword.svg','sword.svg'),
-    ...enemyAttackNames.map(name=>loadImage(name,name))
-  ]).then(items=>{actorImages=items.slice(0,11);swordImage=items[11];enemyAttackImages=items.slice(12);buildFileList();draw()});
+  const fallbackMove=['design/enemies/slime_blue_idle.png','design/enemies/slime_blue_jump_mid.png','design/enemies/slime_blue_jump_peak.png'];
+  const fallbackAttack=['design/enemies/slime-blue-attack-01.png','design/enemies/slime-blue-attack-02.png','design/enemies/slime-blue-attack-03.png','design/enemies/slime-blue-attack-04.png'];
+  fetch('animation-manifest.json',{cache:'no-store'}).then(response=>response.ok?response.json():{}).catch(()=>({})).then(manifest=>{
+    const moves=manifest.enemies?.slime_blue?.move?.length?manifest.enemies.slime_blue.move:fallbackMove;
+    const attacks=manifest.enemies?.slime_blue?.attack?.length?manifest.enemies.slime_blue.attack:fallbackAttack;
+    return Promise.all([
+      ...playerNames.map((name,i)=>loadSprite(name,i)),
+      ...moves.map(path=>loadImage(path.split('/').pop(),path)),
+      loadImage('sword.svg','sword.svg'),
+      ...attacks.map(path=>loadImage(path.split('/').pop(),path))
+    ]).then(items=>({items,moveCount:moves.length,attackCount:attacks.length}));
+  }).then(({items,moveCount,attackCount})=>{actorImages=items.slice(0,8);enemyMoveImages=items.slice(8,8+moveCount);swordImage=items[8+moveCount];enemyAttackImages=items.slice(9+moveCount,9+moveCount+attackCount);buildFileList();draw()});
   function setCanvasSize(){
     const rect=canvas.getBoundingClientRect();if(!rect.width||!rect.height)return;
     dpr=Math.max(1,Math.min(2,devicePixelRatio||1));canvas.width=Math.round(rect.width*dpr);canvas.height=Math.round(rect.height*dpr);
@@ -135,7 +139,7 @@
   function filesForSelection(){
     if(category==='player'&&action==='move')return actorImages.slice(0,8);
     if(category==='player'&&action==='attack')return [swordImage].filter(Boolean);
-    if(category==='enemy')return action==='attack'?enemyAttackImages:actorImages.slice(8,11);
+    if(category==='enemy')return action==='attack'?enemyAttackImages:enemyMoveImages;
     return [];
   }
   function buildFileList(){
@@ -165,8 +169,8 @@
     if(!loop||files.length===1)return files[Math.min(selection,files.length-1)];
     const elapsed=Math.max(0,(now-startedAt)/1000);
     if(category==='enemy'){
-      if(action==='attack')return files[Math.min(3,Math.floor((elapsed%1.2)/enemyAttackDuration*4))];
-      const seq=enemySequence,durations=enemyDurations();let time=elapsed%durations.reduce((a,b)=>a+b,0);
+      if(action==='attack')return files[Math.min(files.length-1,Math.floor((elapsed%enemyAttackDuration)/enemyAttackDuration*files.length))];
+      const seq=files.map((_,index)=>index),durations=files.map((_,index)=>index===0?tuning.idleTime:tuning.midTime);let time=elapsed%durations.reduce((a,b)=>a+b,0);
       for(let i=0;i<seq.length;i++){if(time<durations[i])return files[seq[i]];time-=durations[i]}
       return files[0];
     }

@@ -6,6 +6,8 @@
     if(!response.ok)throw new Error(`HTTP ${response.status}`);
     gameData=await response.json();
   }catch(error){console.warn('game-data.jsonを読み込めないため内蔵値で起動します。',error)}
+  let animationManifest={enemies:{}};
+  try{const response=await fetch('animation-manifest.json',{cache:'no-store'});if(response.ok)animationManifest=await response.json()}catch{}
   const general=gameData.general||{},playerData=gameData.player||{},enemyData=gameData.enemies||{},roundData=gameData.rounds||{};
   const setting=(source,key,fallback)=>Number.isFinite(Number(source[key]))?Number(source[key]):fallback;
   const blueSlimeTuning=(()=>{
@@ -112,15 +114,23 @@
   const enemyType=(key,kind,hp,attack,color,radius)=>{const data=enemyData[key]||{};return{enemyKey:key,kind,hp:setting(data,'hp',hp),attack:setting(data,'attack',attack),deathHitStop:setting(data,'death_hit_stop_seconds',.1),knockbackDistance:Math.max(0,setting(data,'knockback_distance_px',18.75)),color,radius,knockback:data.super_armor===undefined?kind!=='black':!data.super_armor}};
   const SLIME_TYPES={blue:enemyType('slime_blue','blue',1,1,'#66c8ee',14),green:enemyType('slime_green','green',2,1,'#74d590',16),red:enemyType('slime_red','red',3,1,'#e97a83',18),purple:enemyType('slime_purple','purple',10,5,'#b679e5',22),black:enemyType('slime_black','black',20,10,'#171a20',24),metal:enemyType('slime_metal','metal',50,20,'#bec8d1',26)};
 const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type.enemyKey,type]));
-  const blueSlimeFrames=[
+  const defaultMoveFrames=[
+    'design/enemies/slime_blue_idle.png','design/enemies/slime_blue_jump_mid.png','design/enemies/slime_blue_jump_peak.png','design/enemies/slime_blue_jump_mid.png'
+  ];
+  const defaultAttackFrames=['design/enemies/slime-blue-attack-01.png','design/enemies/slime-blue-attack-02.png','design/enemies/slime-blue-attack-03.png','design/enemies/slime-blue-attack-04.png'];
+  const blueMoveFiles=animationManifest.enemies?.slime_blue?.move?.length?animationManifest.enemies.slime_blue.move:defaultMoveFrames;
+  const blueAttackFiles=animationManifest.enemies?.slime_blue?.attack?.length?animationManifest.enemies.slime_blue.attack:defaultAttackFrames;
+  const blueSlimeFrames=blueMoveFiles.map((file,index)=>({file,duration:index===0?blueSlimeTuning.idleTime:blueSlimeTuning.midTime,image:new Image()}));
+  /* legacy movement frame sequence retained in the manifest defaults */
+  /*
     {file:'slime_blue_idle.png',duration:blueSlimeTuning.idleTime,image:new Image()},
     {file:'slime_blue_jump_mid.png',duration:blueSlimeTuning.midTime,image:new Image()},
     {file:'slime_blue_jump_peak.png',duration:blueSlimeTuning.peakTime,image:new Image()},
     {file:'slime_blue_jump_mid.png',duration:blueSlimeTuning.midTime,image:new Image()},
     {file:'slime_blue_idle.png',duration:blueSlimeTuning.idleTime,image:new Image()}
-  ];
+  ]; */
   const SLIME_ATTACK_DURATION=.42;
-  const blueSlimeAttackFrames=['slime-blue-attack-01.png','slime-blue-attack-02.png','slime-blue-attack-03.png','slime-blue-attack-04.png'].map(file=>({file,image:new Image(),attack:true}));
+  const blueSlimeAttackFrames=blueAttackFiles.map(file=>({file,image:new Image(),attack:true}));
   const BLUE_SLIME_LOOP_SECONDS=blueSlimeFrames.reduce((sum,frame)=>sum+frame.duration,0);
   blueSlimeFrames.forEach(frame=>{
     frame.image.onload=()=>{
@@ -132,13 +142,13 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
       flashCtx.fillStyle='#fff';flashCtx.fillRect(0,0,flash.width,flash.height);
       frame.flash=flash;
     };
-    frame.image.src='design/enemies/'+frame.file;
+    frame.image.src=frame.file;
   });
-  blueSlimeAttackFrames.forEach(frame=>{frame.image.src='design/enemies/'+frame.file});
+  blueSlimeAttackFrames.forEach(frame=>{frame.image.src=frame.file});
   function blueSlimeFrame(enemy){
     if(enemy.attackTime>0){
       const progress=1-enemy.attackTime/SLIME_ATTACK_DURATION;
-      return blueSlimeAttackFrames[Math.min(3,Math.floor(progress*4))];
+      return blueSlimeAttackFrames[Math.min(blueSlimeAttackFrames.length-1,Math.floor(progress*blueSlimeAttackFrames.length))];
     }
     let time=enemy.animationTime%BLUE_SLIME_LOOP_SECONDS;
     for(const frame of blueSlimeFrames){if(time<frame.duration)return frame;time-=frame.duration}
