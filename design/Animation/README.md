@@ -6,7 +6,9 @@ Put 56×56 PNG frames in the matching action folder. Use this filename pattern:
 - `design/Animation/enemies/move/slime_blue_2.png`
 - `design/Animation/enemies/attack/slime_blue_1.png`
 
-The numeric suffix determines playback order. After adding, removing, or renaming frames, run this in PowerShell from the repository root:
+The numeric suffix determines playback order. After adding, removing, or renaming frames, double-click `build-animation-manifest.cmd` in the repository root. It runs from the correct folder automatically.
+
+Alternatively, run this in PowerShell from the repository root:
 
 ```powershell
 .\tools\build-animation-manifest.ps1
