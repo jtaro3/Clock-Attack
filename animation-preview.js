@@ -203,7 +203,7 @@
         const x=tuning.moveSpeed===0?startX:startX-(time%travel)*tuning.moveSpeed;
         drawImage(enemy,x,cy,56,56);
       }else if(action==='attack'){
-        ctx.save();ctx.translate(cx+40,cy);ctx.rotate(Math.PI);drawImage(enemy,0,0,56,56);ctx.restore();
+        ctx.save();ctx.translate(cx+40,cy);ctx.scale(-1,1);drawImage(enemy,0,0,56,56);ctx.restore();
       }
     }
   }

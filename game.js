@@ -726,7 +726,7 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
       const blueImageReady=!!blueFrame?.image.complete&&blueFrame.image.naturalWidth>0;
       if(blueImageReady){
         const spriteSize=56;
-        ctx.save();ctx.translate(enemy.x,y);if(blueFrame.attack)ctx.rotate(enemy.attackAngle||0);ctx.imageSmoothingEnabled=false;
+        ctx.save();ctx.translate(enemy.x,y);if(blueFrame.attack&&Math.cos(enemy.attackAngle||0)<0)ctx.scale(-1,1);ctx.imageSmoothingEnabled=false;
         ctx.drawImage(blueFrame.image,-spriteSize/2,-spriteSize/2,spriteSize,spriteSize);ctx.restore();ctx.imageSmoothingEnabled=true;
         if(enemy.hit>0&&blueFrame.flash){
           ctx.save();ctx.globalAlpha=clamp(enemy.hit/.18,0,.9);
@@ -741,7 +741,7 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
           else if(attackProgress<.75){const p=(attackProgress-.5)/.25;stretchX=.8+.32*p;stretchY=1.2-.3*p;lunge=6+4*p}
           else{const p=(attackProgress-.75)/.25;stretchX=1.12-.12*p;stretchY=.9+.1*p;lunge=10*(1-p)}
         }
-        ctx.save();ctx.translate(enemy.x,y);ctx.rotate(enemy.attackAngle||0);ctx.translate(lunge,0);ctx.scale(stretchX,stretchY);
+        ctx.save();ctx.translate(enemy.x,y);ctx.translate(Math.cos(enemy.attackAngle||0)*lunge,Math.sin(enemy.attackAngle||0)*lunge);ctx.scale(stretchX,stretchY);
         ctx.fillStyle='#0b172277';ctx.beginPath();ctx.ellipse(0,enemy.r*.8,enemy.r,5,0,0,Math.PI*2);ctx.fill();
         ctx.fillStyle=enemy.hit>0?'#fff':enemy.color;ctx.beginPath();ctx.arc(0,0,enemy.r,Math.PI,0);
         ctx.quadraticCurveTo(enemy.r,enemy.r*.85,0,enemy.r*.7);
