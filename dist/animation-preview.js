@@ -12,12 +12,34 @@
   const playerBounds=[[386,362,850,928],[396,376,846,930],[432,356,812,956],[396,344,836,952],[386,350,866,946],[374,340,862,916],[394,344,828,926],[396,324,828,922]];
   const playerNames=['man1.png','man2.png','man3.png','man4.png','man5.png','man6.png','man7.png','man8.png'];
   let enemyMoveImages=[],enemyAttackImages=[];
-  const enemyAttackDuration=.42;
+  const attackSettings=$('attackSettings');
+  const attackFrameDefault=.105;
   const enemySequence=[0,1,2,1,0];
   const enemyDurations=()=>[tuning.idleTime,tuning.midTime,tuning.peakTime,tuning.midTime,tuning.idleTime];
   const menuButtons=[...document.querySelectorAll('[data-category]')];
   function readTuning(){
-    try{return {...defaults,...JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}')}}catch{return {...defaults}}
+    try{
+      const saved=JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}');
+      return {...defaults,...saved,attackTimes:Array.isArray(saved.attackTimes)?saved.attackTimes:[]};
+    }catch{return {...defaults,attackTimes:[]}}
+  }
+  function attackTime(index){
+    const value=Number(tuning.attackTimes[index]);
+    return Number.isFinite(value)&&value>0?Math.max(.04,Math.min(.5,value)):attackFrameDefault;
+  }
+  function buildAttackSettings(){
+    attackSettings.replaceChildren();
+    enemyAttackImages.forEach((frame,index)=>{
+      const row=document.createElement('div'),label=document.createElement('label'),output=document.createElement('output'),input=document.createElement('input');
+      row.className='slider-row';label.htmlFor=`attackTime${index}`;label.textContent=`${frame.file} 表示時間`;
+      input.id=label.htmlFor;input.type='range';input.min='.04';input.max='.50';input.step='.01';input.value=String(attackTime(index));
+      output.textContent=`${Number(input.value).toFixed(2)} s`;
+      input.addEventListener('input',()=>{
+        tuning.attackTimes[index]=Number(input.value);output.textContent=`${Number(input.value).toFixed(2)} s`;
+        tuningEdited=true;localStorage.setItem(STORAGE_KEY,JSON.stringify(tuning));startedAt=performance.now();draw();
+      });
+      row.append(label,output,input);attackSettings.append(row);
+    });
   }
   for(const key of Object.keys(inputs))inputs[key].value=String(tuning[key]);
   function saveTuning(){
@@ -52,7 +74,7 @@
       const data=await response.json(),enemy=data.enemies?.slime_blue||{};
       const values={moveSpeed:enemy.move_speed_px_per_second,idleTime:enemy.animation_idle_seconds,midTime:enemy.animation_jump_mid_seconds,peakTime:enemy.animation_jump_peak_seconds};
       for(const key of Object.keys(inputs))if(Number.isFinite(Number(values[key])))inputs[key].value=String(values[key]);
-      saveTuning();$('notice').textContent='ゲームデータの青スライム設定を読み込みました';
+      tuning.attackTimes=[];buildAttackSettings();saveTuning();$('notice').textContent='ゲームデータの青スライム設定を読み込みました';
     }catch{$('notice').textContent='game-data.jsonを読み込めませんでした'}
   });
   function loadSprite(file,index){
@@ -91,7 +113,7 @@
       loadImage('sword.svg','sword.svg'),
       ...attacks.map(path=>loadImage(path.split('/').pop(),path))
     ]).then(items=>({items,moveCount:moves.length,attackCount:attacks.length}));
-  }).then(({items,moveCount,attackCount})=>{actorImages=items.slice(0,8);enemyMoveImages=items.slice(8,8+moveCount);swordImage=items[8+moveCount];enemyAttackImages=items.slice(9+moveCount,9+moveCount+attackCount);buildFileList();draw()});
+  }).then(({items,moveCount,attackCount})=>{actorImages=items.slice(0,8);enemyMoveImages=items.slice(8,8+moveCount);swordImage=items[8+moveCount];enemyAttackImages=items.slice(9+moveCount,9+moveCount+attackCount);buildAttackSettings();buildFileList();draw()});
   function setCanvasSize(){
     const rect=canvas.getBoundingClientRect();if(!rect.width||!rect.height)return;
     dpr=Math.max(1,Math.min(2,devicePixelRatio||1));canvas.width=Math.round(rect.width*dpr);canvas.height=Math.round(rect.height*dpr);
@@ -133,7 +155,9 @@
     if(category==='enemy'&&next==='attack'){loop=true;loopToggle.checked=true}
     gameFrame.classList.remove('active');gameFrame.removeAttribute('src');canvas.classList.add('active');hint.hidden=true;
     fileList.hidden=false;loopToggle.closest('.loop-row').hidden=false;
-    tuningPanel.hidden=category!=='enemy'||next==='attack';
+    tuningPanel.hidden=category!=='enemy';
+    document.querySelectorAll('.move-setting').forEach(row=>row.hidden=next==='attack');
+    attackSettings.hidden=next!=='attack';
     buildFileList();setCanvasSize();draw();
   }
   function filesForSelection(){
@@ -160,7 +184,7 @@
   }
   loopToggle.addEventListener('change',()=>{loop=loopToggle.checked;startedAt=performance.now();draw()});
   $('copySettings').addEventListener('click',async()=>{
-    const result={enemy_key:'slime_blue',move_speed_px_per_second:tuning.moveSpeed,animation_idle_seconds:tuning.idleTime,animation_jump_mid_seconds:tuning.midTime,animation_jump_peak_seconds:tuning.peakTime};
+    const result={enemy_key:'slime_blue',move_speed_px_per_second:tuning.moveSpeed,animation_idle_seconds:tuning.idleTime,animation_jump_mid_seconds:tuning.midTime,animation_jump_peak_seconds:tuning.peakTime,animation_attack_frame_seconds:enemyAttackImages.map((_,index)=>attackTime(index))};
     try{await navigator.clipboard.writeText(JSON.stringify(result,null,2));$('notice').textContent='設定値をコピーしました'}
     catch{$('notice').textContent=JSON.stringify(result)}
   });
@@ -169,7 +193,11 @@
     if(!loop||files.length===1)return files[Math.min(selection,files.length-1)];
     const elapsed=Math.max(0,(now-startedAt)/1000);
     if(category==='enemy'){
-      if(action==='attack')return files[Math.min(files.length-1,Math.floor((elapsed%enemyAttackDuration)/enemyAttackDuration*files.length))];
+      if(action==='attack'){
+        const durations=files.map((_,index)=>attackTime(index));let time=elapsed%durations.reduce((sum,value)=>sum+value,0);
+        for(let index=0;index<files.length;index++){if(time<durations[index])return files[index];time-=durations[index]}
+        return files.at(-1);
+      }
       const seq=files.map((_,index)=>index),durations=files.map((_,index)=>index===0?tuning.idleTime:tuning.midTime);let time=elapsed%durations.reduce((a,b)=>a+b,0);
       for(let i=0;i<seq.length;i++){if(time<durations[i])return files[seq[i]];time-=durations[i]}
       return files[0];

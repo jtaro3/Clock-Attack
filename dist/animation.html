@@ -43,6 +43,8 @@
     .tuning{display:grid;gap:10px;margin-top:12px}
     .tuning[hidden]{display:none}
     .slider-row{display:grid;grid-template-columns:1fr auto;gap:4px 8px;align-items:center}
+    .slider-row[hidden],.attack-settings[hidden]{display:none}
+    .attack-settings{display:contents}
     .slider-row label{font-weight:700;font-size:13px}
     .slider-row output{font-variant-numeric:tabular-nums;color:#f1d58e;font-weight:800}
     .slider-row input{grid-column:1/-1;width:100%;accent-color:#e6c987}
@@ -97,10 +99,11 @@
         <div id="fileList" class="file-list" aria-label="画像一覧"></div>
         <label class="loop-row"><input id="loopToggle" type="checkbox">表示画像を順番にループ</label>
         <div id="tuning" class="tuning" hidden>
-          <div class="slider-row"><label for="moveSpeed">移動速度</label><output id="moveSpeedValue"></output><input id="moveSpeed" type="range" min="0" max="80" step="1" value="27"></div>
-          <div class="slider-row"><label for="idleTime">idle表示時間</label><output id="idleTimeValue"></output><input id="idleTime" type="range" min="0.10" max="1.20" step="0.02" value="0.38"></div>
-          <div class="slider-row"><label for="midTime">jump_mid表示時間</label><output id="midTimeValue"></output><input id="midTime" type="range" min="0.04" max="0.50" step="0.01" value="0.12"></div>
-          <div class="slider-row"><label for="peakTime">jump_peak表示時間</label><output id="peakTimeValue"></output><input id="peakTime" type="range" min="0.04" max="0.50" step="0.01" value="0.12"></div>
+          <div class="slider-row move-setting"><label for="moveSpeed">移動速度</label><output id="moveSpeedValue"></output><input id="moveSpeed" type="range" min="0" max="80" step="1" value="27"></div>
+          <div class="slider-row move-setting"><label for="idleTime">idle表示時間</label><output id="idleTimeValue"></output><input id="idleTime" type="range" min="0.10" max="1.20" step="0.02" value="0.38"></div>
+          <div class="slider-row move-setting"><label for="midTime">jump_mid表示時間</label><output id="midTimeValue"></output><input id="midTime" type="range" min="0.04" max="0.50" step="0.01" value="0.12"></div>
+          <div class="slider-row move-setting"><label for="peakTime">jump_peak表示時間</label><output id="peakTimeValue"></output><input id="peakTime" type="range" min="0.04" max="0.50" step="0.01" value="0.12"></div>
+          <div id="attackSettings" class="attack-settings" hidden></div>
           <p class="save-hint">調整値はこのブラウザーに保存され、ゲームを同じブラウザーで開くと青スライムに反映します。台帳をCSV出力した後は「ゲームデータの値に戻す」で同期できます。</p>
           <button id="loadDataSettings" class="small-button" type="button">ゲームデータの値に戻す</button>
           <button id="copySettings" class="small-button" type="button">調整値をコピー</button>
@@ -109,6 +112,6 @@
       </aside>
     </div>
   </section>
-  <script src="animation-preview.js?v=1.00"></script>
+  <script src="animation-preview.js?v=1.01"></script>
 </body>
 </html>

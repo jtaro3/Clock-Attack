@@ -12,8 +12,8 @@
   const setting=(source,key,fallback)=>Number.isFinite(Number(source[key]))?Number(source[key]):fallback;
   const blueSlimeTuning=(()=>{
     const blueData=enemyData.slime_blue||{};
-    const values={moveSpeed:setting(blueData,'move_speed_px_per_second',27),idleTime:setting(blueData,'animation_idle_seconds',.38),midTime:setting(blueData,'animation_jump_mid_seconds',.12),peakTime:setting(blueData,'animation_jump_peak_seconds',.12)};
-    try{const saved=JSON.parse(localStorage.getItem('clock-attack-blue-slime-tuning-v1')||'{}');for(const key of Object.keys(values))if(Number.isFinite(Number(saved[key])))values[key]=Number(saved[key])}catch{}
+    const values={moveSpeed:setting(blueData,'move_speed_px_per_second',27),idleTime:setting(blueData,'animation_idle_seconds',.38),midTime:setting(blueData,'animation_jump_mid_seconds',.12),peakTime:setting(blueData,'animation_jump_peak_seconds',.12),attackTimes:[]};
+    try{const saved=JSON.parse(localStorage.getItem('clock-attack-blue-slime-tuning-v1')||'{}');for(const key of ['moveSpeed','idleTime','midTime','peakTime'])if(Number.isFinite(Number(saved[key])))values[key]=Number(saved[key]);if(Array.isArray(saved.attackTimes))values.attackTimes=saved.attackTimes}catch{}
     values.moveSpeed=Math.max(0,Math.min(80,values.moveSpeed));
     for(const key of ['idleTime','midTime','peakTime'])values[key]=Math.max(.04,Math.min(1.2,values[key]));
     return values;
@@ -131,6 +131,8 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
   ]; */
   const SLIME_ATTACK_DURATION=.42;
   const blueSlimeAttackFrames=blueAttackFiles.map(file=>({file,image:new Image(),attack:true}));
+  const BLUE_ATTACK_DURATIONS=blueSlimeAttackFrames.map((_,index)=>{const value=Number(blueSlimeTuning.attackTimes[index]);return Number.isFinite(value)&&value>0?Math.max(.04,Math.min(.5,value)):.105});
+  const BLUE_ATTACK_DURATION=BLUE_ATTACK_DURATIONS.reduce((sum,duration)=>sum+duration,0);
   const BLUE_SLIME_LOOP_SECONDS=blueSlimeFrames.reduce((sum,frame)=>sum+frame.duration,0);
   blueSlimeFrames.forEach(frame=>{
     frame.image.onload=()=>{
@@ -147,8 +149,9 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
   blueSlimeAttackFrames.forEach(frame=>{frame.image.src=frame.file});
   function blueSlimeFrame(enemy){
     if(enemy.attackTime>0){
-      const progress=1-enemy.attackTime/SLIME_ATTACK_DURATION;
-      return blueSlimeAttackFrames[Math.min(blueSlimeAttackFrames.length-1,Math.floor(progress*blueSlimeAttackFrames.length))];
+      let time=BLUE_ATTACK_DURATION-enemy.attackTime;
+      for(let index=0;index<blueSlimeAttackFrames.length;index++){if(time<BLUE_ATTACK_DURATIONS[index])return blueSlimeAttackFrames[index];time-=BLUE_ATTACK_DURATIONS[index]}
+      return blueSlimeAttackFrames[blueSlimeAttackFrames.length-1];
     }
     let time=enemy.animationTime%BLUE_SLIME_LOOP_SECONDS;
     for(const frame of blueSlimeFrames){if(time<frame.duration)return frame;time-=frame.duration}
@@ -685,7 +688,7 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
       const ex=player.x-enemy.x,ey=player.y-enemy.y,len=Math.hypot(ex,ey)||1;
       if(enemy.attackTime<=0)moveBody(enemy,ex/len*enemy.speed*dt,ey/len*enemy.speed*dt,enemy.r);
       if(len<player.r+enemy.r-3&&invincible<=0){
-        enemy.attackTime=SLIME_ATTACK_DURATION;enemy.attackAngle=Math.atan2(ey,ex);
+        enemy.attackTime=enemy.enemyKey==='slime_blue'?BLUE_ATTACK_DURATION:SLIME_ATTACK_DURATION;enemy.attackAngle=Math.atan2(ey,ex);
         damageFlash=.5;
         const bounds=playerMovementBounds();
         moveBody(player,clamp(player.x+ex/len*Math.max(0,setting(playerData,'damage_knockback_distance_px',20)),bounds.left,bounds.right)-player.x,clamp(player.y+ey/len*Math.max(0,setting(playerData,'damage_knockback_distance_px',20)),bounds.top,bounds.bottom)-player.y,10,14);
