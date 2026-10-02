@@ -274,6 +274,12 @@
   $('zoomOut').addEventListener('click',()=>setZoom(zoomIndex-1));
   $('zoomIn').addEventListener('click',()=>setZoom(zoomIndex+1));
   $('save').addEventListener('click',save);
+  $('clearMap').addEventListener('click',()=>{
+    if(!confirm('マップ全体の地形を先頭の地面チップに戻し、配置したオブジェクトをすべて削除します。マップのサイズは変わりません。実行しますか？'))return;
+    map.tiles.fill(0);map.objects=[];previewPlayer=null;placingPlayer=false;
+    updateToolUI();draw();changed=true;save();
+    if(!changed)status('マップ全体を消去し、保存しました。ゲームへの反映にはJSONを書き出してください。');
+  });
   $('export').addEventListener('click',()=>{
     const data=new Blob([JSON.stringify(map,null,2)],{type:'application/json'});
     const url=URL.createObjectURL(data),link=document.createElement('a');
