@@ -12,6 +12,9 @@
   const playerBounds=[[386,362,850,928],[396,376,846,930],[432,356,812,956],[396,344,836,952],[386,350,866,946],[374,340,862,916],[394,344,828,926],[396,324,828,922]];
   const playerNames=['man1.png','man2.png','man3.png','man4.png','man5.png','man6.png','man7.png','man8.png'];
   const enemyNames=['slime_blue_idle.png','slime_blue_jump_mid.png','slime_blue_jump_peak.png'];
+  const enemyAttackNames=['slime-blue-attack-01.png','slime-blue-attack-02.png','slime-blue-attack-03.png','slime-blue-attack-04.png'];
+  const enemyAttackDuration=.42;
+  let enemyAttackImages=[];
   const enemySequence=[0,1,2,1,0];
   const enemyDurations=()=>[tuning.idleTime,tuning.midTime,tuning.peakTime,tuning.midTime,tuning.idleTime];
   const menuButtons=[...document.querySelectorAll('[data-category]')];
@@ -82,8 +85,9 @@
   Promise.all([
     ...playerNames.map((name,i)=>loadSprite(name,i)),
     ...enemyNames.map(name=>loadImage(name,name)),
-    loadImage('sword.svg','sword.svg')
-  ]).then(items=>{actorImages=items.slice(0,11);swordImage=items[11];buildFileList();draw()});
+    loadImage('sword.svg','sword.svg'),
+    ...enemyAttackNames.map(name=>loadImage(name,name))
+  ]).then(items=>{actorImages=items.slice(0,11);swordImage=items[11];enemyAttackImages=items.slice(12);buildFileList();draw()});
   function setCanvasSize(){
     const rect=canvas.getBoundingClientRect();if(!rect.width||!rect.height)return;
     dpr=Math.max(1,Math.min(2,devicePixelRatio||1));canvas.width=Math.round(rect.width*dpr);canvas.height=Math.round(rect.height*dpr);
@@ -122,15 +126,16 @@
   }
   function showAction(next){
     action=next;selection=0;loop=loopToggle.checked;startedAt=performance.now();
+    if(category==='enemy'&&next==='attack'){loop=true;loopToggle.checked=true}
     gameFrame.classList.remove('active');gameFrame.removeAttribute('src');canvas.classList.add('active');hint.hidden=true;
     fileList.hidden=false;loopToggle.closest('.loop-row').hidden=false;
-    tuningPanel.hidden=category!=='enemy';
+    tuningPanel.hidden=category!=='enemy'||next==='attack';
     buildFileList();setCanvasSize();draw();
   }
   function filesForSelection(){
     if(category==='player'&&action==='move')return actorImages.slice(0,8);
     if(category==='player'&&action==='attack')return [swordImage].filter(Boolean);
-    if(category==='enemy')return actorImages.slice(8,11);
+    if(category==='enemy')return action==='attack'?enemyAttackImages:actorImages.slice(8,11);
     return [];
   }
   function buildFileList(){
@@ -160,6 +165,7 @@
     if(!loop||files.length===1)return files[Math.min(selection,files.length-1)];
     const elapsed=Math.max(0,(now-startedAt)/1000);
     if(category==='enemy'){
+      if(action==='attack')return files[Math.min(3,Math.floor((elapsed%1.2)/enemyAttackDuration*4))];
       const seq=enemySequence,durations=enemyDurations();let time=elapsed%durations.reduce((a,b)=>a+b,0);
       for(let i=0;i<seq.length;i++){if(time<durations[i])return files[seq[i]];time-=durations[i]}
       return files[0];
@@ -197,9 +203,7 @@
         const x=tuning.moveSpeed===0?startX:startX-(time%travel)*tuning.moveSpeed;
         drawImage(enemy,x,cy,56,56);
       }else if(action==='attack'){
-        const x=cx+52;drawImage(enemy,x,cy,56,56);
-        const phase=(time%1.2)/1.2,radius=20+phase*75;
-        ctx.beginPath();ctx.arc(cx+20,cy,radius,0,Math.PI*2);ctx.strokeStyle='rgba(240,91,80,'+(1-phase)+')';ctx.lineWidth=5;ctx.stroke();
+        ctx.save();ctx.translate(cx+40,cy);ctx.rotate(Math.PI);drawImage(enemy,0,0,56,56);ctx.restore();
       }
     }
   }
