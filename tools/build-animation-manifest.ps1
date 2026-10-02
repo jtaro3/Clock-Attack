@@ -24,7 +24,7 @@ foreach ($action in @('move', 'attack')) {
 }
 
 $manifest = [ordered]@{ enemies = [ordered]@{ slime_blue = $enemyFrames } }
-$json = ConvertTo-Json -InputObject $manifest -Depth 10
+$json = (ConvertTo-Json -InputObject $manifest -Depth 10) + "`n"
 $utf8NoBom = [System.Text.UTF8Encoding]::new($false)
 [System.IO.File]::WriteAllText((Join-Path $ProjectRoot 'animation-manifest.json'), $json, $utf8NoBom)
 [System.IO.File]::WriteAllText((Join-Path $distRoot 'animation-manifest.json'), $json, $utf8NoBom)
