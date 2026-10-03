@@ -148,9 +148,9 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
       flashCtx.fillStyle='#fff';flashCtx.fillRect(0,0,flash.width,flash.height);
       frame.flash=flash;
     };
-    frame.image.src=frame.file;
+    frame.image.src=`${frame.file}?sprite=1.04`;
   });
-  blueSlimeAttackFrames.forEach(frame=>{frame.image.src=frame.file});
+  blueSlimeAttackFrames.forEach(frame=>{frame.image.src=`${frame.file}?sprite=1.04`});
   function blueSlimeFrame(enemy){
     if(enemy.attackTime>0){
       let time=BLUE_ATTACK_DURATION-enemy.attackTime;

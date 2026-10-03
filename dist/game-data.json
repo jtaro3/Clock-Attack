@@ -1,6 +1,6 @@
 {
     "schema_version":  1,
-    "generated_at":  "2026-10-03T09:58:20.1437805+09:00",
+    "generated_at":  "2026-10-03T23:53:15.6658443+09:00",
     "general":  {
                     "start_energy":  100,
                     "max_enemies":  20,
@@ -44,6 +44,7 @@
                                        "knockback_distance_px":  19,
                                        "move_speed_px_per_second":  18,
                                        "animation_attack_frame_seconds":  [
+                                                                              0.105,
                                                                               0.105,
                                                                               0.105,
                                                                               0.105,

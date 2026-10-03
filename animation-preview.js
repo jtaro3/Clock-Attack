@@ -106,7 +106,7 @@
       const image=new Image();
       image.onload=()=>resolve({file,label,image});
       image.onerror=()=>resolve({file,label,image:null});
-      image.src=file==='sword.svg'?'design/sword.svg':label;
+      image.src=file==='sword.svg'?'design/sword.svg':`${label}?sprite=1.04`;
     });
   }
   const fallbackMove=['design/enemies/slime_blue_idle.png','design/enemies/slime_blue_jump_mid.png','design/enemies/slime_blue_jump_peak.png'];
