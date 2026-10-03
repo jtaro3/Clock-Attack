@@ -22,6 +22,7 @@ $validator=Join-Path $ProjectFolder 'csv-to-game-data.ps1'
 $destination=Join-Path $ProjectFolder 'CSV'
 $json=Join-Path $ProjectFolder 'game-data.json'
 $tempJson=Join-Path $env:TEMP ('clock-attack-data-'+[guid]::NewGuid().ToString('N')+'.json')
+$errorReport=Join-Path $env:TEMP ('clock-attack-errors-'+[guid]::NewGuid().ToString('N')+'.txt')
 $validationFolder=$null
 $pendingFolder=Join-Path $ProjectFolder 'CSV.__pending'
 $isPendingSource=[IO.Path]::GetFullPath($SourceCsvFolder).TrimEnd('\') -ieq [IO.Path]::GetFullPath($pendingFolder).TrimEnd('\')
@@ -39,8 +40,16 @@ try{
         Copy-Item -LiteralPath $csvFiles[0].FullName -Destination (Join-Path $validationFolder $selectedFile) -Force
     }
     $inputFolder=if($validationFolder){$validationFolder}else{$SourceCsvFolder}
-    $validation=& powershell.exe -NoProfile -ExecutionPolicy Bypass -File $validator -CsvFolder $inputFolder -OutputPath $tempJson -Silent 2>&1
-    if($LASTEXITCODE-ne0){throw (($validation|ForEach-Object{$_.ToString()})-join"`n")}
+    try{
+        $validation=& powershell.exe -NoProfile -ExecutionPolicy Bypass -File $validator -CsvFolder $inputFolder -OutputPath $tempJson -ErrorReportPath $errorReport -Silent 2>&1
+    }catch{
+        if(Test-Path -LiteralPath $errorReport){throw [IO.File]::ReadAllText($errorReport,[Text.Encoding]::UTF8)}
+        throw
+    }
+    if($LASTEXITCODE-ne0){
+        if(Test-Path -LiteralPath $errorReport){throw [IO.File]::ReadAllText($errorReport,[Text.Encoding]::UTF8)}
+        throw (($validation|ForEach-Object{$_.ToString()})-join"`n")
+    }
     [IO.Directory]::CreateDirectory($destination)|Out-Null
     $csvFiles|ForEach-Object{Copy-Item -LiteralPath $_.FullName -Destination (Join-Path $destination $_.Name) -Force}
     Copy-Item -LiteralPath $tempJson -Destination $json -Force
@@ -51,12 +60,17 @@ try{
 }
 catch{
     $message="データに問題があるため、CSVとJSONを更新しませんでした。`n`n$($_.Exception.Message)"
-    if($ResultFile){[IO.File]::WriteAllText($ResultFile,"ERROR: " + ($message -replace "[`r`n]+",' '),[Text.UTF8Encoding]::new($false))}
+    if($ResultFile){
+        # The currently installed Calc macro reads one line from this file.
+        $popupMessage="ERROR: " + (($message -replace "[`r`n]+",' / ').Trim())
+        [IO.File]::WriteAllText($ResultFile,$popupMessage,[Text.UTF8Encoding]::new($false))
+    }
     if($Silent){Write-Error $message}else{Show-Result $message 'CSV・JSON出力エラー' 16}
     exit 1
 }
 finally{
     Remove-Item -LiteralPath $tempJson -Force -ErrorAction SilentlyContinue
+    Remove-Item -LiteralPath $errorReport -Force -ErrorAction SilentlyContinue
     if($validationFolder){Remove-Item -LiteralPath $validationFolder -Recurse -Force -ErrorAction SilentlyContinue}
     if($isPendingSource){Remove-Item -LiteralPath $SourceCsvFolder -Recurse -Force -ErrorAction SilentlyContinue}
 }

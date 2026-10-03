@@ -99,7 +99,11 @@ Sub ExportSheetsToCSV(currentOnly As Boolean)
     textStream = CreateUnoService("com.sun.star.io.TextInputStream")
     textStream.setInputStream(inputStream)
     textStream.setEncoding("UTF-8")
-    resultText = textStream.readLine()
+    resultText = ""
+    Do While Not textStream.isEOF()
+        If resultText <> "" Then resultText = resultText & Chr(10)
+        resultText = resultText & textStream.readLine()
+    Loop
     textStream.closeInput()
     If Left(resultText, 3) = "OK:" Then
         MsgBox resultText, 64, "CSV・JSON出力完了"

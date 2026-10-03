@@ -1,6 +1,7 @@
 ﻿param(
     [Parameter(Mandatory = $true)][string]$CsvFolder,
     [Parameter(Mandatory = $true)][string]$OutputPath,
+    [string]$ErrorReportPath,
     [switch]$Silent
 )
 
@@ -119,9 +120,9 @@ foreach($group in $animationFrames.Keys){
     $enemies[$parts[0]]["animation_$($parts[1])_frame_seconds"]=$durations
 }
 
-$rounds=[ordered]@{}; $enabledRoundKeys=@{}; for($i=0;$i-lt$roundRows.Count;$i++){
+$rounds=[ordered]@{}; $enabledRoundKeys=@{}; $enabledRoundLines=@{}; for($i=0;$i-lt$roundRows.Count;$i++){
     $row=$roundRows[$i];$line=$i+2;if(-not(Test-Enabled $row 'sheet-round.csv' $line)){continue};if($row.enabled-ne'1'){continue}
-    $roundNumber=[int](To-Number $row.round 'sheet-round.csv' $line 'round' 1);$key=[string]$roundNumber;$enabledRoundKeys[$key]=$true
+    $roundNumber=[int](To-Number $row.round 'sheet-round.csv' $line 'round' 1);$key=[string]$roundNumber;$enabledRoundKeys[$key]=$true;$enabledRoundLines[$key]=$line
     $rounds[$key]=[ordered]@{kill_target=[int](To-Number $row.kill_target 'sheet-round.csv' $line 'kill_target' 1);enemy_hp_multiplier=[double](To-Number $row.enemy_hp_multiplier 'sheet-round.csv' $line 'enemy_hp_multiplier' 0);enemy_attack_multiplier=[double](To-Number $row.enemy_attack_multiplier 'sheet-round.csv' $line 'enemy_attack_multiplier' 0);enemy_speed_multiplier=[double](To-Number $row.enemy_speed_multiplier 'sheet-round.csv' $line 'enemy_speed_multiplier' 0);spawn_interval_seconds=[double](To-Number $row.spawn_interval_seconds 'sheet-round.csv' $line 'spawn_interval_seconds' 0.01);spawns=@()}
 }
 
@@ -135,7 +136,7 @@ $spawnPairs=@{}; for($i=0;$i-lt$spawnRows.Count;$i++){
     if($row.guaranteed_once-notin@('0','1')){Add-DataError 'sheet-round_spawn.csv' $line 'guaranteed_once' '0または1を指定してください。'}
     $rounds[$roundKey].spawns += [ordered]@{enemy_key=$enemyKey;spawn_weight=[double](To-Number $row.spawn_weight 'sheet-round_spawn.csv' $line 'spawn_weight' 0.01);max_alive=[int](To-Number $row.max_alive 'sheet-round_spawn.csv' $line 'max_alive' 0);max_per_round=[int](To-Number $row.max_per_round 'sheet-round_spawn.csv' $line 'max_per_round' 0);start_elapsed_seconds=[double](To-Number $row.start_elapsed_seconds 'sheet-round_spawn.csv' $line 'start_elapsed_seconds' 0);guaranteed_once=($row.guaranteed_once-eq'1')}
 }
-foreach($roundKey in $enabledRoundKeys.Keys){if($rounds[$roundKey].spawns.Count-eq0){Add-DataError 'sheet-round_spawn.csv' 0 'round' "有効なround ${roundKey}に出現設定がありません。"}}
+foreach($roundKey in $enabledRoundKeys.Keys){if($rounds[$roundKey].spawns.Count-eq0){Add-DataError 'sheet-round.csv' $enabledRoundLines[$roundKey] 'round' "有効なround ${roundKey}に出現設定がありません。round_spawnシートで該当行のenabledを1にするか、このroundを無効にしてください。"}}
 
 $assets=@(); for($i=0;$i-lt$assetRows.Count;$i++){$row=$assetRows[$i];$line=$i+2;if(-not(Test-Enabled $row 'sheet-assets.csv' $line)){continue};if($row.enabled-ne'1'){continue};foreach($column in @('asset_key','asset_type','owner_key','sprite_file')){if([string]::IsNullOrWhiteSpace($row.$column)){Add-DataError 'sheet-assets.csv' $line $column '有効なアセットでは必須です。'}};$assets += [ordered]@{asset_key=$row.asset_key.Trim();asset_type=$row.asset_type;owner_key=$row.owner_key.Trim();description=$row.description;direction=$row.direction;sprite_scale=if($row.sprite_scale){[double](To-Number $row.sprite_scale 'sheet-assets.csv' $line 'sprite_scale' 0.01)}else{1};sprite_file=$row.sprite_file}}
 $difficulties=[ordered]@{}; for($i=0;$i-lt$difficultyRows.Count;$i++){$row=$difficultyRows[$i];$difficulties[$row.difficulty_key.Trim()]=[ordered]@{description=$row.description;max_round=[int](To-Number $row.max_round 'sheet-difficulty.csv' ($i+2) 'max_round' 1)}}
@@ -165,7 +166,7 @@ for($i=0;$i-lt$mapTileRows.Count;$i++){
     $mapTiles += [ordered]@{destructible=($row.destructible -eq '1');hp=[int]$objectHp;asset_key=$key;sprite_file=$sprite;category=([string]$row.category).Trim();palette_color=$color;walkable=($row.walkable -eq '1');collision_length=[double]$length;collision_width=[double]$width}
 }
 
-if($errors.Count-gt0){$message="データ検証で$($errors.Count)件のエラーが見つかりました。`n"+($errors-join"`n");if(-not$Silent){Write-Host $message -ForegroundColor Red};[Console]::Error.WriteLine($message);exit 2}
+if($errors.Count-gt0){$message="データ検証で$($errors.Count)件のエラーが見つかりました。`n"+($errors-join"`n");if($ErrorReportPath){[IO.File]::WriteAllText($ErrorReportPath,$message,[Text.UTF8Encoding]::new($false))};if(-not$Silent){Write-Host $message -ForegroundColor Red};[Console]::Error.WriteLine($message);exit 2}
 
 $data=[ordered]@{schema_version=1;generated_at=(Get-Date).ToString('o');general=$general;player=$player;enemies=$enemies;rounds=$rounds;assets=$assets;difficulties=$difficulties;map_tiles=$mapTiles}
 $parent=Split-Path -Parent $OutputPath;if($parent){[IO.Directory]::CreateDirectory($parent)|Out-Null}
