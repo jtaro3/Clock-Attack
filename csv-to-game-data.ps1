@@ -59,6 +59,7 @@ function To-Number($Value, [string]$File, [int]$Line, [string]$Column, [double]$
 $generalRows = @(Read-Table 'general' @('key','description','value','type','min','max','unit','notes')) | Where-Object { -not [string]::IsNullOrWhiteSpace($_.key) }
 $playerRows = @(Read-Table 'player' @('key','description','value','type','min','max','unit','notes')) | Where-Object { -not [string]::IsNullOrWhiteSpace($_.key) }
 $enemyRows = @(Read-Table 'enemy' @('enabled','enemy_key','description','family','variant','hp','attack','super_armor','ai_type','sand_type','death_hit_stop_seconds')) | Where-Object { -not [string]::IsNullOrWhiteSpace($_.enemy_key) }
+$animationRows = @(Read-Table 'animation' @('enabled','enemy_key','action','frame_index','frame_seconds','move_speed_px_per_second')) | Where-Object { -not [string]::IsNullOrWhiteSpace($_.enemy_key) }
 $roundRows = @(Read-Table 'round' @('enabled','round','kill_target','enemy_hp_multiplier','enemy_attack_multiplier','enemy_speed_multiplier','spawn_interval_seconds')) | Where-Object { -not [string]::IsNullOrWhiteSpace($_.round) }
 $spawnRows = @(Read-Table 'round_spawn' @('enabled','round','enemy_key','spawn_weight','max_alive','max_per_round','start_elapsed_seconds','guaranteed_once')) | Where-Object { -not [string]::IsNullOrWhiteSpace($_.enemy_key) }
 $assetRows = @(Read-Table 'assets' @('enabled','asset_key','asset_type','owner_key','description','direction','sprite_scale','sprite_file')) | Where-Object { -not [string]::IsNullOrWhiteSpace($_.asset_key) }
@@ -82,21 +83,40 @@ $enemies = [ordered]@{}; $enabledEnemyKeys=@{}; for($i=0;$i-lt$enemyRows.Count;$
     $knockback=18.75
     if(-not [string]::IsNullOrWhiteSpace([string]$row.knockback_distance_px)){$knockback=To-Number $row.knockback_distance_px 'sheet-enemy.csv' $line 'knockback_distance_px' 0}
     $enemyData['knockback_distance_px']=[double]$knockback
-    if($key -eq 'slime_blue'){
-        $tuningColumns=@(
-            [pscustomobject]@{name='move_speed_px_per_second';default=27.0;minimum=0.0;maximum=80.0},
-            [pscustomobject]@{name='animation_idle_seconds';default=0.38;minimum=0.10;maximum=1.20},
-            [pscustomobject]@{name='animation_jump_mid_seconds';default=0.12;minimum=0.04;maximum=0.50},
-            [pscustomobject]@{name='animation_jump_peak_seconds';default=0.12;minimum=0.04;maximum=0.50}
-        )
-        foreach($setting in $tuningColumns){
-            $column=$setting.name;$fallback=[double]$setting.default;$minimum=[double]$setting.minimum;$maximum=[double]$setting.maximum;$value=$fallback
-            if(-not [string]::IsNullOrWhiteSpace([string]$row.$column)){$value=To-Number $row.$column 'sheet-enemy.csv' $line $column $minimum}
-            if($value -gt $maximum){Add-DataError 'sheet-enemy.csv' $line $column "${maximum}以下を指定してください。"}
-            $enemyData[$column]=[double]$value
-        }
-    }
     $enemies[$key]=$enemyData
+}
+
+$animationFrames=@{}; $animationSpeedKeys=@{}
+for($i=0;$i-lt$animationRows.Count;$i++){
+    $row=$animationRows[$i];$line=$i+2;$file='sheet-animation.csv'
+    if(-not(Test-Enabled $row $file $line)){continue};if($row.enabled-ne'1'){continue}
+    $key=([string]$row.enemy_key).Trim();$action=([string]$row.action).Trim()
+    if(-not$enabledEnemyKeys.ContainsKey($key)){Add-DataError $file $line 'enemy_key' "有効なenemy ${key}が存在しません。";continue}
+    if($action -eq 'move_speed'){
+        if($animationSpeedKeys.ContainsKey($key)){Add-DataError $file $line 'move_speed_px_per_second' "${key}の移動速度が重複しています。"}
+        $animationSpeedKeys[$key]=$true
+        $speed=To-Number $row.move_speed_px_per_second $file $line 'move_speed_px_per_second' 0
+        if($speed-gt80){Add-DataError $file $line 'move_speed_px_per_second' '80以下を指定してください。'}
+        $enemies[$key]['move_speed_px_per_second']=[double]$speed
+        continue
+    }
+    if($action-notin@('move','attack')){Add-DataError $file $line 'action' 'move_speed、move、attackを指定してください。';continue}
+    $frame=To-Number $row.frame_index $file $line 'frame_index' 1
+    if($frame -ne [Math]::Truncate($frame)){Add-DataError $file $line 'frame_index' '整数を指定してください。';continue}
+    $duration=To-Number $row.frame_seconds $file $line 'frame_seconds' 0.04
+    if($duration-gt1.2){Add-DataError $file $line 'frame_seconds' '1.2以下を指定してください。'}
+    $group="${key}|${action}"
+    if(-not$animationFrames.ContainsKey($group)){$animationFrames[$group]=@{}}
+    if($animationFrames[$group].ContainsKey([int]$frame)){Add-DataError $file $line 'frame_index' "${group}の${frame}枚目が重複しています。"}
+    $animationFrames[$group][[int]$frame]=[double]$duration
+}
+foreach($group in $animationFrames.Keys){
+    $parts=$group.Split('|');$frames=$animationFrames[$group];$count=$frames.Count
+    $durations=@();for($frame=1;$frame-le$count;$frame++){
+        if(-not$frames.ContainsKey($frame)){Add-DataError 'sheet-animation.csv' 0 'frame_index' "${group}は1から連番にしてください。";break}
+        $durations += [double]$frames[$frame]
+    }
+    $enemies[$parts[0]]["animation_$($parts[1])_frame_seconds"]=$durations
 }
 
 $rounds=[ordered]@{}; $enabledRoundKeys=@{}; for($i=0;$i-lt$roundRows.Count;$i++){

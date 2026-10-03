@@ -1,6 +1,6 @@
 {
     "schema_version":  1,
-    "generated_at":  "2026-09-29T02:37:53.5094901+09:00",
+    "generated_at":  "2026-10-03T09:58:20.1437805+09:00",
     "general":  {
                     "start_energy":  100,
                     "max_enemies":  20,
@@ -43,9 +43,18 @@
                                        "death_hit_stop_seconds":  0.1,
                                        "knockback_distance_px":  19,
                                        "move_speed_px_per_second":  18,
-                                       "animation_idle_seconds":  0.2,
-                                       "animation_jump_mid_seconds":  0.23,
-                                       "animation_jump_peak_seconds":  0.5
+                                       "animation_attack_frame_seconds":  [
+                                                                              0.105,
+                                                                              0.105,
+                                                                              0.105,
+                                                                              0.105
+                                                                          ],
+                                       "animation_move_frame_seconds":  [
+                                                                            0.2,
+                                                                            0.23,
+                                                                            0.5,
+                                                                            0.23
+                                                                        ]
                                    },
                     "slime_green":  {
                                         "description":  "緑スライム",

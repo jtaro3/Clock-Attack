@@ -12,7 +12,7 @@
   const setting=(source,key,fallback)=>Number.isFinite(Number(source[key]))?Number(source[key]):fallback;
   const blueSlimeTuning=(()=>{
     const blueData=enemyData.slime_blue||{};
-    const values={moveSpeed:setting(blueData,'move_speed_px_per_second',27),idleTime:setting(blueData,'animation_idle_seconds',.38),midTime:setting(blueData,'animation_jump_mid_seconds',.12),peakTime:setting(blueData,'animation_jump_peak_seconds',.12),moveTimes:[],attackTimes:[]};
+    const values={moveSpeed:setting(blueData,'move_speed_px_per_second',27),idleTime:setting(blueData,'animation_idle_seconds',.38),midTime:setting(blueData,'animation_jump_mid_seconds',.12),peakTime:setting(blueData,'animation_jump_peak_seconds',.12),moveTimes:Array.isArray(blueData.animation_move_frame_seconds)?blueData.animation_move_frame_seconds:[],attackTimes:Array.isArray(blueData.animation_attack_frame_seconds)?blueData.animation_attack_frame_seconds:[]};
     try{const saved=JSON.parse(localStorage.getItem('clock-attack-blue-slime-tuning-v1')||'{}');for(const key of ['moveSpeed','idleTime','midTime','peakTime'])if(Number.isFinite(Number(saved[key])))values[key]=Number(saved[key]);if(Array.isArray(saved.moveTimes))values.moveTimes=saved.moveTimes;if(Array.isArray(saved.attackTimes))values.attackTimes=saved.attackTimes}catch{}
     values.moveSpeed=Math.max(0,Math.min(80,values.moveSpeed));
     for(const key of ['idleTime','midTime','peakTime'])values[key]=Math.max(.04,Math.min(1.2,values[key]));

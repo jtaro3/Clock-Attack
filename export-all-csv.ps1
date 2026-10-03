@@ -1,5 +1,5 @@
 ﻿param(
-    [string]$WorkbookPath = 'C:\Users\hikar\OneDrive\ドキュメント\GitHub\Clock-Attack\main.xlsm',
+    [string]$WorkbookPath = 'C:\Users\hikar\OneDrive\ドキュメント\GitHub\Clock-Attack\main.ods',
     [switch]$Silent
 )
 

@@ -66,7 +66,9 @@
       const enemy=data.enemies?.slime_blue||{};
       const values={moveSpeed:enemy.move_speed_px_per_second,idleTime:enemy.animation_idle_seconds,midTime:enemy.animation_jump_mid_seconds,peakTime:enemy.animation_jump_peak_seconds};
       for(const key of Object.keys(values))if(values[key]!=null&&Number.isFinite(Number(values[key])))tuning[key]=Number(values[key]);
-      moveSpeedInput.value=String(tuning.moveSpeed);buildMoveSettings();updateOutputs();draw();
+      if(Array.isArray(enemy.animation_move_frame_seconds))tuning.moveTimes=enemy.animation_move_frame_seconds;
+      if(Array.isArray(enemy.animation_attack_frame_seconds))tuning.attackTimes=enemy.animation_attack_frame_seconds;
+      moveSpeedInput.value=String(tuning.moveSpeed);buildMoveSettings();buildAttackSettings();updateOutputs();draw();
     }).catch(()=>{$('notice').textContent='ゲームデータを読み込めないため初期値を表示しています'});
   }
   $('loadDataSettings').addEventListener('click',async()=>{
@@ -76,7 +78,9 @@
       const data=await response.json(),enemy=data.enemies?.slime_blue||{};
       const values={moveSpeed:enemy.move_speed_px_per_second,idleTime:enemy.animation_idle_seconds,midTime:enemy.animation_jump_mid_seconds,peakTime:enemy.animation_jump_peak_seconds};
       for(const key of Object.keys(values))if(values[key]!=null&&Number.isFinite(Number(values[key])))tuning[key]=Number(values[key]);
-      moveSpeedInput.value=String(tuning.moveSpeed);tuning.moveTimes=[];tuning.attackTimes=[];
+      moveSpeedInput.value=String(tuning.moveSpeed);
+      tuning.moveTimes=Array.isArray(enemy.animation_move_frame_seconds)?enemy.animation_move_frame_seconds:[];
+      tuning.attackTimes=Array.isArray(enemy.animation_attack_frame_seconds)?enemy.animation_attack_frame_seconds:[];
       buildMoveSettings();buildAttackSettings();saveTuning();$('notice').textContent='ゲームデータの青スライム設定を読み込みました';
     }catch{$('notice').textContent='game-data.jsonを読み込めませんでした'}
   });

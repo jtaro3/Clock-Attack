@@ -25,14 +25,15 @@
 
 ### 青スライムの動き
 
-`sheet-enemy.csv` の青スライム行で調整する。空欄の場合は初期値を使う。
+`main.ods` の `animation` シートで調整する。CSV出力先は `CSV/sheet-animation.csv`。画像1枚につき1行なので、画像が増えたら同じ `enemy_key` と `action` で次の `frame_index` の行を追加する。
 
 | 列 | 初期値 | 内容 |
 |---|---:|---|
-| `move_speed_px_per_second` | 27（0～80） | 移動速度。各ラウンドの速度倍率が適用される。 |
-| `animation_idle_seconds` | 0.38（0.10～1.20秒） | idle画像を表示する秒数。ループの始めと終わりで使う。 |
-| `animation_jump_mid_seconds` | 0.12（0.04～0.50秒） | jump_mid画像を表示する秒数。 |
-| `animation_jump_peak_seconds` | 0.12（0.04～0.50秒） | jump_peak画像を表示する秒数。 |
+| `action=move_speed` の `move_speed_px_per_second` | 18 px/s | フィールド上の移動速度。各ラウンドの速度倍率が適用される。 |
+| `action=move` の `frame_seconds` | 0.20、0.23、0.50、0.23秒 | `frame_index` 1～4に対応する移動画像の表示時間。 |
+| `action=attack` の `frame_seconds` | 各0.105秒 | `frame_index` 1～4に対応する攻撃画像の表示時間。 |
+
+`enabled=0` の行はCSVに残してもゲームには反映されない。移動画像や攻撃画像の並びは `animation-manifest.json` の連番ファイル順と合わせる。
 
 演出確認画面のスライダーはすぐにプレビューでき、同じブラウザーで開くゲームにも適用される。台帳をCSV出力した後、「ゲームデータの値に戻す」を押すと、JSONに出力された値でプレビュー設定を同期できる。
 
