@@ -132,7 +132,7 @@
     menuButtons.forEach(button=>button.classList.toggle('active',button.dataset.category===next));
     home.classList.remove('active');previewScreen.classList.add('active');panel.hidden=false;
     gameFrame.classList.remove('active');canvas.classList.remove('active');hint.hidden=false;
-    hint.textContent='上部の項目から演出を選択';
+    hint.textContent='演出を選択してください';
     subChoices.replaceChildren();fileList.replaceChildren();fileList.hidden=true;loopToggle.closest('.loop-row').hidden=true;tuningPanel.hidden=true;
     if(next==='hourglass'){
       $('debugTitle').textContent='砂時計の演出';

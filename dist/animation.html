@@ -9,14 +9,12 @@
     :root{font-family:system-ui,"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;color:#f5f1dc;background:#000}
     *{box-sizing:border-box}
     body{margin:0;height:100vh;height:100dvh;overflow:hidden;background:#000}
-    .toolbar{height:60px;padding:8px max(12px,env(safe-area-inset-right)) 8px max(12px,env(safe-area-inset-left));display:flex;align-items:center;gap:10px;background:#142a28;border-bottom:1px solid #d6c18c55}
     .title-link,.category,.sub-choice,.small-button{border:1px solid #668674;border-radius:9px;background:#24453b;color:#f4f1e7;font-size:14px;font-weight:800;text-decoration:none;white-space:nowrap}
-    .title-link{padding:9px 12px;background:#9e2929;border-color:#ff7c73}
-    .categories{display:flex;gap:6px;overflow-x:auto}
+    .title-link{display:block;padding:12px 14px;background:#9e2929;border-color:#ff7c73;text-align:center}
     button{font:inherit}
     .category,.sub-choice,.small-button{padding:9px 12px;cursor:pointer}
     .category.active,.sub-choice.active{background:#e6c987;color:#172721;border-color:#e6c987}
-    .screen{height:calc(100% - 60px);display:none;background:#000}
+    .screen{height:100%;display:none;background:#000}
     .screen.active{display:flex}
     .home{width:100%;height:100%;display:grid;place-items:center;padding:20px}
     .home-nav{display:grid;gap:10px;width:min(100%,340px);padding:20px;background:#142a28;border:1px solid #668674;border-radius:16px}
@@ -29,8 +27,9 @@
     iframe.active{display:block}
     #assetCanvas{display:none;width:100%;height:100%;max-width:760px;max-height:100%;object-fit:contain;touch-action:none}
     #assetCanvas.active{display:block}
-    .debug-panel{order:-1;width:min(330px,40vw);min-width:270px;overflow-y:auto;padding:14px;background:#142a28;border-right:1px solid #d6c18c55;overscroll-behavior:contain}
+    .debug-panel{order:-1;width:min(330px,40vw);min-width:270px;overflow-y:auto;padding:14px;background:#142a28;border-right:1px solid #d6c18c55;overscroll-behavior:contain;display:flex;flex-direction:column}
     .debug-panel[hidden]{display:none}
+    .bottom-link{margin-top:auto;flex-shrink:0}
     .panel-title{margin:0 0 10px;font-size:17px}
     .choices{display:flex;gap:7px;flex-wrap:wrap;margin:0 0 12px}
     .file-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;max-height:34vh;overflow:auto;margin:8px 0 12px;padding-right:3px}
@@ -52,13 +51,10 @@
     .small-button{width:100%;margin-top:4px}
     .notice{font-size:13px;color:#f1d58e;min-height:1.3em}
     @media(max-width:720px){
-      .toolbar{height:56px;gap:7px;padding-top:6px;padding-bottom:6px}
-      .title-link{font-size:12px;padding:8px}
       .category{font-size:12px;padding:8px}
-      .screen{height:calc(100% - 56px)}
       .workspace{flex-direction:column}
       .preview-pane{flex:1 1 54%;min-height:160px}
-      .debug-panel{order:2;width:100%;min-width:0;max-height:46%;border-right:0;border-top:1px solid #d6c18c55;padding:10px 12px}
+      .debug-panel{order:2;width:100%;min-width:0;flex:0 0 46%;height:46%;max-height:46%;border-right:0;border-top:1px solid #d6c18c55;padding:10px 12px}
       .file-list{grid-template-columns:repeat(3,minmax(0,1fr));max-height:18vh}
       .file-choice canvas{width:44px;height:44px}
       .tuning{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -67,18 +63,10 @@
   </style>
 </head>
 <body>
-  <header class="toolbar">
-    <a class="title-link" href="index.html">タイトルへ</a>
-    <nav class="categories" aria-label="確認する演出">
-      <button class="category" data-category="hourglass">砂時計</button>
-      <button class="category" data-category="victory">勝利</button>
-      <button class="category" data-category="player">プレイヤー</button>
-      <button class="category" data-category="enemy">エネミー</button>
-    </nav>
-  </header>
   <section id="home" class="screen active">
     <div class="home">
       <nav class="home-nav" aria-label="演出を選択">
+        <a class="title-link" href="index.html">タイトルへ</a>
         <button class="category" data-category="hourglass">砂時計演出</button>
         <button class="category" data-category="victory">勝利演出</button>
         <button class="category" data-category="player">プレイヤー</button>
@@ -89,7 +77,7 @@
   <section id="previewScreen" class="screen">
     <div class="workspace">
       <div class="preview-pane">
-        <div id="hint" class="hint">上の項目から確認する演出を選択</div>
+        <div id="hint" class="hint">演出を選択してください</div>
         <iframe id="gameFrame" title="ゲーム演出"></iframe>
         <canvas id="assetCanvas" aria-label="キャラクター画像のプレビュー"></canvas>
       </div>
@@ -107,6 +95,7 @@
           <button id="copySettings" class="small-button" type="button">調整値をコピー</button>
           <div id="notice" class="notice" aria-live="polite"></div>
         </div>
+        <a class="title-link bottom-link" href="index.html">タイトルへ</a>
       </aside>
     </div>
   </section>
