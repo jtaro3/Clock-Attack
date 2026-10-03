@@ -5,7 +5,7 @@
     const response=await fetch('game-data.json',{cache:'no-store'});
     if(!response.ok)throw new Error(`HTTP ${response.status}`);
     gameData=await response.json();
-  }catch(error){console.warn('game-data.jsonを読み込めないため内蔵値で起動します。',error)}
+  }catch(error){document.getElementById('panel').textContent='ゲームデータを読み込めませんでした。CSV出力とローカルサーバーを確認して再読み込みしてください。';console.error(error);return}
   let animationManifest={enemies:{}};
   try{const response=await fetch('animation-manifest.json',{cache:'no-store'});if(response.ok)animationManifest=await response.json()}catch{}
   const general=gameData.general||{},playerData=gameData.player||{},enemyData=gameData.enemies||{},roundData=gameData.rounds||{};
@@ -13,7 +13,6 @@
   const blueSlimeTuning=(()=>{
     const blueData=enemyData.slime_blue||{};
     const values={moveSpeed:setting(blueData,'move_speed_px_per_second',27),idleTime:setting(blueData,'animation_idle_seconds',.38),midTime:setting(blueData,'animation_jump_mid_seconds',.12),peakTime:setting(blueData,'animation_jump_peak_seconds',.12),moveTimes:Array.isArray(blueData.animation_move_frame_seconds)?blueData.animation_move_frame_seconds:[],attackTimes:Array.isArray(blueData.animation_attack_frame_seconds)?blueData.animation_attack_frame_seconds:[]};
-    try{const saved=JSON.parse(localStorage.getItem('clock-attack-blue-slime-tuning-v1')||'{}');for(const key of ['moveSpeed','idleTime','midTime','peakTime'])if(Number.isFinite(Number(saved[key])))values[key]=Number(saved[key]);if(Array.isArray(saved.moveTimes))values.moveTimes=saved.moveTimes;if(Array.isArray(saved.attackTimes))values.attackTimes=saved.attackTimes}catch{}
     values.moveSpeed=Math.max(0,Math.min(80,values.moveSpeed));
     for(const key of ['idleTime','midTime','peakTime'])values[key]=Math.max(.04,Math.min(1.2,values[key]));
     return values;
@@ -96,7 +95,7 @@
   const keys=new Set();
   let w=0,h=0,dpr=1,last=performance.now();
   let mode='select',selectionReason='start',selectionIcons=0,selectionRecovery=0,selectionBottles=[],transitionTimer=null;
-  let energy=0,moveProgress=0,unlocked=0,score=0,round=1,roundKills=0,roundSpawned=0,roundElapsed=0,swordCount=0,elapsed=0,timeSinceKill=0,purpleSpawned=false,spawnTimer=0,invincible=0,damageFlash=0,grayHits=0,entryGray=0,lowEnergyGray=false,swing=0,spin=0,swingAngle=0,swingScale=1,spinScale=1,shake=0,hitStop=0,timeScale=1,roundSpawnCounts={};
+  let energy=0,moveProgress=0,unlocked=0,score=0,round=1,roundKills=0,roundSpawned=0,roundElapsed=0,swordCount=0,elapsed=0,timeSinceKill=0,spawnTimer=0,invincible=0,damageFlash=0,grayHits=0,entryGray=0,lowEnergyGray=false,swing=0,spin=0,swingAngle=0,swingScale=1,spinScale=1,shake=0,hitStop=0,timeScale=1,roundSpawnCounts={};
   let recoveryGaugeFrom=0,recoveryGaugeRemaining=0;
   const RECOVERY_GAUGE_SECONDS=1/1.3;
   let showGrid=localStorage.getItem('clock-attack-grid')!=='0';
@@ -108,9 +107,11 @@
   const BASE_ATTACK_DAMAGE=setting(playerData,'base_attack_damage',1),WHITE_AURA_DAMAGE=setting(playerData,'white_aura_damage',5),RED_AURA_DAMAGE=setting(playerData,'red_aura_damage',20),SPIN_SWORD_COST=setting(playerData,'spin_sword_cost',10),SPIN_MIN_DAMAGE=setting(playerData,'spin_min_damage',5),WHITE_AURA_INTERVAL=setting(playerData,'white_aura_interval',50),RED_AURA_INTERVAL=setting(playerData,'red_aura_interval',100),SPIN_CHARGE_SECONDS=setting(playerData,'spin_charge_seconds',2);
   const PLAYER_SCALE=setting(playerData,'player_scale',1),SWORD_SCALE=setting(playerData,'sword_scale',1);
   const NORMAL_ATTACK_EFFECT_SCALE=setting(playerData,'normal_attack_effect_scale',1),WHITE_ATTACK_EFFECT_SCALE=setting(playerData,'white_attack_effect_scale',1.5),RED_ATTACK_EFFECT_SCALE=setting(playerData,'red_attack_effect_scale',2);
-  const ROUND_KILL_TARGETS=[0,10,20,30,30,30];
-  const currentRoundConfig=roundNumber=>roundData[String(roundNumber)]||{};
-  const roundKillTarget=roundNumber=>setting(currentRoundConfig(roundNumber),'kill_target',ROUND_KILL_TARGETS[roundNumber]??ROUND_KILL_TARGETS.at(-1));
+  const activeRounds=Object.keys(roundData).map(Number).filter(n=>Number.isInteger(n)&&n>0&&n<=MAX_EASY_ROUND).sort((a,b)=>a-b);
+  if(!activeRounds.length){ui.panel.textContent='有効なラウンドがありません。roundとdifficultyのマスターを確認してください。';return}
+  round=activeRounds[0];
+  const currentRoundConfig=roundNumber=>roundData[String(roundNumber)];
+  const roundKillTarget=roundNumber=>Number(currentRoundConfig(roundNumber).kill_target);
   const enemyType=(key,kind,hp,attack,color,radius)=>{const data=enemyData[key]||{};return{enemyKey:key,kind,hp:setting(data,'hp',hp),attack:setting(data,'attack',attack),deathHitStop:setting(data,'death_hit_stop_seconds',.1),knockbackDistance:Math.max(0,setting(data,'knockback_distance_px',18.75)),color,radius,knockback:data.super_armor===undefined?kind!=='black':!data.super_armor}};
   const SLIME_TYPES={blue:enemyType('slime_blue','blue',1,1,'#66c8ee',14),green:enemyType('slime_green','green',2,1,'#74d590',16),red:enemyType('slime_red','red',3,1,'#e97a83',18),purple:enemyType('slime_purple','purple',10,5,'#b679e5',22),black:enemyType('slime_black','black',20,10,'#171a20',24),metal:enemyType('slime_metal','metal',50,20,'#bec8d1',26)};
 const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type.enemyKey,type]));
@@ -415,7 +416,7 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
   $('confirmTitleYes').addEventListener('click',()=>{location.href='index.html'});
   updateZoom();
   function restart(){
-    clearTimeout(transitionTimer);energy=0;moveProgress=0;unlocked=0;sandBottles.length=0;score=0;round=1;roundKills=0;roundSpawned=0;roundElapsed=0;roundSpawnCounts={};swordCount=0;elapsed=0;timeSinceKill=0;purpleSpawned=false;damageFlash=0;grayHits=0;lowEnergyGray=false;timeScale=1;ui.speedButton.textContent='速度×1';
+    clearTimeout(transitionTimer);energy=0;moveProgress=0;unlocked=0;sandBottles.length=0;score=0;round=activeRounds[0];roundKills=0;roundSpawned=0;roundElapsed=0;roundSpawnCounts={};swordCount=0;elapsed=0;timeSinceKill=0;damageFlash=0;grayHits=0;lowEnergyGray=false;timeScale=1;ui.speedButton.textContent='速度×1';
     ui.elapsedTime.textContent='0:00';
     ui.pauseScreen.classList.add('hidden');
     ui.clearScreen.classList.add('hidden');
@@ -566,8 +567,9 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
   function finishEnemyDamage(defeated,deathHitStop=.1){
     if(defeated){hitStop=Math.max(hitStop,deathHitStop);drag.pointer=null}
     if(roundKills<roundKillTarget(round))return;
-    if(round>=MAX_EASY_ROUND){gameClear();return}
-    round++;roundKills=0;roundSpawned=0;roundElapsed=0;roundSpawnCounts={};spawnTimer=0;enemies.length=0;
+    const nextRound=activeRounds.find(number=>number>round);
+    if(nextRound===undefined){gameClear();return}
+    round=nextRound;roundKills=0;roundSpawned=0;roundElapsed=0;roundSpawnCounts={};spawnTimer=0;enemies.length=0;
   }
   function hitObjects(damage,fullCircle){
     const hits=objectDestruction.hit(player.x,player.y,player.angle,player.r+51,damage,fullCircle);
@@ -624,22 +626,22 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
     hitObjects(damage,true);hitEnemies(damage,true);
     setHud();checkExhausted();
   }
-  function spawn(forcePurple=false){
+  function spawn(){
     if(roundSpawned>=roundKillTarget(round)||enemies.length>=MAX_ENEMIES)return;
     const config=currentRoundConfig(round),rules=Array.isArray(config.spawns)?config.spawns:[];
     let rule=null,type=null;
-    if(forcePurple)type=SLIME_TYPES.purple;
-    else if(rules.length){
+    if(rules.length){
       const eligible=rules.filter(candidate=>{
-        const candidateType=SLIME_BY_KEY[candidate.enemy_key];if(!candidateType||roundElapsed<Number(candidate.start_elapsed_seconds||0))return false;
+        const candidateType=SLIME_BY_KEY[candidate.enemy_key];if(!enemyData[candidate.enemy_key]||!candidateType||roundElapsed<Number(candidate.start_elapsed_seconds||0))return false;
         if(Number(candidate.max_alive||0)>0&&enemies.filter(enemy=>enemy.enemyKey===candidate.enemy_key).length>=Number(candidate.max_alive))return false;
         return !(Number(candidate.max_per_round||0)>0&&Number(roundSpawnCounts[candidate.enemy_key]||0)>=Number(candidate.max_per_round));
       });
+      const guaranteed=eligible.find(candidate=>candidate.guaranteed_once&&!roundSpawnCounts[candidate.enemy_key]);
       const total=eligible.reduce((sum,candidate)=>sum+Number(candidate.spawn_weight||0),0);let pick=Math.random()*total;
-      rule=eligible.find(candidate=>(pick-=Number(candidate.spawn_weight||0))<=0)||eligible[eligible.length-1];
+      rule=guaranteed||eligible.find(candidate=>(pick-=Number(candidate.spawn_weight||0))<=0)||eligible[eligible.length-1];
       type=rule?SLIME_BY_KEY[rule.enemy_key]:null;
     }
-    if(!type){const fallback=[SLIME_TYPES.blue,SLIME_TYPES.green,SLIME_TYPES.red];type=fallback[Math.floor(Math.random()*fallback.length)]}
+    if(!type)return;
     const hp=Math.max(1,Math.round(type.hp*setting(config,'enemy_hp_multiplier',1))),attack=Math.max(0,type.attack*setting(config,'enemy_attack_multiplier',round)),r=type.radius;
     const point=WorldSpawn.around(player.x,player.y,320,map.width*32,map.height*32,r,obstacles);
     if(!point)return;
@@ -675,7 +677,6 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
       const seconds=Math.floor(elapsed);
       ui.elapsedTime.textContent=`${Math.floor(seconds/60)}:${String(seconds%60).padStart(2,'0')}`;
     }
-    if(!purpleSpawned&&elapsed>=60){purpleSpawned=true;spawn(true)}
     let dx=0,dy=0;
     if(keys.has('ArrowLeft')||keys.has('KeyA'))dx--;
     if(keys.has('ArrowRight')||keys.has('KeyD'))dx++;
