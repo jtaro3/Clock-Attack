@@ -149,6 +149,14 @@
       addSubChoice('攻撃',()=>showAction('attack'));
     }
   }
+  function showHome(){
+    gameFrame.classList.remove('active');gameFrame.removeAttribute('src');
+    canvas.classList.remove('active');previewScreen.classList.remove('active');
+    panel.hidden=true;home.classList.add('active');
+    menuButtons.forEach(button=>button.classList.remove('active'));
+    category='';action='';
+  }
+  $('backToList').addEventListener('click',showHome);
   function addSubChoice(label,callback){
     const button=document.createElement('button');button.type='button';button.className='sub-choice';button.textContent=label;
     button.addEventListener('click',()=>{subChoices.querySelectorAll('button').forEach(item=>item.classList.toggle('active',item===button));callback()});
