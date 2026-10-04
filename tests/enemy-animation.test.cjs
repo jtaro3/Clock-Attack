@@ -1,0 +1,20 @@
+const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
+const source=fs.readFileSync('game.js','utf8');
+const block=source.slice(source.indexOf('  const SLIME_ATTACK_DURATION='),source.indexOf('  function attackDamage('));
+const manifest=JSON.parse(fs.readFileSync('animation-manifest.json','utf8'));
+for(const actions of Object.values(manifest.enemies))for(const files of Object.values(actions))for(const file of files)assert(fs.existsSync(file),`Missing image: ${file}`);
+assert.equal(manifest.enemies.slime_blue.move.length,4);
+assert.equal(manifest.enemies.slime_blue.attack.length,5);
+const c={animationManifest:{enemies:{...manifest.enemies,slime_green:{move:['green-1.png','green-2.png'],attack:['green-attack.png']},slime_red:{move:['red.png'],attack:[]}}},enemyData:{slime_blue:{animation_move_frame_seconds:[.2,.23,.5,.23],animation_attack_frame_seconds:Array(5).fill(.105)},slime_green:{animation_move_frame_seconds:[.1,.3],animation_attack_frame_seconds:[.4]}},setting:(s,k,f)=>s[k]??f,Image:class{},document:{createElement(){throw Error('Unexpected canvas creation before image load')}}};
+vm.createContext(c);vm.runInContext(block+'\n globalThis.animations=enemyAnimations;',c);
+function frame(key,time,attackTime=0){return c.enemyAnimationFrame({enemyKey:key,animationTime:time,attackTime})}
+assert.equal(frame('slime_blue',.21).file,manifest.enemies.slime_blue.move[1]);
+assert.equal(frame('slime_blue',0,.3).file,manifest.enemies.slime_blue.attack[2]);
+assert.equal(frame('slime_green',.05).file,'green-1.png');
+assert.equal(frame('slime_green',.2).file,'green-2.png');
+assert.equal(frame('slime_green',.45).file,'green-1.png');
+assert.equal(frame('slime_green',0,.2).file,'green-attack.png');
+assert.equal(c.animations.get('slime_green').attackDuration,.4);
+assert.equal(frame('slime_red',0,.2),null);
+assert.equal(frame('slime_black',0),null);
+console.log('Enemy-specific frame selection, timings, missing-action fallback, and image paths passed');

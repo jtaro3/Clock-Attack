@@ -109,8 +109,8 @@
       image.src=file==='sword.svg'?'design/sword.svg':`${label}?sprite=1.04`;
     });
   }
-  const fallbackMove=['design/enemies/slime_blue_idle.png','design/enemies/slime_blue_jump_mid.png','design/enemies/slime_blue_jump_peak.png'];
-  const fallbackAttack=['design/enemies/slime-blue-attack-01.png','design/enemies/slime-blue-attack-02.png','design/enemies/slime-blue-attack-03.png','design/enemies/slime-blue-attack-04.png'];
+  const fallbackMove=[1,2,3,4].map(n=>`design/enemies/slime_blue/move/slime_blue_${n}.png`);
+  const fallbackAttack=[0,1,2,3,4].map(n=>`design/enemies/slime_blue/attack/slime_blue_${n}.png`);
   fetch('animation-manifest.json',{cache:'no-store'}).then(response=>response.ok?response.json():{}).catch(()=>({})).then(manifest=>{
     const moves=manifest.enemies?.slime_blue?.move?.length?manifest.enemies.slime_blue.move:fallbackMove;
     const attacks=manifest.enemies?.slime_blue?.attack?.length?manifest.enemies.slime_blue.attack:fallbackAttack;

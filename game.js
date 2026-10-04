@@ -10,13 +10,6 @@
   try{const response=await fetch('animation-manifest.json',{cache:'no-store'});if(response.ok)animationManifest=await response.json()}catch{}
   const general=gameData.general||{},playerData=gameData.player||{},enemyData=gameData.enemies||{},roundData=gameData.rounds||{};
   const setting=(source,key,fallback)=>Number.isFinite(Number(source[key]))?Number(source[key]):fallback;
-  const blueSlimeTuning=(()=>{
-    const blueData=enemyData.slime_blue||{};
-    const values={moveSpeed:setting(blueData,'move_speed_px_per_second',27),idleTime:setting(blueData,'animation_idle_seconds',.38),midTime:setting(blueData,'animation_jump_mid_seconds',.12),peakTime:setting(blueData,'animation_jump_peak_seconds',.12),moveTimes:Array.isArray(blueData.animation_move_frame_seconds)?blueData.animation_move_frame_seconds:[],attackTimes:Array.isArray(blueData.animation_attack_frame_seconds)?blueData.animation_attack_frame_seconds:[]};
-    values.moveSpeed=Math.max(0,Math.min(80,values.moveSpeed));
-    for(const key of ['idleTime','midTime','peakTime'])values[key]=Math.max(.04,Math.min(1.2,values[key]));
-    return values;
-  })();
   const $=id=>document.getElementById(id);
   const canvas=$('field'),ctx=canvas.getContext('2d');
   const query=new URLSearchParams(location.search),effectPreviewMode=query.has('effectPreview'),clearPreviewMode=query.has('clearPreview');
@@ -115,52 +108,43 @@
   const enemyType=(key,kind,hp,attack,color,radius)=>{const data=enemyData[key]||{};return{enemyKey:key,kind,hp:setting(data,'hp',hp),attack:setting(data,'attack',attack),deathHitStop:setting(data,'death_hit_stop_seconds',.1),knockbackDistance:Math.max(0,setting(data,'knockback_distance_px',18.75)),color,radius,knockback:data.super_armor===undefined?kind!=='black':!data.super_armor}};
   const SLIME_TYPES={blue:enemyType('slime_blue','blue',1,1,'#66c8ee',14),green:enemyType('slime_green','green',2,1,'#74d590',16),red:enemyType('slime_red','red',3,1,'#e97a83',18),purple:enemyType('slime_purple','purple',10,5,'#b679e5',22),black:enemyType('slime_black','black',20,10,'#171a20',24),metal:enemyType('slime_metal','metal',50,20,'#bec8d1',26)};
 const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type.enemyKey,type]));
-  const defaultMoveFrames=[
-    'design/enemies/slime_blue_idle.png','design/enemies/slime_blue_jump_mid.png','design/enemies/slime_blue_jump_peak.png','design/enemies/slime_blue_jump_mid.png'
-  ];
-  const defaultAttackFrames=['design/enemies/slime-blue-attack-01.png','design/enemies/slime-blue-attack-02.png','design/enemies/slime-blue-attack-03.png','design/enemies/slime-blue-attack-04.png'];
-  const blueMoveFiles=animationManifest.enemies?.slime_blue?.move?.length?animationManifest.enemies.slime_blue.move:defaultMoveFrames;
-  const blueAttackFiles=animationManifest.enemies?.slime_blue?.attack?.length?animationManifest.enemies.slime_blue.attack:defaultAttackFrames;
-  const blueSlimeFrames=blueMoveFiles.map((file,index)=>{
-    const configured=Number(blueSlimeTuning.moveTimes[index]);
-    const fallback=[blueSlimeTuning.idleTime,blueSlimeTuning.midTime,blueSlimeTuning.peakTime,blueSlimeTuning.midTime][index]??blueSlimeTuning.midTime;
-    return {file,duration:Number.isFinite(configured)&&configured>0?Math.max(.04,Math.min(1.2,configured)):fallback,image:new Image()};
-  });
-  /* legacy movement frame sequence retained in the manifest defaults */
-  /*
-    {file:'slime_blue_idle.png',duration:blueSlimeTuning.idleTime,image:new Image()},
-    {file:'slime_blue_jump_mid.png',duration:blueSlimeTuning.midTime,image:new Image()},
-    {file:'slime_blue_jump_peak.png',duration:blueSlimeTuning.peakTime,image:new Image()},
-    {file:'slime_blue_jump_mid.png',duration:blueSlimeTuning.midTime,image:new Image()},
-    {file:'slime_blue_idle.png',duration:blueSlimeTuning.idleTime,image:new Image()}
-  ]; */
   const SLIME_ATTACK_DURATION=.42;
-  const blueSlimeAttackFrames=blueAttackFiles.map(file=>({file,image:new Image(),attack:true}));
-  const BLUE_ATTACK_DURATIONS=blueSlimeAttackFrames.map((_,index)=>{const value=Number(blueSlimeTuning.attackTimes[index]);return Number.isFinite(value)&&value>0?Math.max(.04,Math.min(.5,value)):.105});
-  const BLUE_ATTACK_DURATION=BLUE_ATTACK_DURATIONS.reduce((sum,duration)=>sum+duration,0);
-  const BLUE_SLIME_LOOP_SECONDS=blueSlimeFrames.reduce((sum,frame)=>sum+frame.duration,0);
-  blueSlimeFrames.forEach(frame=>{
-    frame.image.onload=()=>{
-      const flash=document.createElement('canvas');
-      flash.width=frame.image.naturalWidth;flash.height=frame.image.naturalHeight;
-      const flashCtx=flash.getContext('2d');
-      flashCtx.drawImage(frame.image,0,0);
-      flashCtx.globalCompositeOperation='source-in';
-      flashCtx.fillStyle='#fff';flashCtx.fillRect(0,0,flash.width,flash.height);
-      frame.flash=flash;
-    };
-    frame.image.src=`${frame.file}?sprite=1.04`;
-  });
-  blueSlimeAttackFrames.forEach(frame=>{frame.image.src=`${frame.file}?sprite=1.04`});
-  function blueSlimeFrame(enemy){
-    if(enemy.attackTime>0){
-      let time=BLUE_ATTACK_DURATION-enemy.attackTime;
-      for(let index=0;index<blueSlimeAttackFrames.length;index++){if(time<BLUE_ATTACK_DURATIONS[index])return blueSlimeAttackFrames[index];time-=BLUE_ATTACK_DURATIONS[index]}
-      return blueSlimeAttackFrames[blueSlimeAttackFrames.length-1];
+  const enemyAnimations=new Map();
+  for(const [enemyKey,files] of Object.entries(animationManifest.enemies||{})){
+    const data=enemyData[enemyKey]||{};
+    const animation={move:[],attack:[],moveDuration:0,attackDuration:SLIME_ATTACK_DURATION};
+    for(const action of ['move','attack']){
+      const times=data[`animation_${action}_frame_seconds`]||[];
+      const legacyMove=[setting(data,'animation_idle_seconds',.38),setting(data,'animation_jump_mid_seconds',.12),setting(data,'animation_jump_peak_seconds',.12),setting(data,'animation_jump_mid_seconds',.12)];
+      animation[action]=(files[action]||[]).map((file,index)=>{
+        const configured=Number(times[index]);
+        const fallback=action==='attack'?.105:enemyKey==='slime_blue'?(legacyMove[index]??.12):.12;
+        const duration=Number.isFinite(configured)&&configured>0?Math.max(.04,Math.min(action==='attack'?.5:1.2,configured)):fallback;
+        const frame={file,duration,image:new Image(),attack:action==='attack'};
+        frame.image.onload=()=>{
+          const flash=document.createElement('canvas');
+          flash.width=frame.image.naturalWidth;flash.height=frame.image.naturalHeight;
+          const flashCtx=flash.getContext('2d');flashCtx.drawImage(frame.image,0,0);
+          flashCtx.globalCompositeOperation='source-in';flashCtx.fillStyle='#fff';
+          flashCtx.fillRect(0,0,flash.width,flash.height);frame.flash=flash;
+        };
+        frame.image.src=`${file}?sprite=1.06`;
+        return frame;
+      });
     }
-    let time=enemy.animationTime%BLUE_SLIME_LOOP_SECONDS;
-    for(const frame of blueSlimeFrames){if(time<frame.duration)return frame;time-=frame.duration}
-    return blueSlimeFrames[0];
+    animation.moveDuration=animation.move.reduce((sum,frame)=>sum+frame.duration,0);
+    if(animation.attack.length)animation.attackDuration=animation.attack.reduce((sum,frame)=>sum+frame.duration,0);
+    enemyAnimations.set(enemyKey,animation);
+  }
+  function enemyAnimationFrame(enemy){
+    const animation=enemyAnimations.get(enemy.enemyKey);
+    if(!animation)return null;
+    const attacking=enemy.attackTime>0;
+    const frames=attacking?animation.attack:animation.move;
+    if(!frames.length)return null;
+    let time=attacking?Math.max(0,animation.attackDuration-enemy.attackTime):enemy.animationTime%animation.moveDuration;
+    for(const frame of frames){if(time<frame.duration)return frame;time-=frame.duration}
+    return frames[frames.length-1];
   }
   function attackDamage(count){
     if(count>0&&count%RED_AURA_INTERVAL===0)return RED_AURA_DAMAGE;
@@ -646,7 +630,7 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
     const point=WorldSpawn.around(player.x,player.y,320,map.width*32,map.height*32,r,obstacles);
     if(!point)return;
     const {x,y}=point;
-    enemies.push({x,y,r,hp,hpMax:hp,enemyKey:type.enemyKey,kind:type.kind,attack,deathHitStop:type.deathHitStop,knockback:type.knockback!==false,knockbackDistance:type.knockbackDistance,color:type.color,speed:(type.enemyKey==='slime_blue'?blueSlimeTuning.moveSpeed:21+Math.random()*12+score*.3)*setting(config,'enemy_speed_multiplier',1),hit:0,wobble:Math.random()*6.28,animationTime:Math.random()*BLUE_SLIME_LOOP_SECONDS,attackTime:0,attackAngle:0});
+    enemies.push({x,y,r,hp,hpMax:hp,enemyKey:type.enemyKey,kind:type.kind,attack,deathHitStop:type.deathHitStop,knockback:type.knockback!==false,knockbackDistance:type.knockbackDistance,color:type.color,speed:Math.max(0,Math.min(80,setting(enemyData[type.enemyKey]||{},'move_speed_px_per_second',type.enemyKey==='slime_blue'?27:21+Math.random()*12+score*.3)))*setting(config,'enemy_speed_multiplier',1),hit:0,wobble:Math.random()*6.28,animationTime:Math.random()*(enemyAnimations.get(type.enemyKey)?.moveDuration||1),attackTime:0,attackAngle:0});
     roundSpawned++;roundSpawnCounts[type.enemyKey]=(roundSpawnCounts[type.enemyKey]||0)+1;
   }
   function update(dt){
@@ -689,11 +673,11 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
     invincible=Math.max(0,invincible-dt);damageFlash=Math.max(0,damageFlash-dt);ui.energyBar.classList.toggle('hit',damageFlash>0);
     swing=Math.max(0,swing-dt);spin=Math.max(0,spin-dt);shake=Math.max(0,shake-dt);
     for(const enemy of enemies){
-      enemy.wobble+=dt*5;if(enemy.enemyKey==='slime_blue'&&enemy.attackTime<=0)enemy.animationTime=(enemy.animationTime+dt)%BLUE_SLIME_LOOP_SECONDS;enemy.hit=Math.max(0,enemy.hit-dt);enemy.attackTime=Math.max(0,(enemy.attackTime||0)-dt);
+      enemy.wobble+=dt*5;if(enemy.attackTime<=0)enemy.animationTime=(enemy.animationTime+dt)%(enemyAnimations.get(enemy.enemyKey)?.moveDuration||1);enemy.hit=Math.max(0,enemy.hit-dt);enemy.attackTime=Math.max(0,(enemy.attackTime||0)-dt);
       const ex=player.x-enemy.x,ey=player.y-enemy.y,len=Math.hypot(ex,ey)||1;
       if(enemy.attackTime<=0)moveBody(enemy,ex/len*enemy.speed*dt,ey/len*enemy.speed*dt,enemy.r);
       if(len<player.r+enemy.r-3&&invincible<=0){
-        enemy.attackTime=enemy.enemyKey==='slime_blue'?BLUE_ATTACK_DURATION:SLIME_ATTACK_DURATION;enemy.attackAngle=Math.atan2(ey,ex);
+        enemy.attackTime=enemyAnimations.get(enemy.enemyKey)?.attackDuration||SLIME_ATTACK_DURATION;enemy.attackAngle=Math.atan2(ey,ex);
         damageFlash=.5;
         const bounds=playerMovementBounds();
         moveBody(player,clamp(player.x+ex/len*Math.max(0,setting(playerData,'damage_knockback_distance_px',20)),bounds.left,bounds.right)-player.x,clamp(player.y+ey/len*Math.max(0,setting(playerData,'damage_knockback_distance_px',20)),bounds.top,bounds.bottom)-player.y,10,14);
@@ -740,15 +724,15 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
       const dying=enemy.deathTime!==undefined;
       if(dying&&Math.floor(now/55)%2===0)continue;
       const y=enemy.y+Math.sin(enemy.wobble)*2;
-      const blueFrame=enemy.enemyKey==='slime_blue'?blueSlimeFrame(enemy):null;
-      const blueImageReady=!!blueFrame?.image.complete&&blueFrame.image.naturalWidth>0;
-      if(blueImageReady){
+      const spriteFrame=enemyAnimationFrame(enemy);
+      const spriteImageReady=!!spriteFrame?.image.complete&&spriteFrame.image.naturalWidth>0;
+      if(spriteImageReady){
         const spriteSize=56;
-        ctx.save();ctx.translate(enemy.x,y);if(blueFrame.attack&&Math.cos(enemy.attackAngle||0)<0)ctx.scale(-1,1);ctx.imageSmoothingEnabled=false;
-        ctx.drawImage(blueFrame.image,-spriteSize/2,-spriteSize/2,spriteSize,spriteSize);ctx.restore();ctx.imageSmoothingEnabled=true;
-        if(enemy.hit>0&&blueFrame.flash){
+        ctx.save();ctx.translate(enemy.x,y);if(spriteFrame.attack&&Math.cos(enemy.attackAngle||0)<0)ctx.scale(-1,1);ctx.imageSmoothingEnabled=false;
+        ctx.drawImage(spriteFrame.image,-spriteSize/2,-spriteSize/2,spriteSize,spriteSize);ctx.restore();ctx.imageSmoothingEnabled=true;
+        if(enemy.hit>0&&spriteFrame.flash){
           ctx.save();ctx.globalAlpha=clamp(enemy.hit/.18,0,.9);
-          ctx.drawImage(blueFrame.flash,enemy.x-spriteSize/2,y-spriteSize/2,spriteSize,spriteSize);ctx.restore();
+          ctx.drawImage(spriteFrame.flash,enemy.x-spriteSize/2,y-spriteSize/2,spriteSize,spriteSize);ctx.restore();
         }
       }else{
         const attacking=!dying&&enemy.attackTime>0,attackProgress=attacking?1-enemy.attackTime/SLIME_ATTACK_DURATION:0;
@@ -767,7 +751,7 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
         ctx.fillStyle='#24333b';ctx.beginPath();ctx.arc(-5,-2,2,0,7);ctx.arc(5,-2,2,0,7);ctx.fill();ctx.restore();
       }
       if(dying)continue;
-      const barW=Math.max(34,enemy.r*2),barX=enemy.x-barW/2,barY=y-(blueImageReady?56/2:enemy.r)-12;
+      const barW=Math.max(34,enemy.r*2),barX=enemy.x-barW/2,barY=y-(spriteImageReady?56/2:enemy.r)-12;
       ctx.fillStyle='#17242adf';ctx.fillRect(barX-2,barY-2,barW+4,8);
       ctx.fillStyle='#642d35';ctx.fillRect(barX,barY,barW,4);
       ctx.fillStyle=enemy.hp/enemy.hpMax>.5?'#80d98a':enemy.hp/enemy.hpMax>.25?'#f1c66b':'#f07773';
