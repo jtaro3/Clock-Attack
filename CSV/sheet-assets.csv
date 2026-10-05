@@ -1,5 +1,5 @@
 ﻿enabled,asset_key,asset_type,owner_key,description,direction,sprite_scale,sprite_file,notes,notes2
-1,player_back,player,player,背面,back,1,man1.png,,
+1,player_back,player,player,背面,back,1,man1.png,,フォルダ参照の対応済み
 1,player_back_right,player,player,背面右向き,back_right,1,man2.png,asset_key,素材を識別する一意のキー
 1,player_right,player,player,右向き,right,1,man3.png,asset_type,player、enemy、sword、effectなど
 1,player_front_right,player,player,正面右向き,front_right,1,man4.png,owner_key,素材を使用する敵やプレイヤーのキー
@@ -14,7 +14,7 @@
 0,effect_attack_hit,effect,common,攻撃エフェクト,,,,,
 0,effect_swing,effect,common,スイングエフェクト,,,,,
 ,,,,,,,,,
-1,map_tiles_grass,map_tiles,map_tiles,草地,,1,grass.png,,
+1,map_tiles_grass,map_tiles,map_tiles,草地,,1,grass.png,マップエディターで対応するので、assetstypeからフォルダ参照は無し,
 1,map_tiles_soil,map_tiles,map_tiles,土壌,,1,soil.png,,
 1,map_tiles_flowers,map_tiles,map_tiles,花,,1,flowers.png,,
 1,map_tiles_grass-dark,map_tiles,map_tiles,草地（暗）,,1,grass-dark.png,,
@@ -26,5 +26,11 @@
 1,map_tiles_crate_dark_walnut_32x32.png,map_tiles,map_tiles,木箱,,1,crate_dark_walnut_32x32.png,,
 1,map_tiles_crate_dark_walnut_64x64.png,map_tiles,map_tiles,木箱,,1,crate_dark_walnut_64x64.png,,
 ,,,,,,,,,
-0,money,player,player,お金,,1,,,
-1,sand_blue,items,sand_blue,青の砂,,1,bottle_blue.svg,,
+0,money,items,money,お金,,1,,,
+1,sand_blue,items,sand_blue,青の砂,,1,bottle_blue.svg,回復演出にも使っているので、尺調整でつぶれないsvg,フォルダ参照の対応済み
+1,sand_green,items,sand_green,緑の砂,,1,bottle_green.svg,,
+1,sand_red,items,sand_red,赤の砂,,1,bottle_red.svg,,
+1,sand_purple,items,sand_purple,紫の砂,,1,bottle_purple.svg,,
+1,sand_black,items,sand_black,黒の砂,,1,bottle_black.svg,,
+1,sand_white,items,sand_white,白の砂,,1,bottle_metal.svg,,
+0,,,,,,,,,

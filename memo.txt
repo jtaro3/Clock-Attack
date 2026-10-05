@@ -1,0 +1,44 @@
+C:\Users\hikar\OneDrive\ドキュメント\GitHub\Clock-Attack\preview-local.cmd
+C:\Users\hikar\OneDrive\ドキュメント\GitHub\Clock-Attack\build-animation-manifest.cmd
+C:\Users\hikar\OneDrive\ドキュメント\GitHub\Clock-Attack\export-all-csv.cmd
+C:\Users\hikar\OneDrive\ドキュメント\GitHub\Clock-Attack\install-calc-macro.cmd
+
+
+◆preview-local.cmd
+1. ダブルクリック。
+2. ブラウザーで http://127.0.0.1:8000/ を開く。
+3. 確認中は黒いウィンドウを開いたままにする。
+4. 終了は Ctrl＋C。
+ブラウザーは自動では開きません。Pythonが必要です。
+
+
+
+◆build-animation-manifest.cmd
+現在は、以下の青スライム画像が対象です。
+- 移動：design\Animation\enemies\move
+- 攻撃：design\Animation\enemies\attack
+- 名前：slime_blue_1.png、slime_blue_2.png…という連番
+実行すると、番号順の画像一覧を animation-manifest.json に生成し、画像と一覧を公開用の dist にもコピーします。
+表示時間の変更だけなら、このcmdは不要です。
+
+
+◆export-all-csv.cmd
+先に main.ods を保存してから実行してください。保存済みの内容を読み込みます。
+- 全シートを CSV\sheet-○○.csv に出力
+- データを検証
+- 問題がなければ game-data.json を更新
+- エラーがあればCSV・JSONの更新を中止
+このcmdは内部でExcelを使うため、Excelが必要です。dist のJSON更新やサイト公開までは行いません。
+
+
+
+◆install-calc-macro.cmd
+保存して、LibreOfficeの全ウィンドウを閉じてから実行します。
+CalcのCSV出力ボタンが使うマクロを更新します。既存マクロのバックアップも作ります。毎回のCSV出力では実行不要です。
+
+★普段の作業順
+設定だけ変更した場合
+main.odsを保存 → export-all-csv.cmd → preview-local.cmdで確認
+アニメーション画像も変更した場合
+画像を配置 → build-animation-manifest.cmd → 台帳を保存 → export-all-csv.cmd → preview-local.cmdで確認
+この4つのcmdには、サイトを公開する機能はありません。

@@ -5,5 +5,5 @@
 1,slime_purple,紫スライム,slime,purple,10,5,0,chase2,0.15,50,,
 1,slime_black,黒スライム,slime,black,20,10,1,chase2,0.15,50,,
 0,slime_metal,金属スライム,slime,metal,50,20,0,chase,0.15,50,,
-0,dragon_red,炎竜,dragon,red,100,30,0,chase,0.15,,,
-0,golem_metal,ゴーレム,golem,metal,150,15,1,chase,0.15,,,
+0,dragon_red,炎竜,dragon,red,100,30,0,chase,0.15,50,,
+0,golem_metal,ゴーレム,golem,metal,150,15,1,chase,0.15,50,,
