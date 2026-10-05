@@ -1,0 +1,13 @@
+const assert=require('node:assert/strict');
+const {stepAI}=require('../sandbox-engine.js');
+const config={ai_detection_range_px:320,ai_stop_distance_px:40,ai_lose_target_range_px:480,ai_wait_seconds:1};
+const player={x:100,y:0};
+let enemy={x:0,y:0,speed:100,aiType:'chase2'};
+stepAI(enemy,player,1,config);assert.equal(enemy.x,60,'新AIは停止距離を越えて近づかない');
+stepAI(enemy,player,.1,config);assert.equal(enemy.state,'wait');assert.equal(enemy.x,60);
+player.x=200;stepAI(enemy,player,.5,config);assert.equal(enemy.x,60,'待機時間中は追跡を再開しない');
+stepAI(enemy,player,.6,config);assert.ok(enemy.x>60);
+enemy={x:0,y:0,speed:100,aiType:'chase'};player.x=100;stepAI(enemy,player,.7,config);assert.equal(enemy.x,70,'従来AIは停止距離を参照しない');
+enemy={x:0,y:0,speed:100,aiType:'chase2'};player.x=400;stepAI(enemy,player,1,config);assert.equal(enemy.x,0,'発見距離外では移動しない');
+enemy.state='chase';player.x=500;stepAI(enemy,player,1,config);assert.equal(enemy.state,'wait');assert.equal(enemy.x,0,'見失うと追跡を終了する');
+console.log('sandbox AI: passed');

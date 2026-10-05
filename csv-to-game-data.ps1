@@ -188,9 +188,23 @@ for($i=0;$i-lt$mapTileRows.Count;$i++){
     $mapTiles += [ordered]@{destructible=($row.destructible -eq '1');hp=[int]$objectHp;asset_key=$key;sprite_file=$sprite;category=([string]$row.category).Trim();palette_color=$color;walkable=($row.walkable -eq '1');collision_length=[double]$length;collision_width=[double]$width}
 }
 
+$aiSettings=[ordered]@{}
+if(Test-Path -LiteralPath (Join-Path $CsvFolder 'sheet-AI.csv')){
+    $aiRows=@(Read-Table 'AI' @('enabled','ai_type','ai_detection_range_px','ai_stop_distance_px','ai_lose_target_range_px','ai_wait_seconds')) | Where-Object {$_.enabled -eq '1'}
+    for($i=0;$i-lt$aiRows.Count;$i++){
+        $row=$aiRows[$i];$file='sheet-AI.csv';$line=$i+2;$key=([string]$row.ai_type).Trim()
+        if(-not$key){Add-DataError $file $line 'ai_type' '有効なAIには種類を指定してください。';continue}
+        if($aiSettings.Contains($key)){Add-DataError $file $line 'ai_type' 'AIの種類が重複しています。'}
+        $item=[ordered]@{}
+        foreach($field in @('ai_detection_range_px','ai_stop_distance_px','ai_lose_target_range_px','ai_wait_seconds')){$item[$field]=To-Number $row.$field $file $line $field 0}
+        if($item.ai_lose_target_range_px -lt $item.ai_detection_range_px){Add-DataError $file $line 'ai_lose_target_range_px' '発見距離以上にしてください。'}
+        if($item.ai_stop_distance_px -gt $item.ai_detection_range_px){Add-DataError $file $line 'ai_stop_distance_px' '発見距離以下にしてください。'}
+        $aiSettings[$key]=$item
+    }
+}
 if($errors.Count-gt0){$message="データ検証で$($errors.Count)件のエラーが見つかりました。`n"+($errors-join"`n");if($ErrorReportPath){[IO.File]::WriteAllText($ErrorReportPath,$message,[Text.UTF8Encoding]::new($false))};if(-not$Silent){Write-Host $message -ForegroundColor Red};[Console]::Error.WriteLine($message);exit 2}
 
-$data=[ordered]@{schema_version=1;generated_at=(Get-Date).ToString('o');general=$general;player=$player;attack_range=$attackRanges;enemies=$enemies;rounds=$rounds;assets=$assets;difficulties=$difficulties;map_tiles=$mapTiles}
+$data=[ordered]@{schema_version=1;generated_at=(Get-Date).ToString('o');general=$general;player=$player;attack_range=$attackRanges;enemies=$enemies;ai=$aiSettings;rounds=$rounds;assets=$assets;difficulties=$difficulties;map_tiles=$mapTiles}
 $parent=Split-Path -Parent $OutputPath;if($parent){[IO.Directory]::CreateDirectory($parent)|Out-Null}
 [IO.File]::WriteAllText($OutputPath,($data|ConvertTo-Json -Depth 12),[Text.UTF8Encoding]::new($false))
 $result=[ordered]@{status='ok';output=$OutputPath;general=$general.Count;player=$player.Count;enemies=$enemies.Count;rounds=$rounds.Count;assets=$assets.Count;difficulties=$difficulties.Count}
