@@ -19,6 +19,7 @@
     .home{width:100%;height:100%;display:grid;place-items:center;padding:20px}
     .home-nav{display:grid;gap:10px;width:min(100%,340px);padding:20px;background:#142a28;border:1px solid #668674;border-radius:16px}
     .home-nav button{min-height:48px;text-align:left;padding:10px 14px}
+    .home-version{margin:4px 0 0;color:#e4c47b;font-size:12px;font-weight:800;letter-spacing:.12em;text-align:center}
     .workspace{display:flex;width:100%;height:100%;min-height:0}
     .preview-pane{position:relative;flex:1;min-width:0;min-height:0;display:grid;place-items:center;background:#000}
     .hint{position:absolute;inset:0;display:grid;place-items:center;color:#aeb9b3;font-size:14px;text-align:center;padding:18px}
@@ -77,6 +78,7 @@
         <button class="category" data-category="attackRange">攻撃範囲</button>
         <button class="category" data-category="player">プレイヤー</button>
         <button class="category" data-category="enemy">エネミー</button>
+        <p class="home-version" id="version">VERSION 読み込み中</p>
       </nav>
     </div>
   </section>
@@ -124,6 +126,12 @@
       </aside>
     </div>
   </section>
-  <script src="animation-preview.js?v=1.09"></script>
+  <script>
+    fetch('VERSION',{cache:'no-store'})
+      .then(response=>{if(!response.ok)throw new Error('Version unavailable');return response.text()})
+      .then(value=>{const version=value.trim();if(!/^\d+\.\d+(?:\.\d+)?$/.test(version))throw new Error('Invalid version');document.getElementById('version').textContent=`VERSION ${version}`})
+      .catch(()=>{document.getElementById('version').textContent='VERSION 取得できません'});
+  </script>
+  <script src="animation-preview.js?v=1.10"></script>
 </body>
 </html>
