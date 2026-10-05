@@ -103,7 +103,10 @@
   const NORMAL_ATTACK_RANGE_PX=Math.max(0,setting(attackRanges.normal,'range_px',42)),NORMAL_ATTACK_ANGLE_DEGREES=clamp(setting(attackRanges.normal,'angle_degrees',182),0,360),SPIN_ATTACK_RANGE_PX=Math.max(0,setting(attackRanges.spin,'range_px',42)),SPIN_ATTACK_ANGLE_DEGREES=clamp(setting(attackRanges.spin,'angle_degrees',360),0,360),OBJECT_ATTACK_RANGE_PX=Math.max(0,setting(attackRanges.object,'range_px',42)),OBJECT_ATTACK_ANGLE_DEGREES=clamp(setting(attackRanges.object,'angle_degrees',203),0,360);
   const PLAYER_SCALE=setting(playerData,'player_scale',1),SWORD_SCALE=setting(playerData,'sword_scale',1);
   const NORMAL_ATTACK_EFFECT_SCALE=setting(playerData,'normal_attack_effect_scale',1),WHITE_ATTACK_EFFECT_SCALE=setting(playerData,'white_attack_effect_scale',1.5),RED_ATTACK_EFFECT_SCALE=setting(playerData,'red_attack_effect_scale',2);
-  const activeRounds=Object.keys(roundData).map(Number).filter(n=>Number.isInteger(n)&&n>0&&n<=MAX_EASY_ROUND).sort((a,b)=>a-b);
+  const requestedDifficulty=query.get('difficulty')||'easy';
+  const difficultyKey=['easy','normal','hard'].includes(requestedDifficulty)?requestedDifficulty:'easy';
+  const selectedMaxRound=setting(gameData.difficulties?.[difficultyKey]||{},'max_round',MAX_EASY_ROUND);
+  const activeRounds=Object.keys(roundData).map(Number).filter(n=>Number.isInteger(n)&&n>0&&n<=selectedMaxRound).sort((a,b)=>a-b);
   if(!activeRounds.length){ui.panel.textContent='有効なラウンドがありません。roundとdifficultyのマスターを確認してください。';return}
   round=activeRounds[0];
   const currentRoundConfig=roundNumber=>roundData[String(roundNumber)];

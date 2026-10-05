@@ -11,6 +11,7 @@
     main{width:min(100% - 36px,390px);padding:36px 25px 42px;text-align:center;border:1px solid #d6c18c66;border-radius:23px;background:#162b28eb;box-shadow:0 18px 55px #07120d88}
     .mark{font-size:51px;line-height:1;color:#e4c47b}h1{font-size:38px;letter-spacing:.18em;margin:14px 0 6px;text-indent:.18em}.subtitle{font-size:12px;letter-spacing:.16em;color:#bfd1bd;margin:0 0 8px}.version{margin:0 0 28px;color:#e4c47b;font-size:12px;font-weight:800;letter-spacing:.12em}
     nav{display:grid;gap:14px}a{display:block;padding:16px;border:1px solid #d6c18c;border-radius:13px;color:#172721;background:#e6c987;text-decoration:none;font-size:19px;font-weight:900}a:not(:first-child){color:#eef5e8;background:#24453b;border-color:#9db898}a:active{transform:scale(.98)}
+    .difficulty{display:flex;gap:8px;margin-bottom:14px}.difficulty button{flex:1;min-width:0;padding:12px 4px;border:2px solid #8a9690;border-radius:10px;background:#56625e;color:#d7ddda;font:700 15px system-ui;cursor:pointer}.difficulty button[aria-pressed="true"]{box-shadow:0 0 0 2px #f5f1dc55}.difficulty button[data-difficulty="easy"][aria-pressed="true"]{background:#267cbd;border-color:#75c6ff;color:white}.difficulty button[data-difficulty="normal"][aria-pressed="true"]{background:#e6c44d;border-color:#ffe88d;color:#27210d}.difficulty button[data-difficulty="hard"][aria-pressed="true"]{background:#b63843;border-color:#ff929a;color:white}.difficulty button:focus-visible,#start:focus-visible{outline:3px solid white;outline-offset:3px}#start{padding:16px;border:1px solid #d6c18c;border-radius:13px;color:#172721;background:#e6c987;font:900 19px system-ui;cursor:pointer}#start:disabled{background:#56625e;color:#aeb8b3;border-color:#78867e;cursor:default}
   </style>
 </head>
 <body>
@@ -19,9 +20,18 @@
     <h1>針の刻</h1>
     <p class="subtitle">時計で戦うゲーム</p>
     <p class="version" id="version">VERSION 読み込み中</p>
-    <nav aria-label="メニュー"><a href="game.html">ゲームスタート</a><a href="animation.html">演出確認</a></nav>
+    <div class="difficulty" role="group" aria-label="難易度"><button type="button" data-difficulty="easy" aria-pressed="false">easy</button><button type="button" data-difficulty="normal" aria-pressed="false">normal</button><button type="button" data-difficulty="hard" aria-pressed="false">hard</button></div>
+    <nav aria-label="メニュー"><button type="button" id="start" disabled>ゲームスタート</button><a href="animation.html">演出確認</a></nav>
   </main>
   <script>
+    let selectedDifficulty=null;
+    const startButton=document.getElementById('start');
+    for(const button of document.querySelectorAll('[data-difficulty]'))button.addEventListener('click',()=>{
+      selectedDifficulty=button.dataset.difficulty;
+      for(const choice of document.querySelectorAll('[data-difficulty]'))choice.setAttribute('aria-pressed',String(choice===button));
+      startButton.disabled=false;
+    });
+    startButton.addEventListener('click',()=>{if(selectedDifficulty)location.href='game.html?difficulty='+selectedDifficulty});
     fetch('VERSION',{cache:'no-store'})
       .then(response=>{if(!response.ok)throw new Error(`HTTP ${response.status}`);return response.text()})
       .then(value=>{const version=value.trim();if(!/^\d+\.\d+(?:\.\d+)?$/.test(version))throw new Error('Invalid version');document.getElementById('version').textContent=`VERSION ${version}`})
