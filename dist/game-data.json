@@ -82,9 +82,9 @@
                                      },
                                      {
                                          "index":  2,
-                                         "asset_key":  "",
+                                         "asset_key":  "money",
                                          "drop_weight":  10,
-                                         "quantity":  0
+                                         "quantity":  1000
                                      },
                                      {
                                          "index":  3,
@@ -108,9 +108,9 @@
                                       },
                                       {
                                           "index":  3,
-                                          "asset_key":  "",
+                                          "asset_key":  "money",
                                           "drop_weight":  20,
-                                          "quantity":  0
+                                          "quantity":  2000
                                       }
                                   ],
                   "slime_red":  [
@@ -128,9 +128,9 @@
                                     },
                                     {
                                         "index":  3,
-                                        "asset_key":  "",
+                                        "asset_key":  "money",
                                         "drop_weight":  20,
-                                        "quantity":  0
+                                        "quantity":  4000
                                     }
                                 ],
                   "slime_purple":  [
@@ -148,9 +148,9 @@
                                        },
                                        {
                                            "index":  3,
-                                           "asset_key":  "",
+                                           "asset_key":  "money",
                                            "drop_weight":  25,
-                                           "quantity":  0
+                                           "quantity":  5000
                                        }
                                    ],
                   "slime_black":  [
@@ -180,7 +180,7 @@
                                       }
                                   ]
               },
-    "generated_at":  "2026-10-05T21:32:27.4763843+09:00",
+    "generated_at":  "2026-10-05T22:44:23.6161597+09:00",
     "general":  {
                     "movement_speed":  180,
                     "start_energy":  150,
@@ -192,7 +192,8 @@
                     "recovery_invincible_seconds":  1.5,
                     "battle_start_delay_seconds":  1,
                     "max_hourglass_stock":  10,
-                    "max_sand_display":  1000
+                    "max_sand_display":  1000,
+                    "gray_state_hit_limit":  5
                 },
     "player":  {
                    "sword_scale":  1,
@@ -289,11 +290,11 @@
                                        "family":  "slime",
                                        "variant":  "blue",
                                        "hp":  1,
-                                       "attack":  1,
+                                       "attack":  2,
                                        "super_armor":  false,
                                        "ai_type":  "chase2",
                                        "death_hit_stop_seconds":  0.15,
-                                       "knockback_distance_px":  50,
+                                       "knockback_distance_px":  40,
                                        "move_speed_px_per_second":  18,
                                        "animation_move_frame_seconds":  [
                                                                             0.2,
@@ -313,12 +314,12 @@
                                         "description":  "緑スライム",
                                         "family":  "slime",
                                         "variant":  "green",
-                                        "hp":  2,
-                                        "attack":  1,
+                                        "hp":  3,
+                                        "attack":  3,
                                         "super_armor":  false,
                                         "ai_type":  "chase2",
                                         "death_hit_stop_seconds":  0.15,
-                                        "knockback_distance_px":  50,
+                                        "knockback_distance_px":  30,
                                         "move_speed_px_per_second":  18,
                                         "animation_move_frame_seconds":  [
                                                                              0.2,
@@ -338,12 +339,12 @@
                                       "description":  "赤スライム",
                                       "family":  "slime",
                                       "variant":  "red",
-                                      "hp":  5,
-                                      "attack":  1,
+                                      "hp":  7,
+                                      "attack":  5,
                                       "super_armor":  false,
                                       "ai_type":  "chase2",
                                       "death_hit_stop_seconds":  0.15,
-                                      "knockback_distance_px":  50,
+                                      "knockback_distance_px":  15,
                                       "move_speed_px_per_second":  18,
                                       "animation_move_frame_seconds":  [
                                                                            0.2,
@@ -363,12 +364,12 @@
                                          "description":  "紫スライム",
                                          "family":  "slime",
                                          "variant":  "purple",
-                                         "hp":  10,
-                                         "attack":  5,
+                                         "hp":  20,
+                                         "attack":  10,
                                          "super_armor":  false,
                                          "ai_type":  "chase2",
                                          "death_hit_stop_seconds":  0.15,
-                                         "knockback_distance_px":  50,
+                                         "knockback_distance_px":  15,
                                          "move_speed_px_per_second":  18,
                                          "animation_move_frame_seconds":  [
                                                                               0.2,
@@ -388,12 +389,12 @@
                                         "description":  "黒スライム",
                                         "family":  "slime",
                                         "variant":  "black",
-                                        "hp":  20,
-                                        "attack":  10,
+                                        "hp":  50,
+                                        "attack":  20,
                                         "super_armor":  true,
                                         "ai_type":  "chase2",
                                         "death_hit_stop_seconds":  0.15,
-                                        "knockback_distance_px":  50,
+                                        "knockback_distance_px":  15,
                                         "move_speed_px_per_second":  18,
                                         "animation_attack_frame_seconds":  [
                                                                                0.33,
@@ -539,7 +540,7 @@
                                     "kill_target":  20,
                                     "enemy_hp_multiplier":  2,
                                     "enemy_attack_multiplier":  2,
-                                    "enemy_speed_multiplier":  1,
+                                    "enemy_speed_multiplier":  2,
                                     "spawn_interval_seconds":  0.7,
                                     "spawns":  [
                                                    {
@@ -572,7 +573,7 @@
                                     "kill_target":  20,
                                     "enemy_hp_multiplier":  2,
                                     "enemy_attack_multiplier":  2,
-                                    "enemy_speed_multiplier":  1,
+                                    "enemy_speed_multiplier":  2,
                                     "spawn_interval_seconds":  0.7,
                                     "spawns":  [
                                                    {
@@ -613,7 +614,7 @@
                                     "kill_target":  20,
                                     "enemy_hp_multiplier":  2,
                                     "enemy_attack_multiplier":  2,
-                                    "enemy_speed_multiplier":  1,
+                                    "enemy_speed_multiplier":  2,
                                     "spawn_interval_seconds":  0.7,
                                     "spawns":  [
                                                    {
@@ -641,7 +642,98 @@
                                                        "guaranteed_once":  false
                                                    }
                                                ]
-                                }
+                                },
+                   "hard|1":  {
+                                  "kill_target":  30,
+                                  "enemy_hp_multiplier":  4,
+                                  "enemy_attack_multiplier":  4,
+                                  "enemy_speed_multiplier":  3,
+                                  "spawn_interval_seconds":  0.7,
+                                  "spawns":  [
+                                                 {
+                                                     "enemy_key":  "slime_green",
+                                                     "spawn_weight":  20,
+                                                     "max_alive":  0,
+                                                     "max_per_round":  0,
+                                                     "start_elapsed_seconds":  0,
+                                                     "guaranteed_once":  false
+                                                 },
+                                                 {
+                                                     "enemy_key":  "slime_red",
+                                                     "spawn_weight":  35,
+                                                     "max_alive":  0,
+                                                     "max_per_round":  0,
+                                                     "start_elapsed_seconds":  0,
+                                                     "guaranteed_once":  false
+                                                 },
+                                                 {
+                                                     "enemy_key":  "slime_black",
+                                                     "spawn_weight":  15,
+                                                     "max_alive":  0,
+                                                     "max_per_round":  0,
+                                                     "start_elapsed_seconds":  20,
+                                                     "guaranteed_once":  true
+                                                 },
+                                                 {
+                                                     "enemy_key":  "slime_purple",
+                                                     "spawn_weight":  30,
+                                                     "max_alive":  0,
+                                                     "max_per_round":  0,
+                                                     "start_elapsed_seconds":  0,
+                                                     "guaranteed_once":  false
+                                                 }
+                                             ]
+                              },
+                   "hard|2":  {
+                                  "kill_target":  30,
+                                  "enemy_hp_multiplier":  4,
+                                  "enemy_attack_multiplier":  4,
+                                  "enemy_speed_multiplier":  3,
+                                  "spawn_interval_seconds":  0.7,
+                                  "spawns":  [
+                                                 {
+                                                     "enemy_key":  "slime_green",
+                                                     "spawn_weight":  50,
+                                                     "max_alive":  0,
+                                                     "max_per_round":  0,
+                                                     "start_elapsed_seconds":  0,
+                                                     "guaranteed_once":  false
+                                                 },
+                                                 {
+                                                     "enemy_key":  "slime_red",
+                                                     "spawn_weight":  50,
+                                                     "max_alive":  0,
+                                                     "max_per_round":  0,
+                                                     "start_elapsed_seconds":  0,
+                                                     "guaranteed_once":  false
+                                                 }
+                                             ]
+                              },
+                   "hard|3":  {
+                                  "kill_target":  30,
+                                  "enemy_hp_multiplier":  4,
+                                  "enemy_attack_multiplier":  4,
+                                  "enemy_speed_multiplier":  3,
+                                  "spawn_interval_seconds":  0.7,
+                                  "spawns":  [
+                                                 {
+                                                     "enemy_key":  "slime_black",
+                                                     "spawn_weight":  50,
+                                                     "max_alive":  0,
+                                                     "max_per_round":  0,
+                                                     "start_elapsed_seconds":  20,
+                                                     "guaranteed_once":  true
+                                                 },
+                                                 {
+                                                     "enemy_key":  "slime_purple",
+                                                     "spawn_weight":  50,
+                                                     "max_alive":  0,
+                                                     "max_per_round":  0,
+                                                     "start_elapsed_seconds":  0,
+                                                     "guaranteed_once":  false
+                                                 }
+                                             ]
+                              }
                },
     "assets":  [
                    {

@@ -103,6 +103,7 @@
   const START_ENERGY=setting(general,'start_energy',100),MOVE_SPEED_PX_PER_SECOND=setting(general,'movement_speed',124),MOVE_DISTANCE_PER_ENERGY=setting(playerData,'move_distance_per_energy',16);
   const MAX_ENEMIES=setting(general,'max_enemies',20),MAX_PARTICLES=setting(general,'max_particles',200),MAX_SWORD_COUNT=setting(playerData,'max_sword_count',150),MAX_EASY_ROUND=setting(gameData.difficulties?.easy||{},'max_round',3);
   const MAX_HOURGLASS_STOCK=setting(general,'max_hourglass_stock',10),MAX_SAND_DISPLAY=setting(general,'max_sand_display',1000),IDLE_WARNING_SECONDS=setting(general,'idle_warning_seconds',60),GAME_OVER_COUNTDOWN_SECONDS=setting(general,'game_over_countdown_seconds',5),RECOVERY_INVINCIBLE_SECONDS=setting(general,'recovery_invincible_seconds',2),BATTLE_START_DELAY_SECONDS=setting(general,'battle_start_delay_seconds',2),HIT_INVINCIBILITY_DURATION=setting(general,'hit_Invincibility_Duration',1.15);
+  const GRAY_STATE_HIT_LIMIT=Math.max(1,Math.floor(setting(general,'gray_state_hit_limit',3)));
   const NORMAL_ATTACK_ENERGY_COST=setting(playerData,'sword_cost',1),BASE_ATTACK_DAMAGE=setting(playerData,'base_attack_damage',1),WHITE_AURA_DAMAGE=setting(playerData,'white_aura_damage',5),RED_AURA_DAMAGE=setting(playerData,'red_aura_damage',20),SPIN_SWORD_COST=setting(playerData,'spin_sword_cost',10),SPIN_MIN_DAMAGE=setting(playerData,'spin_min_damage',5),WHITE_AURA_INTERVAL=setting(playerData,'white_aura_interval',50),RED_AURA_INTERVAL=setting(playerData,'red_aura_interval',100),SPIN_CHARGE_SECONDS=setting(playerData,'spin_charge_seconds',2);
   const attackRanges=gameData.attack_range?.player?.player;
   if(!attackRanges||['normal','spin','object'].some(action=>!attackRanges[action])){ui.panel.textContent='攻撃範囲の設定がありません。attack_rangeシートをCSV出力してください。';return}
@@ -297,10 +298,10 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
     ui.energyBar.classList.toggle('recovering',(mode==='entry'||mode==='refill-entry')&&recoveryGaugeRemaining>0);
     ui.energyValue.textContent=displayedEnergy;
     ui.energyFill.style.width=`${Math.min(100,displayedEnergy)}%`;
-    ui.grayDamageFill.style.width=energy===0?`${grayHits/3*100}%`:'0%';
+    ui.grayDamageFill.style.width=energy===0?`${grayHits/GRAY_STATE_HIT_LIMIT*100}%`:'0%';
     ui.energyBar.setAttribute('aria-valuenow',String(displayedEnergy));
     ui.energyBar.setAttribute('aria-valuemax',String(Math.max(100,energy)));
-    ui.energyBar.setAttribute('aria-valuetext',energy===0&&unlocked>0?`行動力0、灰色状態での被弾 ${grayHits} / 3`:`行動力 ${displayedEnergy}`);
+    ui.energyBar.setAttribute('aria-valuetext',energy===0&&unlocked>0?`行動力0、灰色状態での被弾 ${grayHits} / ${GRAY_STATE_HIT_LIMIT}`:`行動力 ${displayedEnergy}`);
     ui.attackCount.textContent=swordCount;
     ui.clockCount.textContent=unlocked;
     if(mode!=='turning'&&mode!=='confirmed')showSand(selectionReason==='refill'&&mode==='select'?selectionIcons:unlocked);
@@ -454,7 +455,7 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
     ui.killWarning.classList.add('hidden');
     ui.overlay.classList.remove('hidden');ui.panel.classList.remove('selecting','paused','confirmed','refill','turning');ui.panel.classList.add('gameover');
     ui.eyebrow.textContent='GAME OVER';ui.title.textContent=`討伐 ${score} 体`;
-    ui.description.textContent=reason==='no-kill'?'一定時間、敵を倒せませんでした。もう一度挑戦しよう。':grayHits>=3?'灰色状態で3回攻撃を受けました。もう一度挑戦しよう。':'行動力がなくなりました。もう一度挑戦しよう。';
+    ui.description.textContent=reason==='no-kill'?'一定時間、敵を倒せませんでした。もう一度挑戦しよう。':grayHits>=GRAY_STATE_HIT_LIMIT?`灰色状態で${GRAY_STATE_HIT_LIMIT}回攻撃を受けました。もう一度挑戦しよう。`:'行動力がなくなりました。もう一度挑戦しよう。';
     ui.stop.disabled=false;ui.stop.textContent='もう一度遊ぶ';ui.sub.textContent='';setHud();
   }
   function checkExhausted(){
@@ -733,10 +734,10 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
         damageFlash=.5;
         const bounds=playerMovementBounds();
         moveBody(player,clamp(player.x+ex/len*Math.max(0,setting(playerData,'damage_knockback_distance_px',20)),bounds.left,bounds.right)-player.x,clamp(player.y+ey/len*Math.max(0,setting(playerData,'damage_knockback_distance_px',20)),bounds.top,bounds.bottom)-player.y,10,14);
-        if(energy===0&&unlocked>0){grayHits=Math.min(3,grayHits+1);setHud()}
+        if(energy===0&&unlocked>0){grayHits=Math.min(GRAY_STATE_HIT_LIMIT,grayHits+1);setHud()}
         else spendEnergy(enemy.attack);
         invincible=HIT_INVINCIBILITY_DURATION;shake=.2;burst(player.x,player.y,'#fff4dc',9);
-        if(grayHits>=3){
+        if(grayHits>=GRAY_STATE_HIT_LIMIT){
           mode='defeated';drag.pointer=null;cancelCharge();setHud();
           transitionTimer=setTimeout(()=>{if(mode==='defeated')gameOver()},450);
           break;

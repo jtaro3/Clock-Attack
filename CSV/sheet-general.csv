@@ -10,3 +10,4 @@ recovery_invincible_seconds,行動力回復後の無敵時間,1.5,number,0,10,se
 battle_start_delay_seconds,バトル開始時の待機時間,1,number,0,10,seconds,,0
 max_hourglass_stock,砂時計の最大ストック数,10,integer,1,10,count,,0
 max_sand_display,砂量表示の最大値,1000,integer,1,10000,point,コレはいじらない,0
+gray_state_hit_limit,行動力0の灰色状態で耐えられる被弾回数 ,5,integer,1,99,count,,0
