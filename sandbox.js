@@ -54,7 +54,7 @@
   window.addEventListener('keydown',event=>{if(/INPUT|SELECT/.test(event.target.tagName))return;if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space','KeyW','KeyA','KeyS','KeyD'].includes(event.code)){event.preventDefault();if(event.code==='Space')attack();else{keys.add(event.code);target=null}}});window.addEventListener('keyup',event=>keys.delete(event.code));window.addEventListener('blur',()=>{keys.clear();target=null;running=false;$('start').textContent='スタート'});
   $('start').addEventListener('click',()=>{if(p.hp<=0||e.hp<=0)resetPositions();running=!running;$('start').textContent=running?'停止':'スタート';notice=running?'対戦中':'停止中。長押しで配置を調整できます'});$('attack').addEventListener('click',attack);$('reset').addEventListener('click',resetPositions);$('enemySelect').addEventListener('change',selectEnemy);$('aiSelect').addEventListener('change',()=>{running=false;$('start').textContent='スタート';aiInfo()});$('masterReset').addEventListener('click',selectEnemy);
   try{
-    [data,manifest]=await Promise.all([json('game-data.json'),json('animation-manifest.json')]);ai=data.ai&&Object.keys(data.ai).length?data.ai:await json('sandbox-ai.json');
+    [data,manifest]=await Promise.all([json('game-data.json'),json('animation-manifest.json')]);ai=data.ai||{};
     const version=await fetch('VERSION',{cache:'no-store'});$('version').textContent='v'+(await version.text()).trim();
     for(const [key,enemy] of Object.entries(data.enemies)){const option=document.createElement('option');option.value=key;option.textContent=enemy.description+' ('+key+')';$('enemySelect').append(option)}
     if(!$('enemySelect').options.length)throw Error('有効なエネミーがありません');await selectEnemy();for(const id of ['start','reset','masterReset'])$(id).disabled=false;

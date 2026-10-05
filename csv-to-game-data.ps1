@@ -192,7 +192,7 @@ for($i=0;$i-lt$mapTileRows.Count;$i++){
 
 $aiSettings=[ordered]@{}
 if(Test-Path -LiteralPath (Join-Path $CsvFolder 'sheet-AI.csv')){
-    $aiRows=@(Read-Table 'AI' @('enabled','ai_type','ai_detection_range_px','ai_stop_distance_px','ai_lose_target_range_px','ai_wait_seconds')) | Where-Object {$_.enabled -eq '1'}
+    $aiRows=@(Read-Table 'AI' @('enabled','ai_type','ai_detection_range_px','ai_stop_distance_px','ai_lose_target_range_px','ai_wait_seconds') | Where-Object {$_.enabled -eq '1'})
     for($i=0;$i-lt$aiRows.Count;$i++){
         $row=$aiRows[$i];$file='sheet-AI.csv';$line=$i+2;$key=([string]$row.ai_type).Trim()
         if(-not$key){Add-DataError $file $line 'ai_type' '有効なAIには種類を指定してください。';continue}
