@@ -13,7 +13,7 @@
   const $=id=>document.getElementById(id);
   const canvas=$('field'),ctx=canvas.getContext('2d');
   const query=new URLSearchParams(location.search),effectPreviewMode=query.has('effectPreview'),clearPreviewMode=query.has('clearPreview');
-  const ui={overlay:$('overlay'),panel:$('panel'),title:$('title'),eyebrow:$('eyebrow'),description:$('description'),resultValue:$('resultValue'),stop:$('stop'),sub:$('sub'),score:$('score'),roundNumber:$('roundNumber'),roundTarget:$('roundTarget'),elapsedTime:$('elapsedTime'),energyValue:$('energyValue'),energyFill:$('energyFill'),grayDamageFill:$('grayDamageFill'),energyBar:document.querySelector('.energy-bar'),swordCounter:$('swordCounter'),attackCount:$('attackCount'),clockCount:$('clockCount'),clockButton:$('clockButton'),clockStock:$('clockStock'),buttonHourglass:$('buttonHourglass'),mergeStage:$('mergeStage'),mergeBottles:$('mergeBottles'),mergeHourglass:$('mergeHourglass'),sandPreview:$('sandPreview'),previewSandCount:$('previewSandCount'),previewHourglass:$('previewHourglass'),killWarning:$('killWarning'),killCountdown:$('killCountdown'),attack:$('attack'),speedButton:$('speedButton'),instantKillButton:$('instantKillButton'),pauseButton:$('pauseButton'),pauseScreen:$('pauseScreen'),resumeButton:$('resumeButton'),gridToggle:$('gridToggle'),clearScreen:$('clearScreen'),clearAnnouncement:$('clearAnnouncement'),clearHourglass:$('clearHourglass'),clearScore:$('clearScore'),clearTime:$('clearTime'),clearActions:$('clearActions'),clearRetry:$('clearRetry'),clearTitleLink:$('clearTitleLink')};
+  const ui={overlay:$('overlay'),panel:$('panel'),title:$('title'),eyebrow:$('eyebrow'),description:$('description'),resultValue:$('resultValue'),stop:$('stop'),sub:$('sub'),score:$('score'),moneyValue:$('moneyValue'),moneyIcon:$('moneyIcon'),roundNumber:$('roundNumber'),roundTarget:$('roundTarget'),elapsedTime:$('elapsedTime'),energyValue:$('energyValue'),energyFill:$('energyFill'),grayDamageFill:$('grayDamageFill'),energyBar:document.querySelector('.energy-bar'),swordCounter:$('swordCounter'),attackCount:$('attackCount'),clockCount:$('clockCount'),clockButton:$('clockButton'),clockStock:$('clockStock'),buttonHourglass:$('buttonHourglass'),mergeStage:$('mergeStage'),mergeBottles:$('mergeBottles'),mergeHourglass:$('mergeHourglass'),sandPreview:$('sandPreview'),previewSandCount:$('previewSandCount'),previewHourglass:$('previewHourglass'),killWarning:$('killWarning'),killCountdown:$('killCountdown'),attack:$('attack'),speedButton:$('speedButton'),instantKillButton:$('instantKillButton'),pauseButton:$('pauseButton'),pauseScreen:$('pauseScreen'),resumeButton:$('resumeButton'),gridToggle:$('gridToggle'),clearScreen:$('clearScreen'),clearAnnouncement:$('clearAnnouncement'),clearHourglass:$('clearHourglass'),clearScore:$('clearScore'),clearTime:$('clearTime'),clearActions:$('clearActions'),clearRetry:$('clearRetry'),clearTitleLink:$('clearTitleLink')};
   const player={x:0,y:0,r:14,angle:-Math.PI/2};
   // 上から時計回り: 背面、背面右、右、正面右、正面、正面左、左、背面左。
   const spriteBounds=[[386,362,850,928],[396,376,846,930],[432,356,812,956],[396,344,836,952],[386,350,866,946],[374,340,862,916],[394,344,828,926],[396,324,828,922]];
@@ -97,6 +97,7 @@
   let showGrid=localStorage.getItem('clock-attack-grid')!=='0';
   const sandBottles=[];
   const drops=ClockAttackDrops.create(gameData);
+  const moneyImagePath=assets.itemPath('money');if(moneyImagePath){ui.moneyIcon.src=moneyImagePath;ui.moneyIcon.hidden=false}
   const dropImages=new Map((gameData.assets||[]).filter(asset=>asset.asset_type==='items').map(asset=>{const image=new Image();image.src=assets.itemPath(asset.asset_key);return [asset.asset_key,image]}));
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
   const START_ENERGY=setting(general,'start_energy',100),MOVE_SPEED_PX_PER_SECOND=setting(general,'movement_speed',124),MOVE_DISTANCE_PER_ENERGY=setting(playerData,'move_distance_per_energy',16);
@@ -288,7 +289,7 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
   }
 
   function setHud(){
-    ui.score.textContent=roundKills;
+    ui.score.textContent=roundKills;ui.moneyValue.textContent=drops.money;
     ui.roundNumber.textContent=round;
     ui.roundTarget.textContent=roundKillTarget(round);
     const recoveryProgress=(mode==='entry'||mode==='refill-entry')?clamp(1-recoveryGaugeRemaining/RECOVERY_GAUGE_SECONDS,0,1):1;
@@ -776,7 +777,7 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
       ctx.save();ctx.fillStyle='#10182066';ctx.beginPath();ctx.ellipse(drop.x,drop.y+12,12,4,0,0,Math.PI*2);ctx.fill();
       if(image?.complete&&image.naturalWidth>0)ctx.drawImage(image,drop.x-12,drop.y-18,24,30);
       else{ctx.fillStyle=drop.color;ctx.fillRect(drop.x-7,drop.y-12,14,22)}
-      if(drop.quantity>1){ctx.fillStyle='#fff';ctx.strokeStyle='#17242a';ctx.lineWidth=3;ctx.font='bold 13px sans-serif';ctx.textAlign='center';ctx.strokeText('×'+drop.quantity,drop.x,drop.y+27);ctx.fillText('×'+drop.quantity,drop.x,drop.y+27)}
+      if(drop.quantity>1||drop.isMoney){ctx.fillStyle='#fff';ctx.strokeStyle='#17242a';ctx.lineWidth=3;ctx.font='bold 13px sans-serif';ctx.textAlign='center';ctx.strokeText((drop.isMoney?'':'×')+drop.quantity,drop.x,drop.y+27);ctx.fillText((drop.isMoney?'':'×')+drop.quantity,drop.x,drop.y+27)}
       ctx.restore();
     }
     for(const enemy of [...enemies,...deadEnemies]){

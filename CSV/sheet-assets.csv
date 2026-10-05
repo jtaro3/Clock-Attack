@@ -26,7 +26,7 @@
 1,map_tiles_crate_dark_walnut_32x32.png,map_tiles,map_tiles,木箱,,1,crate_dark_walnut_32x32.png,,
 1,map_tiles_crate_dark_walnut_64x64.png,map_tiles,map_tiles,木箱,,1,crate_dark_walnut_64x64.png,,
 ,,,,,,,,,
-0,money,items,money,お金,,1,,,
+1,money,items,money,お金,,1,coin_hourglass.png,,
 1,sand_blue,items,sand_blue,青の砂,,1,bottle_blue.svg,回復演出にも使っているので、尺調整でつぶれないsvg,フォルダ参照の対応済み
 1,sand_green,items,sand_green,緑の砂,,1,bottle_green.svg,,
 1,sand_red,items,sand_red,赤の砂,,1,bottle_red.svg,,

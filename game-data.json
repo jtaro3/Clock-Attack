@@ -11,6 +11,16 @@
                                                     }
                                                 ]
                                 },
+                  "money":  {
+                                "description":  "お金",
+                                "effects":  [
+                                                {
+                                                    "effect_index":  1,
+                                                    "effect_type":  "money",
+                                                    "value":  0
+                                                }
+                                            ]
+                            },
                   "sand_green":  {
                                      "description":  "緑の砂",
                                      "effects":  [
@@ -170,7 +180,7 @@
                                       }
                                   ]
               },
-    "generated_at":  "2026-10-05T21:19:44.7468187+09:00",
+    "generated_at":  "2026-10-05T21:32:27.4763843+09:00",
     "general":  {
                     "movement_speed":  180,
                     "start_energy":  150,
@@ -813,6 +823,15 @@
                        "direction":  "",
                        "sprite_scale":  1,
                        "sprite_file":  "crate_dark_walnut_64x64.png"
+                   },
+                   {
+                       "asset_key":  "money",
+                       "asset_type":  "items",
+                       "owner_key":  "money",
+                       "description":  "お金",
+                       "direction":  "",
+                       "sprite_scale":  1,
+                       "sprite_file":  "coin_hourglass.png"
                    },
                    {
                        "asset_key":  "sand_blue",

@@ -1,4 +1,4 @@
-ドロップ設定（v1.20）
+﻿ドロップ設定（v1.20）
 
 CSVのitem/dropをJSONへ変換してゲームで使用する。dropはenemy_keyごとに1回抽選し、drop_weightの合計に対する比率で選択する。合計は100以外でもよい。asset_key空欄・quantity=0の行はドロップなし。設定のない敵は何も落とさない。
 
@@ -6,6 +6,6 @@ CSVのitem/dropをJSONへ変換してゲームで使用する。dropはenemy_key
 
 取得時に直接回復しない。砂時計使用時に、取得済みビンのitem.effectsのheal.valueを合計して回復する。敵の色・HP・旧sand_typeは回復量に使わない。画像はassetsのasset_keyを参照し、asset_type=itemsとsprite_fileでdesign/items配下を指定する。
 
-現在は正のheal効果を持つビンのドロップに対応。未対応の効果を持つアイテムを有効なdropに登録すると、CSV出力時に理由を表示してJSON更新を止める。未使用のitemに将来用の効果を記載することは可能。敵・item・itemsアセットの参照、重複番号、個数の整数、重みの非負と合計も検証する。
+現在は正のheal効果を持つビンと、単一のmoney効果のお金のドロップに対応。お金はdrop.quantityを金額として接触時に加算する。詳細はMONEY-DROPS.mdを参照。未対応の効果を持つアイテムを有効なdropに登録すると、CSV出力時に理由を表示してJSON更新を止める。未使用のitemに将来用の効果を記載することは可能。敵・item・itemsアセットの参照、重複番号、個数の整数、重みの非負と合計も検証する。
 
 台帳保存 → CSV出力 → ローカル起動で反映。build-animation-manifest.cmdは敵アニメーション画像の追加時に使用し、ドロップ設定だけなら不要。

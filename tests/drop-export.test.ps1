@@ -7,7 +7,15 @@ $output=Join-Path $folder 'result.json'
 function Run-Export { $ErrorActionPreference='Continue'; & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $project 'csv-to-game-data.ps1') -CsvFolder $folder -OutputPath $output -Silent 2>&1 | Out-Null; return $LASTEXITCODE }
 if((Run-Export)-ne0){throw 'Valid drop export failed'}
 $data=Get-Content $output -Raw -Encoding utf8|ConvertFrom-Json
-if($data.items.sand_blue.effects[0].value-ne20 -or $data.drops.slime_blue.Count-ne3 -or $data.drops.slime_blue[1].quantity-ne3){throw 'Item/drop serialization mismatch'}
+if($data.items.sand_blue.effects[0].value-ne20 -or $data.drops.slime_blue.Count-ne3 -or $data.drops.slime_blue[0].quantity-ne1){throw 'Item/drop serialization mismatch'}
+$moneyRows=@(Import-Csv (Join-Path $folder 'sheet-drop.csv'))
+$moneyRows[0].asset_key='money';$moneyRows[0].quantity='25'
+$moneyRows|Export-Csv (Join-Path $folder 'sheet-drop.csv') -NoTypeInformation -Encoding utf8
+if((Run-Export)-ne0){throw 'Valid money drop rejected'}
+$moneyData=Get-Content $output -Raw -Encoding utf8|ConvertFrom-Json
+if($moneyData.drops.slime_blue[0].asset_key-ne'money'-or$moneyData.drops.slime_blue[0].quantity-ne25){throw 'Money serialization mismatch'}
+Copy-Item (Join-Path $project 'CSV/sheet-drop.csv') (Join-Path $folder 'sheet-drop.csv') -Force
+if((Run-Export)-ne0){throw 'Restored baseline failed'}
 $original=[IO.File]::ReadAllText($output)
 $source=@(Import-Csv (Join-Path $folder 'sheet-drop.csv'))
 foreach($case in @('missing_item','fractional_quantity','negative_weight','duplicate_index','zero_total','no_drop_quantity','unknown_enemy','unsupported_effect')){

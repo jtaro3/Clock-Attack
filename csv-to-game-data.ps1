@@ -261,7 +261,12 @@ if(Test-Path -LiteralPath (Join-Path $CsvFolder 'sheet-drop.csv')){
   if($asset){
    if($quantity-lt1){Add-DataError $file $line 'quantity' 'アイテムを落とす行では1以上にしてください。'}
    if(-not$items.Contains($asset)){Add-DataError $file $line 'asset_key' '有効なitemに存在しません。'}
-   elseif(@($items[$asset].effects|Where-Object {$_.effect_type-ne'heal' -or $_.value-le0}).Count){Add-DataError $file $line 'asset_key' '現在のドロップは正のheal効果を持つビンに対応しています。'}
+   else{
+    $effects=@($items[$asset].effects)
+    $isMoney=$effects.Count-eq1 -and $effects[0].effect_type-eq'money' -and $effects[0].value-ge0
+    $isHeal=$effects.Count-gt0 -and @($effects|Where-Object {$_.effect_type-ne'heal' -or $_.value-le0}).Count-eq0
+    if(-not$isMoney -and -not$isHeal){Add-DataError $file $line 'asset_key' '正のheal効果のビン、または単一のmoney効果に対応しています。moneyの金額はdrop.quantityで指定します。'}
+   }
    if(-not@($assets|Where-Object {$_.asset_key-eq$asset -and $_.asset_type-eq'items'}).Count){Add-DataError $file $line 'asset_key' '有効なitemsアセットが必要です。'}
   }elseif($quantity-ne0){Add-DataError $file $line 'quantity' 'ドロップなしの行では0にしてください。'}
   if(-not$drops.Contains($key)){$drops[$key]=@()}
