@@ -15,22 +15,39 @@
   let enemyMoveImages=[],enemyAttackImages=[];
   const moveSettings=$('moveSettings'),attackSettings=$('attackSettings');
   const attackFrameDefault=.105;
-  const rangeStorageKey='clock-attack-player-range-preview-v2';
-  const rangeDefaults={normal_attack_range_px:42,normal_attack_angle_degrees:182,spin_attack_range_px:42,spin_attack_angle_degrees:360,object_attack_range_px:42,object_attack_angle_degrees:203};
-  let rangeSettings=readRangeSettings(),rangeMode='normal',rangeTarget=null,rangePlayerAngle=0,rangeStrikeStartedAt=0,rangeStrikeUntil=0,rangeStrikeHit=false,rangeGrid=true;
+  const rangeDefaults={normal:{range_px:42,angle_degrees:182},spin:{range_px:42,angle_degrees:360},object:{range_px:42,angle_degrees:203}};
+  let rangeMaster={},rangeOwner='player',rangeSettings={},rangeMode='normal',rangeTarget=null,rangePlayerAngle=0,rangeStrikeStartedAt=0,rangeStrikeUntil=0,rangeStrikeHit=false,rangeGrid=true,rangeLoadVersion=0;
   const menuButtons=[...document.querySelectorAll('[data-category]')];
-  function readRangeSettings(){try{return {...rangeDefaults,...JSON.parse(localStorage.getItem(rangeStorageKey)||'{}')}}catch{return {...rangeDefaults}}}
-  function currentRangeKey(){return rangeMode==='spin'?'spin_attack_range_px':rangeMode==='object'?'object_attack_range_px':'normal_attack_range_px'}
-  function currentAngleKey(){return rangeMode+'_attack_angle_degrees'}
-  function rangeAttackDuration(){return rangeMode==='spin'?550:270}
-  function refreshRangeControls(){const key=currentRangeKey();$('rangeDistance').value=String(rangeSettings[key]);$('rangeDistanceLabel').textContent=({normal:'通常攻撃の距離',spin:'回転斬りの距離',object:'オブジェクト攻撃の距離'})[rangeMode];$('rangeDistanceValue').textContent=rangeSettings[key]+' px';$('rangeAngleRow').hidden=false;$('rangeAngleLabel').textContent=({normal:'通常攻撃の角度',spin:'回転斬りの角度',object:'オブジェクト攻撃の角度'})[rangeMode];$('rangeAngle').value=String(rangeSettings[currentAngleKey()]);$('rangeAngleValue').textContent=rangeSettings[currentAngleKey()]+'°';document.querySelectorAll('[data-range-mode]').forEach(b=>b.classList.toggle('active',b.dataset.rangeMode===rangeMode));draw()}
-  function saveRangeSettings(){rangeSettings[currentRangeKey()]=Number($('rangeDistance').value);rangeSettings[currentAngleKey()]=Number($('rangeAngle').value);localStorage.setItem(rangeStorageKey,JSON.stringify(rangeSettings));refreshRangeControls()}
-  function loadMasterRangeSettings(){fetch('game-data.json',{cache:'no-store'}).then(r=>{if(!r.ok)throw Error();return r.json()}).then(data=>{const p=data.attack_range?.player?.player;if(!p||['normal','spin','object'].some(action=>!p[action]))throw Error('Missing attack_range');rangeSettings={...rangeDefaults};for(const action of ['normal','spin','object']){rangeSettings[action+'_attack_range_px']=Number(p[action].range_px);rangeSettings[action+'_attack_angle_degrees']=Number(p[action].angle_degrees);}localStorage.setItem(rangeStorageKey,JSON.stringify(rangeSettings));refreshRangeControls();$('rangeNotice').textContent='ゲームデータのattack_range設定を読み込みました'}).catch(()=>$('rangeNotice').textContent='attack_range設定を読み込めませんでした。CSV出力を確認してください')}
-  $('rangeDistance').addEventListener('input',saveRangeSettings);$('rangeAngle').addEventListener('input',saveRangeSettings);$('rangeFacing').addEventListener('input',e=>{rangePlayerAngle=Number(e.target.value)*Math.PI/180;$('rangeFacingValue').textContent=e.target.value+'°';draw()});$('rangeGridToggle').addEventListener('change',e=>{rangeGrid=e.target.checked;draw()});document.querySelectorAll('[data-range-mode]').forEach(b=>b.addEventListener('click',()=>{rangeMode=b.dataset.rangeMode;refreshRangeControls()}));$('loadRangeSettings').addEventListener('click',loadMasterRangeSettings);$('copyRangeSettings').addEventListener('click',async()=>{const payload=JSON.stringify(['normal','spin','object'].map(action=>({enabled:1,owner_type:'player',owner_key:'player',action,range_px:rangeSettings[action+'_attack_range_px'],angle_degrees:rangeSettings[action+'_attack_angle_degrees']})),null,2);try{await navigator.clipboard.writeText(payload);$('rangeNotice').textContent='調整値をコピーしました'}catch{$('rangeNotice').textContent=payload}});
-  $('rangeAttackTest').addEventListener('click',()=>{rangeStrikeHit=rangeTargetIsHit();rangeStrikeStartedAt=performance.now();rangeStrikeUntil=rangeStrikeStartedAt+rangeAttackDuration();$('rangeHitStatus').textContent=rangeStrikeHit?'命中':'空振り（範囲外）';$('rangeHitStatus').style.color=rangeStrikeHit?'#9ef0a8':'#ff9c91';draw()});
+  const rangeStorageKey=()=>`clock-attack-range-preview-v3:${rangeOwner}:${rangeOwner==='player'?'player':enemyKey}`;
+  const rangeLabel=mode=>({normal:'通常攻撃',spin:'回転斬り',object:'オブジェクト',contact:'接触攻撃'})[mode]||mode;
+  function readRangeSettings(){const master=rangeMaster[rangeOwner]?.[rangeOwner==='player'?'player':enemyKey]||(rangeOwner==='player'?rangeDefaults:{});try{return {...structuredClone(master),...JSON.parse(localStorage.getItem(rangeStorageKey())||'{}')}}catch{return structuredClone(master)}}
+  function rangeAttackDuration(){return rangeOwner==='enemy'?Math.max(40,enemyAttackImages.reduce((sum,_,i)=>sum+attackTime(i)*1000,0)||420):rangeMode==='spin'?550:270}
+  function refreshRangeControls(){
+    const settings=rangeSettings[rangeMode],available=!!settings;
+    $('rangeModes').replaceChildren();
+    for(const mode of Object.keys(rangeSettings)){const b=document.createElement('button');b.type='button';b.className='sub-choice'+(mode===rangeMode?' active':'');b.textContent=rangeLabel(mode);b.addEventListener('click',()=>{rangeMode=mode;rangeStrikeUntil=0;refreshRangeControls()});$('rangeModes').append(b)}
+    $('rangeDistance').disabled=$('rangeAngle').disabled=$('rangeAttackTest').disabled=$('copyRangeSettings').disabled=!available;
+    $('rangeDistance').value=String(settings?.range_px||0);$('rangeDistanceLabel').textContent=rangeLabel(rangeMode)+'の距離';$('rangeDistanceValue').textContent=available?settings.range_px+' px':'設定なし';
+    $('rangeAngle').value=String(settings?.angle_degrees||0);$('rangeAngleLabel').textContent=rangeLabel(rangeMode)+'の角度';$('rangeAngleValue').textContent=available?settings.angle_degrees+'°':'設定なし';
+    $('rangeFacingLabel').textContent=rangeOwner==='enemy'?'エネミーの向き':'プレイヤーの向き';
+    $('rangeOwnerPlayer').classList.toggle('active',rangeOwner==='player');$('rangeOwnerEnemy').classList.toggle('active',rangeOwner==='enemy');
+    $('rangeHelp').textContent=rangeOwner==='enemy'?`${enemyKey}の攻撃範囲です。プレイヤーをドラッグして位置を調整します。設定のない敵はattack_rangeへ登録してください。`:'エネミーをドラッグして位置を調整します。';
+    $('rangeHitStatus').textContent=available?(rangeTargetIsHit()?'命中範囲内':'範囲外'):'このエネミーの有効な攻撃範囲設定がありません';
+    draw();
+  }
+  function resetRangeSettings(){rangeSettings=readRangeSettings();if(!rangeSettings[rangeMode])rangeMode=rangeSettings.normal?'normal':Object.keys(rangeSettings)[0]||'normal';rangeStrikeUntil=0;refreshRangeControls()}
+  function saveRangeSettings(){if(!rangeSettings[rangeMode])return;rangeSettings[rangeMode]={range_px:Number($('rangeDistance').value),angle_degrees:Number($('rangeAngle').value)};localStorage.setItem(rangeStorageKey(),JSON.stringify(rangeSettings));refreshRangeControls()}
+  async function loadMasterRangeSettings(){
+    const version=++rangeLoadVersion;
+    try{const response=await fetch('game-data.json',{cache:'no-store'});if(!response.ok)throw Error();const data=await response.json();if(version!==rangeLoadVersion)return;rangeMaster=data.attack_range||{};enemyMasterData=data.enemies||{};localStorage.removeItem(rangeStorageKey());resetRangeSettings();$('rangeNotice').textContent='ゲームデータのattack_range設定を読み込みました'}catch{if(version===rangeLoadVersion)$('rangeNotice').textContent='attack_range設定を読み込めませんでした。CSV出力を確認してください'}
+  }
+  $('rangeOwnerPlayer').addEventListener('click',()=>{rangeOwner='player';resetRangeSettings()});$('rangeOwnerEnemy').addEventListener('click',()=>{rangeOwner='enemy';resetRangeSettings()});
+  $('rangeDistance').addEventListener('input',saveRangeSettings);$('rangeAngle').addEventListener('input',saveRangeSettings);$('rangeFacing').addEventListener('input',e=>{rangePlayerAngle=Number(e.target.value)*Math.PI/180;$('rangeFacingValue').textContent=e.target.value+'°';draw()});$('rangeGridToggle').addEventListener('change',e=>{rangeGrid=e.target.checked;draw()});$('loadRangeSettings').addEventListener('click',loadMasterRangeSettings);
+  $('copyRangeSettings').addEventListener('click',async()=>{const payload=JSON.stringify(Object.entries(rangeSettings).map(([action,settings])=>({enabled:1,owner_type:rangeOwner,owner_key:rangeOwner==='player'?'player':enemyKey,action,...settings})),null,2);try{await navigator.clipboard.writeText(payload);$('rangeNotice').textContent='調整値をコピーしました'}catch{$('rangeNotice').textContent=payload}});
+  $('rangeAttackTest').addEventListener('click',()=>{if(!rangeSettings[rangeMode])return;rangeStrikeHit=rangeTargetIsHit();rangeStrikeStartedAt=performance.now();rangeStrikeUntil=rangeStrikeStartedAt+rangeAttackDuration();$('rangeHitStatus').textContent=rangeStrikeHit?'命中':'空振り（範囲外）';$('rangeHitStatus').style.color=rangeStrikeHit?'#9ef0a8':'#ff9c91';draw()});
   canvas.addEventListener('pointerdown',e=>{if(category!=='attackRange'||action!=='player')return;e.preventDefault();canvas.setPointerCapture(e.pointerId);moveRangeTarget(e)});canvas.addEventListener('pointermove',e=>{if(category==='attackRange'&&action==='player'&&canvas.hasPointerCapture(e.pointerId))moveRangeTarget(e)});
-  function moveRangeTarget(e){const r=canvas.getBoundingClientRect();rangeTarget={x:(e.clientX-r.left)*canvasWidth/r.width,y:(e.clientY-r.top)*canvasHeight/r.height};rangeStrikeUntil=0;$('rangeHitStatus').textContent=rangeTargetIsHit()?'命中範囲内':'範囲外';$('rangeHitStatus').style.color=rangeTargetIsHit()?'#9ef0a8':'#ff9c91';draw()}
-  function rangeTargetIsHit(){if(!rangeTarget||!canvasWidth||!canvasHeight)return false;const dx=rangeTarget.x-canvasWidth/2,dy=rangeTarget.y-canvasHeight/2,distance=Math.hypot(dx,dy),factor=48/32,limit=(14+10+Number(rangeSettings[currentRangeKey()]||0))*factor;if(distance>limit)return false;if(Number(rangeSettings[currentAngleKey()])<360){const dot=(dx*Math.cos(rangePlayerAngle)+dy*Math.sin(rangePlayerAngle))/(distance||1);return dot>Math.cos(Number(rangeSettings[currentAngleKey()])*Math.PI/360)}return true}
+  function moveRangeTarget(e){const r=canvas.getBoundingClientRect();rangeTarget={x:(e.clientX-r.left)*canvasWidth/r.width,y:(e.clientY-r.top)*canvasHeight/r.height};rangeStrikeUntil=0;refreshRangeControls()}
+  function rangeTargetIsHit(){if(!rangeTarget||!canvasWidth||!canvasHeight)return false;const scale=48/32,enemyRadius=AttackRange.enemyRadius(enemyKey),attackerRadius=rangeOwner==='enemy'?enemyRadius:14,targetRadius=rangeOwner==='enemy'?14:enemyRadius;return AttackRange.contains({x:canvasWidth/2/scale,y:canvasHeight/2/scale,r:attackerRadius,angle:rangePlayerAngle},{x:rangeTarget.x/scale,y:rangeTarget.y/scale,r:targetRadius},rangeSettings[rangeMode],rangeOwner==='enemy'&&rangeMode==='contact')}
   function readTuning(){
     try{
       const saved=JSON.parse(localStorage.getItem(storageKey())||'{}');
@@ -90,7 +107,7 @@
     if(!response.ok)throw new Error('HTTP '+response.status);
     return response.json();
   }).then(data=>{
-    enemyMasterData=data.enemies||{};
+    enemyMasterData=data.enemies||{};rangeMaster=data.attack_range||{};
     if(!tuningEdited&&!localStorage.getItem(storageKey())){tuning=masterTuning();refreshTuning()}
   }).catch(()=>{$('notice').textContent='ゲームデータを読み込めないため初期値を表示しています'});
   $('loadDataSettings').addEventListener('click',async()=>{
@@ -132,7 +149,7 @@
   }
   async function selectEnemy(key){
     const version=++enemyLoadVersion;
-    enemyKey=key;enemySelect.value=key;selection=0;tuningEdited=false;tuning=readTuning();
+    enemyKey=key;enemySelect.value=key;selection=0;tuningEdited=false;tuning=readTuning();if(category==='attackRange')resetRangeSettings();
     enemyMoveImages=[];enemyAttackImages=[];$('notice').textContent='画像を読み込んでいます';
     refreshTuning();buildFileList();
     const files=enemyManifest[key]||{},moves=Array.isArray(files.move)?files.move:[],attacks=Array.isArray(files.attack)?files.attack:[];
@@ -175,7 +192,7 @@
     canvasWidth=rect.width;canvasHeight=rect.height;ctx.setTransform(dpr,0,0,dpr,0,0);draw();
   }
   new ResizeObserver(setCanvasSize).observe(canvas);
-  function showRangePreview(){action='player';rangeMode='normal';rangeTarget=null;rangeStrikeUntil=0;rangeSettings=readRangeSettings();gameFrame.classList.remove('active');gameFrame.removeAttribute('src');canvas.classList.add('active');hint.hidden=true;fileList.hidden=true;loopToggle.closest('.loop-row').hidden=true;tuningPanel.hidden=true;rangePanel.hidden=false;rangeGrid=$('rangeGridToggle').checked;setCanvasSize();rangeTarget={x:canvasWidth/2+canvasWidth*.22,y:canvasHeight/2};refreshRangeControls();loadMasterRangeSettings();$('rangeHitStatus').textContent='エネミーをドラッグして位置を調整します'}
+  function showRangePreview(){action='player';rangeOwner='player';rangeMode='normal';rangeTarget=null;rangeStrikeUntil=0;resetRangeSettings();gameFrame.classList.remove('active');gameFrame.removeAttribute('src');canvas.classList.add('active');hint.hidden=true;fileList.hidden=true;loopToggle.closest('.loop-row').hidden=true;tuningPanel.hidden=true;rangePanel.hidden=false;rangeGrid=$('rangeGridToggle').checked;setCanvasSize();rangeTarget={x:canvasWidth/2+canvasWidth*.22,y:canvasHeight/2};refreshRangeControls();loadMasterRangeSettings();$('rangeHitStatus').textContent='エネミーをドラッグして位置を調整します'}
   function showCategory(next){
     category=next;action='';selection=0;startedAt=performance.now();enemyPicker.hidden=next!=='enemy'&&next!=='attackRange';
     menuButtons.forEach(button=>button.classList.toggle('active',button.dataset.category===next));
@@ -279,23 +296,24 @@
     ctx.imageSmoothingEnabled=false;ctx.drawImage(item.image,x-w/2,y-h/2,w,h);ctx.imageSmoothingEnabled=true;
   }
   function drawRangePreview(cx,cy){
-    const scale=48/32,worldPlayerRadius=14,bagRadius=10,target=rangeTarget||{x:cx+canvasWidth*.22,y:cy};
+    const scale=48/32,target=rangeTarget||{x:cx+canvasWidth*.22,y:cy},settings=rangeSettings[rangeMode];
     if(rangeGrid){ctx.strokeStyle='rgba(222,239,220,.20)';ctx.lineWidth=1;const step=32*scale;for(let x=cx%step;x<canvasWidth;x+=step){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,canvasHeight);ctx.stroke()}for(let y=cy%step;y<canvasHeight;y+=step){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(canvasWidth,y);ctx.stroke()}}
-    const range=Number(rangeSettings[currentRangeKey()]||0),limit=(worldPlayerRadius+bagRadius+range)*scale;
-    ctx.save();ctx.translate(cx,cy);ctx.fillStyle=rangeMode==='normal'?'rgba(241,198,99,.16)':'rgba(112,207,180,.14)';ctx.strokeStyle=rangeMode==='normal'?'rgba(241,198,99,.8)':'rgba(112,207,180,.8)';ctx.lineWidth=2;ctx.beginPath();if(Number(rangeSettings[currentAngleKey()])<360){const half=Number(rangeSettings[currentAngleKey()])*Math.PI/360;ctx.moveTo(0,0);ctx.arc(0,0,limit,rangePlayerAngle-half,rangePlayerAngle+half);ctx.closePath()}else ctx.arc(0,0,limit,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.restore();
+    const limit=(14+AttackRange.enemyRadius(enemyKey)+Number(settings?.range_px||0)-(rangeOwner==='enemy'&&rangeMode==='contact'?3:0))*scale;
+    if(settings){ctx.save();ctx.translate(cx,cy);ctx.fillStyle='rgba(241,198,99,.16)';ctx.strokeStyle='rgba(241,198,99,.8)';ctx.lineWidth=2;ctx.beginPath();if(settings.angle_degrees<360){const half=settings.angle_degrees*Math.PI/360;ctx.moveTo(0,0);ctx.arc(0,0,limit,rangePlayerAngle-half,rangePlayerAngle+half);ctx.closePath()}else ctx.arc(0,0,limit,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.restore()}
     ctx.strokeStyle='rgba(242,245,222,.45)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(target.x,target.y);ctx.stroke();
     const now=performance.now(),striking=now<rangeStrikeUntil,progress=striking?(now-rangeStrikeStartedAt)/rangeAttackDuration():0;
-    const enemy=enemyMoveImages.find(item=>item.image)||enemyAttackImages.find(item=>item.image);
-    if(enemy)drawImage(enemy,target.x,target.y,56,56);
-    else{ctx.fillStyle='#b88257';ctx.beginPath();ctx.arc(target.x,target.y,bagRadius*scale,0,Math.PI*2);ctx.fill()}
+    let enemy=enemyMoveImages.find(item=>item.image)||enemyAttackImages.find(item=>item.image);
+    if(rangeOwner==='enemy'&&striking&&enemyAttackImages.length){let time=(now-rangeStrikeStartedAt)/1000;enemy=enemyAttackImages.at(-1);for(let i=0;i<enemyAttackImages.length;i++){if(time<attackTime(i)){enemy=enemyAttackImages[i];break}time-=attackTime(i)}}
+    const enemyX=rangeOwner==='enemy'?cx:target.x,enemyY=rangeOwner==='enemy'?cy:target.y,playerX=rangeOwner==='enemy'?target.x:cx,playerY=rangeOwner==='enemy'?target.y:cy;
+    if(enemy){ctx.save();ctx.translate(enemyX,enemyY);if(rangeOwner==='enemy'&&Math.cos(rangePlayerAngle)<0)ctx.scale(-1,1);drawImage(enemy,0,0,56,56);ctx.restore()}else{ctx.fillStyle='#b88257';ctx.beginPath();ctx.arc(enemyX,enemyY,AttackRange.enemyRadius(enemyKey)*scale,0,Math.PI*2);ctx.fill()}
+    drawImage(actorImages[4],playerX,playerY,64,64);
     if(striking&&rangeStrikeHit&&progress>.35){ctx.save();ctx.globalAlpha=Math.max(0,1-progress);ctx.strokeStyle='#fff5c6';ctx.lineWidth=5;ctx.beginPath();ctx.arc(target.x,target.y,22+progress*18,0,Math.PI*2);ctx.stroke();ctx.restore()}
-    const player=actorImages[4];drawImage(player,cx,cy,64,64);
-    if(striking){
+    if(striking&&rangeOwner==='player'){
       const angle=rangeMode==='spin'?rangePlayerAngle+progress*Math.PI*2:rangePlayerAngle-1.1+progress*2.2;
       ctx.save();ctx.translate(cx,cy-5);ctx.rotate(angle+Math.PI/2);drawImage(swordImage,0,-48,38,38);ctx.restore();
       ctx.save();ctx.strokeStyle=rangeMode==='object'?'#9ae3dc':'#ffe09b';ctx.globalAlpha=1-progress;ctx.lineWidth=9;ctx.beginPath();ctx.arc(cx,cy,55,angle-.7,angle+.7);ctx.stroke();ctx.restore();
     }else{ctx.strokeStyle='#f4f1dc';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+Math.cos(rangePlayerAngle)*40,cy+Math.sin(rangePlayerAngle)*40);ctx.stroke()}
-    const hit=rangeTargetIsHit();ctx.fillStyle=striking?(rangeStrikeHit?'#a7f4b7':'#ff927f'):hit?'#a7f4b7':'#ffe09b';ctx.font='700 13px system-ui';ctx.textAlign='center';ctx.fillText(striking?(rangeStrikeHit?'命中':'空振り'):hit?'命中範囲内':'範囲外',target.x,target.y-42);
+    const hit=rangeTargetIsHit();ctx.fillStyle=striking?(rangeStrikeHit?'#a7f4b7':'#ff927f'):hit?'#a7f4b7':'#ffe09b';ctx.font='700 13px system-ui';ctx.textAlign='center';ctx.fillText(!settings?'設定なし':striking?(rangeStrikeHit?'命中':'空振り'):hit?'命中範囲内':'範囲外',target.x,target.y-42);
   }
   function draw(){
     if(!canvasWidth||!canvasHeight||!canvas.classList.contains('active'))return;

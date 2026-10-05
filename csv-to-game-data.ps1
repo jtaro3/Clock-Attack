@@ -97,7 +97,7 @@ for($i=0;$i-lt$attackRangeRows.Count;$i++){
     $ownerType=([string]$row.owner_type).Trim();$ownerKey=([string]$row.owner_key).Trim();$action=([string]$row.action).Trim()
     if($ownerType-notin@('player','enemy')){Add-DataError $file $line 'owner_type' 'playerまたはenemyを指定してください。';continue}
     if($ownerType-eq'player' -and ($ownerKey-ne'player' -or $action-notin@('normal','spin','object'))){Add-DataError $file $line 'owner_key/action' 'playerのnormal、spin、objectを指定してください。';continue}
-    if($ownerType-eq'enemy' -and (-not$enabledEnemyKeys.ContainsKey($ownerKey) -or -not$action)){Add-DataError $file $line 'owner_key/action' '有効なenemy_keyとactionが必要です。';continue}
+    if($ownerType-eq'enemy' -and (-not$enabledEnemyKeys.ContainsKey($ownerKey) -or $action-notin@('contact','normal'))){Add-DataError $file $line 'owner_key/action' '有効なenemy_keyとcontactまたはnormalが必要です。';continue}
     $pair="${ownerType}|${ownerKey}|${action}"
     if($rangeKeys.ContainsKey($pair)){Add-DataError $file $line 'owner_type/owner_key/action' "${pair}が重複しています。"};$rangeKeys[$pair]=$true
     $range=To-Number $row.range_px $file $line 'range_px' 0

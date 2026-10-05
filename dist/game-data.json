@@ -48,7 +48,16 @@
                                                    }
                                     },
                          "enemy":  {
-
+                                       "slime_blue":  {
+                                                          "contact":  {
+                                                                          "range_px":  0,
+                                                                          "angle_degrees":  360
+                                                                      },
+                                                          "normal":  {
+                                                                         "range_px":  42,
+                                                                         "angle_degrees":  40
+                                                                     }
+                                                      }
                                    }
                      },
     "enemies":  {
