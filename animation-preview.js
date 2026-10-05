@@ -4,7 +4,7 @@
   const home=$('home'),previewScreen=$('previewScreen'),gameFrame=$('gameFrame'),canvas=$('assetCanvas'),ctx=canvas.getContext('2d');
   const hint=$('hint'),panel=$('debugPanel'),subChoices=$('subChoices'),fileList=$('fileList'),loopToggle=$('loopToggle'),tuningPanel=$('tuning');
   const moveSpeedInput=$('moveSpeed'),moveSpeedOutput=$('moveSpeedValue');
-  const enemySelect=$('enemySelect'),enemyPicker=$('enemyPicker');
+  const enemySelect=$('enemySelect'),enemyPicker=$('enemyPicker'),enemySearch=$('enemySearch'),enemySearchStatus=$('enemySearchStatus');
   let enemyKey='slime_blue',enemyManifest={},enemyMasterData={},enemyLoadVersion=0;
   const storageKey=()=>enemyKey==='slime_blue'?'clock-attack-blue-slime-tuning-v1':`clock-attack-enemy-tuning-v1:${enemyKey}`;
   const defaults={moveSpeed:27,idleTime:.38,midTime:.12,peakTime:.12};
@@ -130,7 +130,19 @@
     $('notice').textContent=[...moveImages,...attackImages].some(item=>!item.image)?'読み込めない画像があります。画像一覧のパスを確認してください':'';
     refreshTuning();buildFileList();draw();
   }
-  enemySelect.addEventListener('change',()=>selectEnemy(enemySelect.value));
+  function filterEnemyOptions(){
+    const keywords=enemySearch.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    const keys=Object.keys(enemyManifest).sort().filter(key=>keywords.every(word=>key.toLowerCase().includes(word)));
+    enemySelect.replaceChildren();
+    if(!keys.includes(enemyKey)){
+      const placeholder=document.createElement('option');placeholder.value='';placeholder.textContent=keys.length?'敵を選択してください':'該当するエネミーがありません';placeholder.disabled=true;enemySelect.append(placeholder);
+    }
+    for(const key of keys){const option=document.createElement('option');option.value=key;option.textContent=key;enemySelect.append(option)}
+    enemySelect.value=keys.includes(enemyKey)?enemyKey:'';enemySelect.disabled=!keys.length;
+    enemySearchStatus.textContent=`${keys.length}件`;
+  }
+  enemySearch.addEventListener('input',filterEnemyOptions);
+  enemySelect.addEventListener('change',()=>{if(enemySelect.value)selectEnemy(enemySelect.value)});
   Promise.all([...playerNames.map((name,i)=>loadSprite(name,i)),loadImage('sword.svg','sword.svg')]).then(items=>{actorImages=items.slice(0,8);swordImage=items[8];buildFileList();draw()});
   fetch('animation-manifest.json',{cache:'no-store'}).then(response=>{
     if(!response.ok)throw new Error('HTTP '+response.status);
@@ -138,9 +150,7 @@
   }).then(manifest=>{
     enemyManifest=manifest.enemies||{};
     const keys=Object.keys(enemyManifest).sort();
-    enemySelect.replaceChildren();
-    for(const key of keys){const option=document.createElement('option');option.value=key;option.textContent=key;enemySelect.append(option)}
-    enemySelect.disabled=!keys.length;
+    filterEnemyOptions();
     if(keys.length)return selectEnemy(keys.includes(enemyKey)?enemyKey:keys[0]);
     $('notice').textContent='確認できる敵画像がありません。画像を追加して画像一覧を更新してください';
   }).catch(()=>{enemySelect.disabled=true;$('notice').textContent='animation-manifest.jsonを読み込めませんでした'});

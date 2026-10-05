@@ -51,7 +51,7 @@
     .small-button{width:100%;margin-top:4px}
     .enemy-picker{display:grid;gap:6px;margin-bottom:12px;font-size:13px;font-weight:700}
     .enemy-picker[hidden]{display:none}
-    .enemy-picker select{width:100%;min-width:0;padding:9px;border:1px solid #668674;border-radius:9px;background:#0c211d;color:#f4f1e7;font:inherit}
+    .enemy-picker select,.enemy-picker input{width:100%;min-width:0;padding:9px;border:1px solid #668674;border-radius:9px;background:#0c211d;color:#f4f1e7;font:inherit}
     .notice{font-size:13px;color:#f1d58e;min-height:1.3em}
     @media(max-width:720px){
       .category{font-size:12px;padding:8px}
@@ -86,7 +86,13 @@
       </div>
       <aside id="debugPanel" class="debug-panel" hidden>
         <h2 id="debugTitle" class="panel-title">画像確認</h2>
-        <label id="enemyPicker" class="enemy-picker" hidden>確認するエネミー<select id="enemySelect" disabled aria-label="確認するエネミー"></select></label>
+        <div id="enemyPicker" class="enemy-picker" hidden>
+          <label for="enemySearch">エネミーを検索</label>
+          <input id="enemySearch" type="search" placeholder="例：slime、blue" autocomplete="off">
+          <span id="enemySearchStatus" class="save-hint" aria-live="polite"></span>
+          <label for="enemySelect">確認するエネミー</label>
+          <select id="enemySelect" disabled aria-label="確認するエネミー"></select>
+        </div>
         <div id="subChoices" class="choices"></div>
         <div id="fileList" class="file-list" aria-label="画像一覧"></div>
         <label class="loop-row"><input id="loopToggle" type="checkbox">表示画像を順番にループ</label>
@@ -103,6 +109,6 @@
       </aside>
     </div>
   </section>
-  <script src="animation-preview.js?v=1.07"></script>
+  <script src="animation-preview.js?v=1.08"></script>
 </body>
 </html>
