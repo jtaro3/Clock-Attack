@@ -4,7 +4,9 @@
   const home=$('home'),previewScreen=$('previewScreen'),gameFrame=$('gameFrame'),canvas=$('assetCanvas'),ctx=canvas.getContext('2d');
   const hint=$('hint'),panel=$('debugPanel'),subChoices=$('subChoices'),fileList=$('fileList'),loopToggle=$('loopToggle'),tuningPanel=$('tuning');
   const moveSpeedInput=$('moveSpeed'),moveSpeedOutput=$('moveSpeedValue');
-  const STORAGE_KEY='clock-attack-blue-slime-tuning-v1';
+  const enemySelect=$('enemySelect'),enemyPicker=$('enemyPicker');
+  let enemyKey='slime_blue',enemyManifest={},enemyMasterData={},enemyLoadVersion=0;
+  const storageKey=()=>enemyKey==='slime_blue'?'clock-attack-blue-slime-tuning-v1':`clock-attack-enemy-tuning-v1:${enemyKey}`;
   const defaults={moveSpeed:27,idleTime:.38,midTime:.12,peakTime:.12};
   let tuningEdited=false;
   let tuning=readTuning(),category='',action='',selection=0,loop=false,startedAt=performance.now(),canvasWidth=0,canvasHeight=0,dpr=1,actorImages=[],swordImage=null;
@@ -16,9 +18,10 @@
   const menuButtons=[...document.querySelectorAll('[data-category]')];
   function readTuning(){
     try{
-      const saved=JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}');
-      return {...defaults,...saved,moveTimes:Array.isArray(saved.moveTimes)?saved.moveTimes:[],attackTimes:Array.isArray(saved.attackTimes)?saved.attackTimes:[]};
-    }catch{return {...defaults,moveTimes:[],attackTimes:[]}}
+      const saved=JSON.parse(localStorage.getItem(storageKey())||'{}');
+      const master=masterTuning();
+      return {...master,...saved,moveTimes:Array.isArray(saved.moveTimes)?saved.moveTimes:master.moveTimes,attackTimes:Array.isArray(saved.attackTimes)?saved.attackTimes:master.attackTimes};
+    }catch{return masterTuning()}
   }
   function moveTime(index){
     const value=Number(tuning.moveTimes[index]);
@@ -34,7 +37,7 @@
       output.textContent=`${Number(input.value).toFixed(2)} s`;
       input.addEventListener('input',()=>{
         tuning[actionName+'Times'][index]=Number(input.value);output.textContent=`${Number(input.value).toFixed(2)} s`;
-        tuningEdited=true;localStorage.setItem(STORAGE_KEY,JSON.stringify(tuning));startedAt=performance.now();draw();
+        tuningEdited=true;localStorage.setItem(storageKey(),JSON.stringify(tuning));startedAt=performance.now();draw();
       });
       row.append(label,output,input);container.append(row);
     });
@@ -49,7 +52,7 @@
   function saveTuning(){
     tuningEdited=true;
     tuning.moveSpeed=Number(moveSpeedInput.value);
-    localStorage.setItem(STORAGE_KEY,JSON.stringify(tuning));
+    localStorage.setItem(storageKey(),JSON.stringify(tuning));
     updateOutputs();draw();
   }
   function updateOutputs(){
@@ -57,32 +60,35 @@
   }
   moveSpeedInput.addEventListener('input',saveTuning);
   updateOutputs();
-  if(!localStorage.getItem(STORAGE_KEY)){
-    fetch('game-data.json',{cache:'no-store'}).then(response=>{
-      if(!response.ok)throw new Error('HTTP '+response.status);
-      return response.json();
-    }).then(data=>{
-      if(tuningEdited)return;
-      const enemy=data.enemies?.slime_blue||{};
-      const values={moveSpeed:enemy.move_speed_px_per_second,idleTime:enemy.animation_idle_seconds,midTime:enemy.animation_jump_mid_seconds,peakTime:enemy.animation_jump_peak_seconds};
-      for(const key of Object.keys(values))if(values[key]!=null&&Number.isFinite(Number(values[key])))tuning[key]=Number(values[key]);
-      if(Array.isArray(enemy.animation_move_frame_seconds))tuning.moveTimes=enemy.animation_move_frame_seconds;
-      if(Array.isArray(enemy.animation_attack_frame_seconds))tuning.attackTimes=enemy.animation_attack_frame_seconds;
-      moveSpeedInput.value=String(tuning.moveSpeed);buildMoveSettings();buildAttackSettings();updateOutputs();draw();
-    }).catch(()=>{$('notice').textContent='ゲームデータを読み込めないため初期値を表示しています'});
+  function masterTuning(){
+    const enemy=enemyMasterData[enemyKey]||{};
+    const result={...defaults,moveTimes:[],attackTimes:[]};
+    const values={moveSpeed:enemy.move_speed_px_per_second,idleTime:enemy.animation_idle_seconds,midTime:enemy.animation_jump_mid_seconds,peakTime:enemy.animation_jump_peak_seconds};
+    for(const [key,value] of Object.entries(values))if(value!=null&&Number.isFinite(Number(value)))result[key]=Math.max(key==='moveSpeed'?0:.04,Math.min(key==='moveSpeed'?80:1.2,Number(value)));
+    if(enemyKey!=='slime_blue')result.idleTime=result.midTime=result.peakTime=.12;
+    if(Array.isArray(enemy.animation_move_frame_seconds))result.moveTimes=[...enemy.animation_move_frame_seconds];
+    if(Array.isArray(enemy.animation_attack_frame_seconds))result.attackTimes=[...enemy.animation_attack_frame_seconds];
+    return result;
   }
+  function refreshTuning(){moveSpeedInput.value=String(tuning.moveSpeed);buildMoveSettings();buildAttackSettings();updateOutputs();startedAt=performance.now();draw()}
+  fetch('game-data.json',{cache:'no-store'}).then(response=>{
+    if(!response.ok)throw new Error('HTTP '+response.status);
+    return response.json();
+  }).then(data=>{
+    enemyMasterData=data.enemies||{};
+    if(!tuningEdited&&!localStorage.getItem(storageKey())){tuning=masterTuning();refreshTuning()}
+  }).catch(()=>{$('notice').textContent='ゲームデータを読み込めないため初期値を表示しています'});
   $('loadDataSettings').addEventListener('click',async()=>{
+    const requestedKey=enemyKey;
     try{
       const response=await fetch('game-data.json',{cache:'no-store'});
       if(!response.ok)throw new Error('HTTP '+response.status);
-      const data=await response.json(),enemy=data.enemies?.slime_blue||{};
-      const values={moveSpeed:enemy.move_speed_px_per_second,idleTime:enemy.animation_idle_seconds,midTime:enemy.animation_jump_mid_seconds,peakTime:enemy.animation_jump_peak_seconds};
-      for(const key of Object.keys(values))if(values[key]!=null&&Number.isFinite(Number(values[key])))tuning[key]=Number(values[key]);
-      moveSpeedInput.value=String(tuning.moveSpeed);
-      tuning.moveTimes=Array.isArray(enemy.animation_move_frame_seconds)?enemy.animation_move_frame_seconds:[];
-      tuning.attackTimes=Array.isArray(enemy.animation_attack_frame_seconds)?enemy.animation_attack_frame_seconds:[];
-      buildMoveSettings();buildAttackSettings();saveTuning();$('notice').textContent='ゲームデータの青スライム設定を読み込みました';
-    }catch{$('notice').textContent='game-data.jsonを読み込めませんでした'}
+      const data=await response.json();enemyMasterData=data.enemies||{};
+      if(enemyKey!==requestedKey)return;
+      tuning=masterTuning();tuningEdited=true;
+      localStorage.setItem(storageKey(),JSON.stringify(tuning));refreshTuning();
+      $('notice').textContent=`ゲームデータの${enemyKey}設定を読み込みました`;
+    }catch{if(enemyKey===requestedKey)$('notice').textContent='game-data.jsonを読み込めませんでした'}
   });
   function loadSprite(file,index){
     return new Promise(resolve=>{
@@ -106,21 +112,38 @@
       const image=new Image();
       image.onload=()=>resolve({file,label,image});
       image.onerror=()=>resolve({file,label,image:null});
-      image.src=file==='sword.svg'?'design/sword.svg':`${label}?sprite=1.04`;
+      image.src=file==='sword.svg'?'design/sword.svg':`${label}?sprite=1.07`;
     });
   }
-  const fallbackMove=[1,2,3,4].map(n=>`design/enemies/slime_blue/move/slime_blue_${n}.png`);
-  const fallbackAttack=[0,1,2,3,4].map(n=>`design/enemies/slime_blue/attack/slime_blue_${n}.png`);
-  fetch('animation-manifest.json',{cache:'no-store'}).then(response=>response.ok?response.json():{}).catch(()=>({})).then(manifest=>{
-    const moves=manifest.enemies?.slime_blue?.move?.length?manifest.enemies.slime_blue.move:fallbackMove;
-    const attacks=manifest.enemies?.slime_blue?.attack?.length?manifest.enemies.slime_blue.attack:fallbackAttack;
-    return Promise.all([
-      ...playerNames.map((name,i)=>loadSprite(name,i)),
-      ...moves.map(path=>loadImage(path.split('/').pop(),path)),
-      loadImage('sword.svg','sword.svg'),
-      ...attacks.map(path=>loadImage(path.split('/').pop(),path))
-    ]).then(items=>({items,moveCount:moves.length,attackCount:attacks.length}));
-  }).then(({items,moveCount,attackCount})=>{actorImages=items.slice(0,8);enemyMoveImages=items.slice(8,8+moveCount);swordImage=items[8+moveCount];enemyAttackImages=items.slice(9+moveCount,9+moveCount+attackCount);buildMoveSettings();buildAttackSettings();buildFileList();draw()});
+  async function selectEnemy(key){
+    const version=++enemyLoadVersion;
+    enemyKey=key;enemySelect.value=key;selection=0;tuningEdited=false;tuning=readTuning();
+    enemyMoveImages=[];enemyAttackImages=[];$('notice').textContent='画像を読み込んでいます';
+    refreshTuning();buildFileList();
+    const files=enemyManifest[key]||{},moves=Array.isArray(files.move)?files.move:[],attacks=Array.isArray(files.attack)?files.attack:[];
+    const [moveImages,attackImages]=await Promise.all([
+      Promise.all(moves.map(path=>loadImage(path.split('/').pop(),path))),
+      Promise.all(attacks.map(path=>loadImage(path.split('/').pop(),path)))
+    ]);
+    if(version!==enemyLoadVersion)return;
+    enemyMoveImages=moveImages;enemyAttackImages=attackImages;
+    $('notice').textContent=[...moveImages,...attackImages].some(item=>!item.image)?'読み込めない画像があります。画像一覧のパスを確認してください':'';
+    refreshTuning();buildFileList();draw();
+  }
+  enemySelect.addEventListener('change',()=>selectEnemy(enemySelect.value));
+  Promise.all([...playerNames.map((name,i)=>loadSprite(name,i)),loadImage('sword.svg','sword.svg')]).then(items=>{actorImages=items.slice(0,8);swordImage=items[8];buildFileList();draw()});
+  fetch('animation-manifest.json',{cache:'no-store'}).then(response=>{
+    if(!response.ok)throw new Error('HTTP '+response.status);
+    return response.json();
+  }).then(manifest=>{
+    enemyManifest=manifest.enemies||{};
+    const keys=Object.keys(enemyManifest).sort();
+    enemySelect.replaceChildren();
+    for(const key of keys){const option=document.createElement('option');option.value=key;option.textContent=key;enemySelect.append(option)}
+    enemySelect.disabled=!keys.length;
+    if(keys.length)return selectEnemy(keys.includes(enemyKey)?enemyKey:keys[0]);
+    $('notice').textContent='確認できる敵画像がありません。画像を追加して画像一覧を更新してください';
+  }).catch(()=>{enemySelect.disabled=true;$('notice').textContent='animation-manifest.jsonを読み込めませんでした'});
   function setCanvasSize(){
     const rect=canvas.getBoundingClientRect();if(!rect.width||!rect.height)return;
     dpr=Math.max(1,Math.min(2,devicePixelRatio||1));canvas.width=Math.round(rect.width*dpr);canvas.height=Math.round(rect.height*dpr);
@@ -128,7 +151,7 @@
   }
   new ResizeObserver(setCanvasSize).observe(canvas);
   function showCategory(next){
-    category=next;action='';selection=0;startedAt=performance.now();
+    category=next;action='';selection=0;startedAt=performance.now();enemyPicker.hidden=next!=='enemy';
     menuButtons.forEach(button=>button.classList.toggle('active',button.dataset.category===next));
     home.classList.remove('active');previewScreen.classList.add('active');panel.hidden=false;
     gameFrame.classList.remove('active');canvas.classList.remove('active');hint.hidden=false;
@@ -200,7 +223,7 @@
   }
   loopToggle.addEventListener('change',()=>{loop=loopToggle.checked;startedAt=performance.now();draw()});
   $('copySettings').addEventListener('click',async()=>{
-    const result={enemy_key:'slime_blue',move_speed_px_per_second:tuning.moveSpeed,animation_move_frame_seconds:enemyMoveImages.map((_,index)=>moveTime(index)),animation_attack_frame_seconds:enemyAttackImages.map((_,index)=>attackTime(index))};
+    const result={enemy_key:enemyKey,move_speed_px_per_second:tuning.moveSpeed,animation_move_frame_seconds:enemyMoveImages.map((_,index)=>moveTime(index)),animation_attack_frame_seconds:enemyAttackImages.map((_,index)=>attackTime(index))};
     try{await navigator.clipboard.writeText(JSON.stringify(result,null,2));$('notice').textContent='設定値をコピーしました'}
     catch{$('notice').textContent=JSON.stringify(result)}
   });
@@ -244,6 +267,7 @@
       }
     }else if(category==='enemy'){
       const playerImage=actorImages[4],files=filesForSelection(),enemy=selectedFrame(now)||files[0],time=(now-startedAt)/1000;
+      if(!files.length){ctx.fillStyle='#c2d0c6';ctx.font='14px system-ui';ctx.textAlign='center';ctx.fillText(`${enemyKey}の${action==='attack'?'攻撃':'移動'}画像は未配置です`,cx,cy);return}
       drawImage(playerImage,cx,cy,64,64);
       if(action==='move'){
         const startX=Math.min(canvasWidth-50,cx+Math.min(200,canvasWidth*.38)),endX=cx+45,distance=Math.max(1,startX-endX);
