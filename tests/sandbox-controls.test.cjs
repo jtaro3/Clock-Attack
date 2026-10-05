@@ -14,7 +14,7 @@ const elements=new Map(),get=id=>{if(!elements.has(id))elements.set(id,new Eleme
 get('aiSelect').value='chase';let timer;
 const c={console,performance:{now:()=>0},document:{getElementById:get,createElement:()=>new Element()},window:{addEventListener(){}},requestAnimationFrame(){},setTimeout:fn=>{timer=fn;return 1},clearTimeout(){timer=null},Image:class{set src(p){queueMicrotask(()=>this.onload())}},fetch:async path=>({ok:true,json:async()=>JSON.parse(fs.readFileSync(path,'utf8')),text:async()=>fs.readFileSync(path,'utf8')})};
 vm.createContext(c);vm.runInContext(fs.readFileSync('attack-range.js','utf8'),c);c.AttackRange=c.window.AttackRange;vm.runInContext(fs.readFileSync('sandbox-engine.js','utf8'),c);c.SandboxAI=c.window.SandboxAI;
-let source=fs.readFileSync('sandbox.js','utf8').replace(/\}\)\(\);\s*$/, 'globalThis.sandboxTest={snapshot:()=>({p,e,values,running}),step};})();');
+let source=fs.readFileSync('sandbox.js','utf8').replace(/\}\)\(\);\s*$/, 'globalThis.sandboxTest={snapshot:()=>({p,e,values,running,ai}),step};})();');
 (async()=>{
  await vm.runInContext(source,c);
  assert.equal(get('start').disabled,false,'読み込み後は開始可能');
@@ -25,5 +25,6 @@ let source=fs.readFileSync('sandbox.js','utf8').replace(/\}\)\(\);\s*$/, 'global
  s.e.x=s.p.x+35;s.e.y=s.p.y;get('start').listeners.click();const hp=s.e.hp;get('attack').listeners.click();assert.equal(s.e.hp,hp-s.values.patk,'通常攻撃が敵HPを減らす');
  get('arena').listeners.pointerdown({clientX:500,clientY:240,pointerId:2});c.sandboxTest.step(.1);assert.ok(s.p.x>220,'開始後のタップ指定でプレイヤーが移動');get('arena').listeners.pointerup();
  get('reset').listeners.click();s=c.sandboxTest.snapshot();assert.equal(s.running,false);assert.equal(s.p.x,220);assert.equal(s.e.hp,s.values.ehp);
+ get('enemySelect').value='slime_black';await get('enemySelect').listeners.change();get('aiSelect').value='chase2';get('aiSelect').listeners.change();s=c.sandboxTest.snapshot();s.ai.chase2.ai_flinch_during_attack=1;s.ai.chase2.ai_knockback_during_attack=1;s.e.x=s.p.x+35;s.e.y=s.p.y;s.e.combatPhase='attack';s.e.attackTime=.4;get('start').listeners.click();get('attack').listeners.click();assert.equal(s.e.x,s.p.x+35,'super armorはAIのノックバックONを無視');assert.equal(s.e.combatPhase,'attack','super armorはAIの怯みONを無視');assert.equal(s.e.hp,s.values.ehp-s.values.patk,'super armorでもHPは減る');
  console.log('sandbox controls: passed');
 })().catch(error=>{console.error(error);process.exitCode=1});

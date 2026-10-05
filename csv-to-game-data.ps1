@@ -22,7 +22,9 @@ function Read-Table([string]$Name, [string[]]$RequiredColumns) {
     foreach ($required in $RequiredColumns) {
         if ($required -notin $columns) { Add-DataError "sheet-${Name}.csv" 1 $required '必須列がありません。' }
     }
-    return @(Import-Csv -LiteralPath $path -Encoding utf8)
+    return @(Import-Csv -LiteralPath $path -Encoding utf8 | ForEach-Object {
+        $clean=[ordered]@{}; foreach($property in $_.PSObject.Properties){$clean[$property.Name.Trim()]=$property.Value}; [pscustomobject]$clean
+    })
 }
 function Test-Enabled($Row, [string]$File, [int]$Line) {
     if ($Row.enabled -notin @('0','1')) { Add-DataError $File $Line 'enabled' '0または1を指定してください。'; return $false }
@@ -197,6 +199,14 @@ if(Test-Path -LiteralPath (Join-Path $CsvFolder 'sheet-AI.csv')){
         if($aiSettings.Contains($key)){Add-DataError $file $line 'ai_type' 'AIの種類が重複しています。'}
         $item=[ordered]@{}
         foreach($field in @('ai_detection_range_px','ai_stop_distance_px','ai_lose_target_range_px','ai_wait_seconds')){$item[$field]=To-Number $row.$field $file $line $field 0}
+        foreach($field in @('ai_attack_preparation_seconds','ai_attack_recovery_seconds')){
+            $item[$field]=if($row.PSObject.Properties[$field]){To-Number $row.$field $file $line $field 0}else{0}
+        }
+        foreach($field in @('ai_obstacle_handling','ai_contact_damage_enabled','ai_move_during_attack','ai_flinch_normal','ai_flinch_during_attack','ai_knockback_normal','ai_knockback_during_attack')){
+            $value=if($row.PSObject.Properties[$field]){([string]$row.$field).Trim()}elseif($field -in @('ai_knockback_normal','ai_knockback_during_attack')){'1'}else{'0'}
+            if($value -notin @('0','1')){Add-DataError $file $line $field '0または1を指定してください。'}
+            $item[$field]=if($value -eq '1'){1}else{0}
+        }
         if($item.ai_lose_target_range_px -lt $item.ai_detection_range_px){Add-DataError $file $line 'ai_lose_target_range_px' '発見距離以上にしてください。'}
         if($item.ai_stop_distance_px -gt $item.ai_detection_range_px){Add-DataError $file $line 'ai_stop_distance_px' '発見距離以下にしてください。'}
         $aiSettings[$key]=$item

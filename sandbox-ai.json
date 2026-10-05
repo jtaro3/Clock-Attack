@@ -1,1 +1,17 @@
-{"chase2":{"ai_detection_range_px":9998,"ai_stop_distance_px":40,"ai_lose_target_range_px":9999,"ai_wait_seconds":1}}
+{
+  "chase2": {
+    "ai_detection_range_px": 9998.0,
+    "ai_stop_distance_px": 40.0,
+    "ai_lose_target_range_px": 9999.0,
+    "ai_wait_seconds": 1.0,
+    "ai_attack_preparation_seconds": 1.0,
+    "ai_attack_recovery_seconds": 1.0,
+    "ai_obstacle_handling": 0,
+    "ai_contact_damage_enabled": 0,
+    "ai_move_during_attack": 1,
+    "ai_flinch_normal": 1,
+    "ai_flinch_during_attack": 0,
+    "ai_knockback_normal": 1,
+    "ai_knockback_during_attack": 0
+  }
+}

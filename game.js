@@ -576,7 +576,10 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
       const enemy=enemies[i],dx=enemy.x-player.x,dy=enemy.y-player.y,len=Math.hypot(dx,dy);
       if(len>=player.r+enemy.r+extraRange||(attackAngle<360&&len>=25&&(dx*ax+dy*ay)/len<=minimumFacingDot))continue;
       const knockAngle=len>0?Math.atan2(dy,dx):player.angle;
-      if(enemy.knockback)moveBody(enemy,Math.cos(knockAngle)*enemy.knockbackDistance,Math.sin(knockAngle)*enemy.knockbackDistance,enemy.r);
+      const aiConfig=gameData.ai?.[enemyData[enemy.enemyKey]?.ai_type];
+      const reaction=SandboxAI.reactions(aiConfig,enemyData[enemy.enemyKey]?.super_armor,enemy.combatPhase==='prepare'||enemy.combatPhase==='attack'||enemy.attackTime>0);
+      if(aiConfig&&reaction.flinch)SandboxAI.cancelAttack(enemy,aiConfig);
+      if(aiConfig?reaction.knockback:enemy.knockback)moveBody(enemy,Math.cos(knockAngle)*enemy.knockbackDistance,Math.sin(knockAngle)*enemy.knockbackDistance,enemy.r);
       enemy.hp-=damage;enemy.hit=.18;
       explosions.push({x:enemy.x,y:enemy.y,r:enemy.r,life:.45,max:.45});
       burst(enemy.x,enemy.y,'#fff1c3',15);showDamage(enemy,damage);
@@ -700,8 +703,12 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
     for(const enemy of enemies){
       enemy.wobble+=dt*5;if(enemy.attackTime<=0)enemy.animationTime=(enemy.animationTime+dt)%(enemyAnimations.get(enemy.enemyKey)?.moveDuration||1);enemy.hit=Math.max(0,enemy.hit-dt);enemy.attackTime=Math.max(0,(enemy.attackTime||0)-dt);
       const ex=player.x-enemy.x,ey=player.y-enemy.y,len=Math.hypot(ex,ey)||1;
-      if(enemy.attackTime<=0)moveBody(enemy,ex/len*enemy.speed*dt,ey/len*enemy.speed*dt,enemy.r);
-      if(updateEnemyAttack(enemy)){
+      const aiConfig=gameData.ai?.[enemyData[enemy.enemyKey]?.ai_type];let attackHit;
+      if(aiConfig){
+        const ranges=gameData.attack_range?.enemy?.[enemy.enemyKey]||{};
+        attackHit=SandboxAI.stepCombat(enemy,player,dt,aiConfig,{duration:enemyAnimations.get(enemy.enemyKey)?.attackDuration||SLIME_ATTACK_DURATION,normal:ranges.normal||{range_px:0,angle_degrees:360},contact:ranges.contact||{range_px:0,angle_degrees:360},contains:AttackRange.contains,move:(body,x,y)=>moveBody(body,x,y,body.r),blocked:(x,y,r)=>x<r||y<r||x>map.width*32-r||y>map.height*32-r||MapCollision.blocked(x,y,r,obstacles)});
+      }else{if(enemy.attackTime<=0)moveBody(enemy,ex/len*enemy.speed*dt,ey/len*enemy.speed*dt,enemy.r);attackHit=updateEnemyAttack(enemy)}
+      if(attackHit&&invincible<=0){
         damageFlash=.5;
         const bounds=playerMovementBounds();
         moveBody(player,clamp(player.x+ex/len*Math.max(0,setting(playerData,'damage_knockback_distance_px',20)),bounds.left,bounds.right)-player.x,clamp(player.y+ey/len*Math.max(0,setting(playerData,'damage_knockback_distance_px',20)),bounds.top,bounds.bottom)-player.y,10,14);

@@ -1,0 +1,17 @@
+const assert=require('node:assert/strict'),vm=require('node:vm'),fs=require('node:fs');
+const AI=require('../sandbox-engine.js');const context={window:{}};vm.runInNewContext(fs.readFileSync('attack-range.js','utf8'),context);
+const contains=context.window.AttackRange.contains;
+const config={ai_detection_range_px:500,ai_stop_distance_px:40,ai_lose_target_range_px:600,ai_wait_seconds:1,ai_attack_preparation_seconds:1,ai_attack_recovery_seconds:1,ai_contact_damage_enabled:0,ai_move_during_attack:0,ai_flinch_normal:1,ai_flinch_during_attack:0,ai_knockback_normal:1,ai_knockback_during_attack:1};
+const player={x:45,y:0,r:14};const make=()=>({x:0,y:0,r:14,speed:100,angle:0});
+const options={duration:.4,normal:{range_px:25,angle_degrees:90},contact:{range_px:0,angle_degrees:360},contains,move:(e,x,y)=>{e.x+=x;e.y+=y}};
+let enemy=make();assert.equal(AI.stepCombat(enemy,player,.1,config,options),false);assert.equal(enemy.combatPhase,'prepare');
+AI.stepCombat(enemy,player,.9,config,options);assert.equal(enemy.combatPhase,'prepare');AI.stepCombat(enemy,player,.11,config,options);assert.equal(enemy.combatPhase,'attack');
+assert.equal(AI.stepCombat(enemy,player,.1,config,options),false);assert.equal(AI.stepCombat(enemy,player,.11,config,options),true,'モーション半分で命中');assert.equal(AI.stepCombat(enemy,player,.1,config,options),false,'一撃は一度だけ');AI.stepCombat(enemy,player,.1,config,options);assert.equal(enemy.combatPhase,'recovery');AI.stepCombat(enemy,player,.5,config,options);assert.equal(enemy.combatPhase,'recovery');
+enemy=make();player.x=10;AI.stepCombat(enemy,player,.1,config,options);assert.equal(enemy.combatPhase,'prepare','接触で即ダメージは出ない');
+enemy.combatPhase='attack';enemy.attackAngle=0;enemy.phaseRemaining=.4;enemy.x=-100;assert.equal(AI.stepCombat(enemy,player,.21,config,options),false,'押し戻された現在位置で範囲外');
+enemy=make();enemy.combatPhase='attack';enemy.attackAngle=0;enemy.phaseRemaining=.4;enemy.x=-30;assert.equal(AI.stepCombat(enemy,player,.21,config,options),true,'押し戻されても広い範囲なら命中');
+assert.deepEqual(AI.reactions(config,false,true),{flinch:false,knockback:true});assert.deepEqual(AI.reactions({...config,ai_flinch_during_attack:1},true,true),{flinch:false,knockback:false},'super armor overrides both');assert.deepEqual(AI.reactions(config,true,false),{flinch:false,knockback:false});
+AI.cancelAttack(enemy,config);assert.equal(enemy.attackTime,0);assert.equal(enemy.combatPhase,'recovery');
+const blocked=(x,y)=>x<0||y<0||x>160||y>160||(x>=64&&x<=96&&y<96);
+const waypoint=AI.findWaypoint({x:48,y:48,r:8},{x:112,y:48},blocked);assert.ok(waypoint);assert.ok(waypoint.y>48,'壁を回り道する');
+console.log('AI combat: passed');
