@@ -73,7 +73,7 @@ if(Test-Path -LiteralPath (Join-Path $CsvFolder 'sheet-map_tiles.csv')){
     $mapTileRows = @(Read-Table 'map_tiles' @('enabled','asset_key','category','palette_color','walkable','collision_length','collision_width','destructible','hp'))
 }
 
-Test-UniqueKeys $generalRows 'key' 'sheet-general.csv'; Test-UniqueKeys $playerRows 'key' 'sheet-player.csv'; Test-UniqueKeys $enemyRows 'enemy_key' 'sheet-enemy.csv'; Test-UniqueKeys $roundRows 'round' 'sheet-round.csv'; Test-UniqueKeys $assetRows 'asset_key' 'sheet-assets.csv'; Test-UniqueKeys $difficultyRows 'difficulty_key' 'sheet-difficulty.csv'
+Test-UniqueKeys $generalRows 'key' 'sheet-general.csv'; Test-UniqueKeys $playerRows 'key' 'sheet-player.csv'; Test-UniqueKeys $enemyRows 'enemy_key' 'sheet-enemy.csv'; Test-UniqueKeys $assetRows 'asset_key' 'sheet-assets.csv'; Test-UniqueKeys $difficultyRows 'difficulty_key' 'sheet-difficulty.csv'
 
 $general = [ordered]@{}; for($i=0;$i-lt$generalRows.Count;$i++){ $row=$generalRows[$i]; $general[$row.key.Trim()] = Convert-TypedValue $row 'sheet-general.csv' ($i+2) }
 $player = [ordered]@{}; for($i=0;$i-lt$playerRows.Count;$i++){ $row=$playerRows[$i]; $player[$row.key.Trim()] = Convert-TypedValue $row 'sheet-player.csv' ($i+2) }
@@ -144,15 +144,33 @@ foreach($group in $animationFrames.Keys){
     $enemies[$parts[0]]["animation_$($parts[1])_frame_seconds"]=$durations
 }
 
+function Get-RoundKey($Row, [string]$File, [int]$Line) {
+ $number=To-Number $Row.round $File $Line 'round' 1
+ if($number-ne[Math]::Floor($number)){Add-DataError $File $Line 'round' '整数を指定してください。'}
+ if($Row.PSObject.Properties['difficulty_key']){
+  $difficulty=([string]$Row.difficulty_key).Trim()
+  if($difficulty-notin@('easy','normal','hard') -or $difficulty-notin@($difficultyRows|ForEach-Object {$_.difficulty_key.Trim()})){Add-DataError $File $Line 'difficulty_key' 'difficultyシートに登録したeasy・normal・hardを指定してください。'}
+  return "${difficulty}|$([int]$number)"
+ }
+ return ([int]$number).ToString()
+}
+$roundSeen=@{}
+for($i=0;$i-lt$roundRows.Count;$i++){
+ $key=Get-RoundKey $roundRows[$i] 'sheet-round.csv' ($i+2)
+ if($roundSeen.ContainsKey($key)){Add-DataError 'sheet-round.csv' ($i+2) 'difficulty_key/round' "組み合わせ${key}が重複しています。"};$roundSeen[$key]=$true
+}
+$roundHasDifficulty=@($roundRows|Where-Object {$_.PSObject.Properties['difficulty_key']}).Count-gt0
+$spawnHasDifficulty=@($spawnRows|Where-Object {$_.PSObject.Properties['difficulty_key']}).Count-gt0
+if($roundHasDifficulty-ne$spawnHasDifficulty){Add-DataError 'sheet-round_spawn.csv' 1 'difficulty_key' 'roundとround_spawnの両方にdifficulty_key列が必要です。'}
 $rounds=[ordered]@{}; $enabledRoundKeys=@{}; $enabledRoundLines=@{}; for($i=0;$i-lt$roundRows.Count;$i++){
     $row=$roundRows[$i];$line=$i+2;if(-not(Test-Enabled $row 'sheet-round.csv' $line)){continue};if($row.enabled-ne'1'){continue}
-    $roundNumber=[int](To-Number $row.round 'sheet-round.csv' $line 'round' 1);$key=[string]$roundNumber;$enabledRoundKeys[$key]=$true;$enabledRoundLines[$key]=$line
+    $key=Get-RoundKey $row 'sheet-round.csv' $line;$enabledRoundKeys[$key]=$true;$enabledRoundLines[$key]=$line
     $rounds[$key]=[ordered]@{kill_target=[int](To-Number $row.kill_target 'sheet-round.csv' $line 'kill_target' 1);enemy_hp_multiplier=[double](To-Number $row.enemy_hp_multiplier 'sheet-round.csv' $line 'enemy_hp_multiplier' 0);enemy_attack_multiplier=[double](To-Number $row.enemy_attack_multiplier 'sheet-round.csv' $line 'enemy_attack_multiplier' 0);enemy_speed_multiplier=[double](To-Number $row.enemy_speed_multiplier 'sheet-round.csv' $line 'enemy_speed_multiplier' 0);spawn_interval_seconds=[double](To-Number $row.spawn_interval_seconds 'sheet-round.csv' $line 'spawn_interval_seconds' 0.01);spawns=@()}
 }
 
 $spawnPairs=@{}; for($i=0;$i-lt$spawnRows.Count;$i++){
     $row=$spawnRows[$i];$line=$i+2;if(-not(Test-Enabled $row 'sheet-round_spawn.csv' $line)){continue};if($row.enabled-ne'1'){continue}
-    $roundKey=([int](To-Number $row.round 'sheet-round_spawn.csv' $line 'round' 1)).ToString();$enemyKey=$row.enemy_key.Trim();$pair="${roundKey}|${enemyKey}"
+    $roundKey=Get-RoundKey $row 'sheet-round_spawn.csv' $line;$enemyKey=$row.enemy_key.Trim();$pair="${roundKey}|${enemyKey}"
     if($spawnPairs.ContainsKey($pair)){Add-DataError 'sheet-round_spawn.csv' $line 'round/enemy_key' "組み合わせ${pair}が重複しています。"}else{$spawnPairs[$pair]=$true}
     # A spawn row for a disabled round is kept as future data and is omitted from JSON.
     if(-not$enabledRoundKeys.ContainsKey($roundKey)){continue}
