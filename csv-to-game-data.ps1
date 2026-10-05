@@ -62,7 +62,7 @@ function To-Number($Value, [string]$File, [int]$Line, [string]$Column, [double]$
 $generalRows = @(Read-Table 'general' @('key','description','value','type','min','max','unit','notes')) | Where-Object { -not [string]::IsNullOrWhiteSpace($_.key) }
 $playerRows = @(Read-Table 'player' @('key','description','value','type','min','max','unit','notes')) | Where-Object { -not [string]::IsNullOrWhiteSpace($_.key) }
 $attackRangeRows = @(Read-Table 'attack_range' @('enabled','owner_type','owner_key','action','range_px','angle_degrees')) | Where-Object { $_.owner_type -or $_.owner_key -or $_.action }
-$enemyRows = @(Read-Table 'enemy' @('enabled','enemy_key','description','family','variant','hp','attack','super_armor','ai_type','sand_type','death_hit_stop_seconds')) | Where-Object { -not [string]::IsNullOrWhiteSpace($_.enemy_key) }
+$enemyRows = @(Read-Table 'enemy' @('enabled','enemy_key','description','family','variant','hp','attack','super_armor','ai_type','death_hit_stop_seconds')) | Where-Object { -not [string]::IsNullOrWhiteSpace($_.enemy_key) }
 $animationRows = @(Read-Table 'animation' @('enabled','enemy_key','action','frame_index','frame_seconds','move_speed_px_per_second')) | Where-Object { -not [string]::IsNullOrWhiteSpace($_.enemy_key) }
 $roundRows = @(Read-Table 'round' @('enabled','round','kill_target','enemy_hp_multiplier','enemy_attack_multiplier','enemy_speed_multiplier','spawn_interval_seconds')) | Where-Object { -not [string]::IsNullOrWhiteSpace($_.round) }
 $spawnRows = @(Read-Table 'round_spawn' @('enabled','round','enemy_key','spawn_weight','max_alive','max_per_round','start_elapsed_seconds','guaranteed_once')) | Where-Object { -not [string]::IsNullOrWhiteSpace($_.enemy_key) }
@@ -83,7 +83,7 @@ $enemies = [ordered]@{}; $enabledEnemyKeys=@{}; for($i=0;$i-lt$enemyRows.Count;$
     $row=$enemyRows[$i]; $line=$i+2; if(-not(Test-Enabled $row 'sheet-enemy.csv' $line)){continue}; if($row.enabled-ne'1'){continue}
     if($row.super_armor-notin@('0','1')){Add-DataError 'sheet-enemy.csv' $line 'super_armor' '0または1を指定してください。'}
     $hp=To-Number $row.hp 'sheet-enemy.csv' $line 'hp' 1; $attack=To-Number $row.attack 'sheet-enemy.csv' $line 'attack' 0; $stop=To-Number $row.death_hit_stop_seconds 'sheet-enemy.csv' $line 'death_hit_stop_seconds' 0
-    $key=$row.enemy_key.Trim(); $enabledEnemyKeys[$key]=$true; $enemyData=[ordered]@{description=$row.description;family=$row.family;variant=$row.variant;hp=[int]$hp;attack=[double]$attack;super_armor=($row.super_armor-eq'1');ai_type=$row.ai_type;sand_type=$row.sand_type;death_hit_stop_seconds=[double]$stop}
+    $key=$row.enemy_key.Trim(); $enabledEnemyKeys[$key]=$true; $enemyData=[ordered]@{description=$row.description;family=$row.family;variant=$row.variant;hp=[int]$hp;attack=[double]$attack;super_armor=($row.super_armor-eq'1');ai_type=$row.ai_type;death_hit_stop_seconds=[double]$stop}
     $knockback=18.75
     if(-not [string]::IsNullOrWhiteSpace([string]$row.knockback_distance_px)){$knockback=To-Number $row.knockback_distance_px 'sheet-enemy.csv' $line 'knockback_distance_px' 0}
     $enemyData['knockback_distance_px']=[double]$knockback

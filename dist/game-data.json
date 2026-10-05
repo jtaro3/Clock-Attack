@@ -72,7 +72,6 @@
                                        "attack":  1,
                                        "super_armor":  false,
                                        "ai_type":  "chase",
-                                       "sand_type":  "blue",
                                        "death_hit_stop_seconds":  0.15,
                                        "knockback_distance_px":  25,
                                        "move_speed_px_per_second":  18,
@@ -98,7 +97,6 @@
                                         "attack":  1,
                                         "super_armor":  false,
                                         "ai_type":  "chase",
-                                        "sand_type":  "green",
                                         "death_hit_stop_seconds":  0.15,
                                         "knockback_distance_px":  25,
                                         "move_speed_px_per_second":  18,
@@ -124,7 +122,6 @@
                                       "attack":  1,
                                       "super_armor":  false,
                                       "ai_type":  "chase",
-                                      "sand_type":  "red",
                                       "death_hit_stop_seconds":  0.15,
                                       "knockback_distance_px":  25,
                                       "move_speed_px_per_second":  18,
@@ -150,7 +147,6 @@
                                          "attack":  5,
                                          "super_armor":  false,
                                          "ai_type":  "chase",
-                                         "sand_type":  "purple",
                                          "death_hit_stop_seconds":  0.15,
                                          "knockback_distance_px":  25,
                                          "move_speed_px_per_second":  18,
@@ -176,7 +172,6 @@
                                         "attack":  10,
                                         "super_armor":  true,
                                         "ai_type":  "chase",
-                                        "sand_type":  "black",
                                         "death_hit_stop_seconds":  0.15,
                                         "knockback_distance_px":  25
                                     },
@@ -188,7 +183,6 @@
                                         "attack":  20,
                                         "super_armor":  false,
                                         "ai_type":  "chase",
-                                        "sand_type":  "white",
                                         "death_hit_stop_seconds":  0.15,
                                         "knockback_distance_px":  25
                                     }

@@ -549,8 +549,7 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
   addEventListener('blur',()=>{keys.clear();drag.pointer=null;cancelCharge()});
   function defeatEnemy(i,enemy){
     deadEnemies.push({...enemy,deathTime:.45});score++;roundKills++;swordCount=Math.min(MAX_SWORD_COUNT,swordCount+1);
-    if(sandBottles.length<MAX_HOURGLASS_STOCK)sandBottles.push({kind:enemy.kind,color:enemy.color,recovery:enemy.hpMax*10});
-    unlocked=sandBottles.length;timeSinceKill=0;ui.killWarning.classList.add('hidden');burst(enemy.x,enemy.y,enemy.color,11);
+    timeSinceKill=0;ui.killWarning.classList.add('hidden');burst(enemy.x,enemy.y,enemy.color,11);
     enemies.splice(i,1);setHud();
     return enemy.deathHitStop||.1;
   }
