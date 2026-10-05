@@ -169,6 +169,12 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
   };
   const mapOffset=()=>({x:0,y:0});
   function moveBody(body,dx,dy,r,feet=0){
+    // 敵も通常移動・ノックバックでマップ枠を越えない。画像とHPバーの余白を確保する。
+    const bounds=body===player?playerMovementBounds():BattleMapBounds.centers(
+      {left:0,top:0,right:map.width*32,bottom:map.height*32},
+      {x:Math.max(r,28),top:Math.max(r,42),bottom:Math.max(r,30)});
+    dx=clamp(body.x+dx,bounds.left,bounds.right)-body.x;
+    dy=clamp(body.y+dy,bounds.top,bounds.bottom)-body.y;
     const origin=mapOffset(),next=MapCollision.move(body.x-origin.x,body.y+feet-origin.y,dx,dy,r,obstacles);
     body.x=next.x+origin.x;body.y=next.y+origin.y-feet;
   }
