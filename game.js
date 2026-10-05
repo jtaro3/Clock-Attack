@@ -94,10 +94,10 @@
   let showGrid=localStorage.getItem('clock-attack-grid')!=='0';
   const sandBottles=[];
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
-  const START_ENERGY=setting(general,'start_energy',100),MOVE_DISTANCE_PER_ENERGY=setting(playerData,'move_distance_per_energy',16);
+  const START_ENERGY=setting(general,'start_energy',100),MOVE_SPEED_PX_PER_SECOND=setting(general,'movement_speed',124),MOVE_DISTANCE_PER_ENERGY=setting(playerData,'move_distance_per_energy',16);
   const MAX_ENEMIES=setting(general,'max_enemies',20),MAX_PARTICLES=setting(general,'max_particles',200),MAX_SWORD_COUNT=setting(playerData,'max_sword_count',150),MAX_EASY_ROUND=setting(gameData.difficulties?.easy||{},'max_round',3);
-  const MAX_HOURGLASS_STOCK=setting(general,'max_hourglass_stock',10),MAX_SAND_DISPLAY=setting(general,'max_sand_display',1000),IDLE_WARNING_SECONDS=setting(general,'idle_warning_seconds',60),GAME_OVER_COUNTDOWN_SECONDS=setting(general,'game_over_countdown_seconds',5),RECOVERY_INVINCIBLE_SECONDS=setting(general,'recovery_invincible_seconds',2),BATTLE_START_DELAY_SECONDS=setting(general,'battle_start_delay_seconds',2);
-  const BASE_ATTACK_DAMAGE=setting(playerData,'base_attack_damage',1),WHITE_AURA_DAMAGE=setting(playerData,'white_aura_damage',5),RED_AURA_DAMAGE=setting(playerData,'red_aura_damage',20),SPIN_SWORD_COST=setting(playerData,'spin_sword_cost',10),SPIN_MIN_DAMAGE=setting(playerData,'spin_min_damage',5),WHITE_AURA_INTERVAL=setting(playerData,'white_aura_interval',50),RED_AURA_INTERVAL=setting(playerData,'red_aura_interval',100),SPIN_CHARGE_SECONDS=setting(playerData,'spin_charge_seconds',2);
+  const MAX_HOURGLASS_STOCK=setting(general,'max_hourglass_stock',10),MAX_SAND_DISPLAY=setting(general,'max_sand_display',1000),IDLE_WARNING_SECONDS=setting(general,'idle_warning_seconds',60),GAME_OVER_COUNTDOWN_SECONDS=setting(general,'game_over_countdown_seconds',5),RECOVERY_INVINCIBLE_SECONDS=setting(general,'recovery_invincible_seconds',2),BATTLE_START_DELAY_SECONDS=setting(general,'battle_start_delay_seconds',2),HIT_INVINCIBILITY_DURATION=setting(general,'hit_Invincibility_Duration',1.15);
+  const NORMAL_ATTACK_ENERGY_COST=setting(playerData,'sword_cost',1),BASE_ATTACK_DAMAGE=setting(playerData,'base_attack_damage',1),WHITE_AURA_DAMAGE=setting(playerData,'white_aura_damage',5),RED_AURA_DAMAGE=setting(playerData,'red_aura_damage',20),SPIN_SWORD_COST=setting(playerData,'spin_sword_cost',10),SPIN_MIN_DAMAGE=setting(playerData,'spin_min_damage',5),WHITE_AURA_INTERVAL=setting(playerData,'white_aura_interval',50),RED_AURA_INTERVAL=setting(playerData,'red_aura_interval',100),SPIN_CHARGE_SECONDS=setting(playerData,'spin_charge_seconds',2);
   const attackRanges=gameData.attack_range?.player?.player;
   if(!attackRanges||['normal','spin','object'].some(action=>!attackRanges[action])){ui.panel.textContent='攻撃範囲の設定がありません。attack_rangeシートをCSV出力してください。';return}
   const NORMAL_ATTACK_RANGE_PX=Math.max(0,setting(attackRanges.normal,'range_px',42)),NORMAL_ATTACK_ANGLE_DEGREES=clamp(setting(attackRanges.normal,'angle_degrees',182),0,360),SPIN_ATTACK_RANGE_PX=Math.max(0,setting(attackRanges.spin,'range_px',42)),SPIN_ATTACK_ANGLE_DEGREES=clamp(setting(attackRanges.spin,'angle_degrees',360),0,360),OBJECT_ATTACK_RANGE_PX=Math.max(0,setting(attackRanges.object,'range_px',42)),OBJECT_ATTACK_ANGLE_DEGREES=clamp(setting(attackRanges.object,'angle_degrees',203),0,360);
@@ -611,7 +611,7 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
   function attack(){
     if(mode!=='play'||energy<=0||swing>0||spin>0||hitStop>0)return;
     const damage=attackDamage(swordCount);
-    spendEnergy(1);swing=.27;swingAngle=player.angle;swingScale=attackEffectScale(damage);
+    spendEnergy(NORMAL_ATTACK_ENERGY_COST);swing=.27;swingAngle=player.angle;swingScale=attackEffectScale(damage);
     hitObjects(damage,false);hitEnemies(damage,false);
     setHud();checkExhausted();
   }
@@ -698,7 +698,7 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
     if(keys.has('ArrowUp')||keys.has('KeyW'))dy--;
     if(keys.has('ArrowDown')||keys.has('KeyS'))dy++;
     const length=Math.hypot(dx,dy);
-    if(length){movePlayer(dx/length*124*dt,dy/length*124*dt);if(mode!=='play')return}
+    if(length){movePlayer(dx/length*MOVE_SPEED_PX_PER_SECOND*dt,dy/length*MOVE_SPEED_PX_PER_SECOND*dt);if(mode!=='play')return}
     spawnTimer+=dt;
     if(spawnTimer>=setting(currentRoundConfig(round),'spawn_interval_seconds',1)){spawnTimer=0;spawn()}
     invincible=Math.max(0,invincible-dt);damageFlash=Math.max(0,damageFlash-dt);ui.energyBar.classList.toggle('hit',damageFlash>0);
@@ -717,7 +717,7 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
         moveBody(player,clamp(player.x+ex/len*Math.max(0,setting(playerData,'damage_knockback_distance_px',20)),bounds.left,bounds.right)-player.x,clamp(player.y+ey/len*Math.max(0,setting(playerData,'damage_knockback_distance_px',20)),bounds.top,bounds.bottom)-player.y,10,14);
         if(energy===0&&unlocked>0){grayHits=Math.min(3,grayHits+1);setHud()}
         else spendEnergy(enemy.attack);
-        invincible=1.15;shake=.2;burst(player.x,player.y,'#fff4dc',9);
+        invincible=HIT_INVINCIBILITY_DURATION;shake=.2;burst(player.x,player.y,'#fff4dc',9);
         if(grayHits>=3){
           mode='defeated';drag.pointer=null;cancelCharge();setHud();
           transitionTimer=setTimeout(()=>{if(mode==='defeated')gameOver()},450);
