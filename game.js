@@ -96,6 +96,8 @@
   const RECOVERY_GAUGE_SECONDS=1/1.3;
   let showGrid=localStorage.getItem('clock-attack-grid')!=='0';
   const sandBottles=[];
+  const drops=ClockAttackDrops.create(gameData);
+  const dropImages=new Map((gameData.assets||[]).filter(asset=>asset.asset_type==='items').map(asset=>{const image=new Image();image.src=assets.itemPath(asset.asset_key);return [asset.asset_key,image]}));
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
   const START_ENERGY=setting(general,'start_energy',100),MOVE_SPEED_PX_PER_SECOND=setting(general,'movement_speed',124),MOVE_DISTANCE_PER_ENERGY=setting(playerData,'move_distance_per_energy',16);
   const MAX_ENEMIES=setting(general,'max_enemies',20),MAX_PARTICLES=setting(general,'max_particles',200),MAX_SWORD_COUNT=setting(playerData,'max_sword_count',150),MAX_EASY_ROUND=setting(gameData.difficulties?.easy||{},'max_round',3);
@@ -418,7 +420,7 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
     ui.pauseScreen.classList.add('hidden');
     ui.clearScreen.classList.add('hidden');
     ui.killWarning.classList.add('hidden');
-    enemies.length=0;deadEnemies.length=0;particles.length=0;explosions.length=0;damageNumbers.length=0;
+    drops.reset();enemies.length=0;deadEnemies.length=0;particles.length=0;explosions.length=0;damageNumbers.length=0;
     recoveryGaugeFrom=0;recoveryGaugeRemaining=0;
     player.x=map.width*16;player.y=map.height*16;ensurePlayerFree();invincible=0;entryGray=0;swing=0;spin=0;hitStop=0;
     objectDestruction.reset();obstacles=MapCollision.build(objectDestruction.activeMap(),collisionCatalog);renderTerrain();
@@ -503,6 +505,7 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
     moveProgress+=Math.hypot(player.x-oldX,player.y-oldY);
     const spent=Math.floor((moveProgress+1e-6)/MOVE_DISTANCE_PER_ENERGY);
     if(spent>0){moveProgress=Math.max(0,moveProgress-spent*MOVE_DISTANCE_PER_ENERGY);spendEnergy(spent)}
+    if(drops.collect(player,sandBottles,MAX_HOURGLASS_STOCK)){unlocked=sandBottles.length;setHud()}
     checkExhausted();
   }
   function aimAt(clientX,clientY){
@@ -557,7 +560,7 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
   function defeatEnemy(i,enemy){
     deadEnemies.push({...enemy,deathTime:.45});score++;roundKills++;swordCount=Math.min(MAX_SWORD_COUNT,swordCount+1);
     timeSinceKill=0;ui.killWarning.classList.add('hidden');burst(enemy.x,enemy.y,enemy.color,11);
-    enemies.splice(i,1);setHud();
+    drops.spawn(enemy);enemies.splice(i,1);setHud();
     return enemy.deathHitStop||.1;
   }
   function finishEnemyDamage(defeated,deathHitStop=.1){
@@ -705,6 +708,7 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
     if(keys.has('ArrowDown')||keys.has('KeyS'))dy++;
     const length=Math.hypot(dx,dy);
     if(length){movePlayer(dx/length*MOVE_SPEED_PX_PER_SECOND*dt,dy/length*MOVE_SPEED_PX_PER_SECOND*dt);if(mode!=='play')return}
+    if(drops.collect(player,sandBottles,MAX_HOURGLASS_STOCK)){unlocked=sandBottles.length;setHud()}
     spawnTimer+=dt;
     if(spawnTimer>=setting(currentRoundConfig(round),'spawn_interval_seconds',1)){spawnTimer=0;spawn()}
     invincible=Math.max(0,invincible-dt);damageFlash=Math.max(0,damageFlash-dt);ui.energyBar.classList.toggle('hit',damageFlash>0);
@@ -760,6 +764,14 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
       ctx.stroke();ctx.restore();
     }
     ctx.save();ctx.strokeStyle='#fff2b6';ctx.lineWidth=2;ctx.strokeRect(0,0,map.width*32,map.height*32);ctx.restore();
+    for(const drop of drops.ground){
+      const image=dropImages.get(drop.asset_key);
+      ctx.save();ctx.fillStyle='#10182066';ctx.beginPath();ctx.ellipse(drop.x,drop.y+12,12,4,0,0,Math.PI*2);ctx.fill();
+      if(image?.complete&&image.naturalWidth>0)ctx.drawImage(image,drop.x-12,drop.y-18,24,30);
+      else{ctx.fillStyle=drop.color;ctx.fillRect(drop.x-7,drop.y-12,14,22)}
+      if(drop.quantity>1){ctx.fillStyle='#fff';ctx.strokeStyle='#17242a';ctx.lineWidth=3;ctx.font='bold 13px sans-serif';ctx.textAlign='center';ctx.strokeText('×'+drop.quantity,drop.x,drop.y+27);ctx.fillText('×'+drop.quantity,drop.x,drop.y+27)}
+      ctx.restore();
+    }
     for(const enemy of [...enemies,...deadEnemies]){
       const dying=enemy.deathTime!==undefined;
       if(dying&&Math.floor(now/55)%2===0)continue;

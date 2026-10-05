@@ -1,0 +1,4 @@
+﻿enabled,enemy_key,description,index,asset_key,drop_weight,quantity,notes
+1,slime_blue,青スライム,1,sand_blue,50,1,
+1,slime_blue,青スライム,2,sand_blue,10,3,
+1,slime_blue,青スライム,3,,40,0,ドロップなければ、asset_keyは空白、weightは埋める

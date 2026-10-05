@@ -16,5 +16,5 @@ assert.equal(frame('slime_green',.45).file,'green-1.png');
 assert.equal(frame('slime_green',0,.2).file,'green-attack.png');
 assert.equal(c.animations.get('slime_green').attackDuration,.4);
 assert.equal(frame('slime_red',0,.2),null);
-assert.equal(frame('slime_black',0),null);
+assert.equal(frame('unregistered_enemy',0),null);
 console.log('Enemy-specific frame selection, timings, missing-action fallback, and image paths passed');

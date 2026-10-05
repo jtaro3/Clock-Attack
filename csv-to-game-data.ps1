@@ -212,9 +212,49 @@ if(Test-Path -LiteralPath (Join-Path $CsvFolder 'sheet-AI.csv')){
         $aiSettings[$key]=$item
     }
 }
+
+$items=[ordered]@{};$drops=[ordered]@{}
+if(Test-Path -LiteralPath (Join-Path $CsvFolder 'sheet-item.csv')){
+ $rows=@(Read-Table 'item' @('enabled','asset_key','effect_index','effect_type','value','type','min','max')) | Where-Object {$_.asset_key}
+ $seen=@{}
+ for($i=0;$i-lt$rows.Count;$i++){
+  $row=$rows[$i];$file='sheet-item.csv';$line=$i+2
+  if(-not(Test-Enabled $row $file $line)-or$row.enabled-ne'1'){continue}
+  $key=$row.asset_key.Trim();$index=To-Number $row.effect_index $file $line 'effect_index' 1
+  if($index-ne[Math]::Floor($index)){Add-DataError $file $line 'effect_index' '整数を指定してください。'}
+  $id="${key}|${index}";if($seen.ContainsKey($id)){Add-DataError $file $line 'effect_index' '同じアイテムの効果番号が重複しています。'};$seen[$id]=$true
+  $value=Convert-TypedValue $row $file $line
+  if([string]::IsNullOrWhiteSpace($row.effect_type)){Add-DataError $file $line 'effect_type' '効果の種類が必要です。'}
+  if(-not$items.Contains($key)){$items[$key]=[ordered]@{description=$row.description;effects=@()}}
+  $items[$key].effects+=@([ordered]@{effect_index=[int]$index;effect_type=$row.effect_type;value=$value})
+ }
+}
+if(Test-Path -LiteralPath (Join-Path $CsvFolder 'sheet-drop.csv')){
+ $rows=@(Read-Table 'drop' @('enabled','enemy_key','index','asset_key','drop_weight','quantity')) | Where-Object {$_.enemy_key -or $_.asset_key -or $_.drop_weight}
+ $seen=@{}
+ for($i=0;$i-lt$rows.Count;$i++){
+  $row=$rows[$i];$file='sheet-drop.csv';$line=$i+2
+  if(-not(Test-Enabled $row $file $line)-or$row.enabled-ne'1'){continue}
+  $key=([string]$row.enemy_key).Trim();$asset=([string]$row.asset_key).Trim()
+  if(-not$enemies.Contains($key)){Add-DataError $file $line 'enemy_key' '有効なenemyに存在しません。'}
+  $index=To-Number $row.index $file $line 'index' 1;$quantity=To-Number $row.quantity $file $line 'quantity' 0;$weight=To-Number $row.drop_weight $file $line 'drop_weight' 0
+  foreach($entry in @(@('index',$index),@('quantity',$quantity))){if($entry[1]-ne[Math]::Floor($entry[1])){Add-DataError $file $line $entry[0] '整数を指定してください。'}}
+  $id="${key}|${index}";if($seen.ContainsKey($id)){Add-DataError $file $line 'index' '同じ敵の抽選番号が重複しています。'};$seen[$id]=$true
+  if($asset){
+   if($quantity-lt1){Add-DataError $file $line 'quantity' 'アイテムを落とす行では1以上にしてください。'}
+   if(-not$items.Contains($asset)){Add-DataError $file $line 'asset_key' '有効なitemに存在しません。'}
+   elseif(@($items[$asset].effects|Where-Object {$_.effect_type-ne'heal' -or $_.value-le0}).Count){Add-DataError $file $line 'asset_key' '現在のドロップは正のheal効果を持つビンに対応しています。'}
+   if(-not@($assets|Where-Object {$_.asset_key-eq$asset -and $_.asset_type-eq'items'}).Count){Add-DataError $file $line 'asset_key' '有効なitemsアセットが必要です。'}
+  }elseif($quantity-ne0){Add-DataError $file $line 'quantity' 'ドロップなしの行では0にしてください。'}
+  if(-not$drops.Contains($key)){$drops[$key]=@()}
+  $drops[$key]+=@([ordered]@{index=[int]$index;asset_key=$asset;drop_weight=[double]$weight;quantity=[int]$quantity})
+ }
+ foreach($key in $drops.Keys){if(($drops[$key]|ForEach-Object { $_.drop_weight }|Measure-Object -Sum).Sum-le0){Add-DataError 'sheet-drop.csv' 0 'drop_weight' "${key}の重みの合計は0より大きくしてください。"}}
+}
+
 if($errors.Count-gt0){$message="データ検証で$($errors.Count)件のエラーが見つかりました。`n"+($errors-join"`n");if($ErrorReportPath){[IO.File]::WriteAllText($ErrorReportPath,$message,[Text.UTF8Encoding]::new($false))};if(-not$Silent){Write-Host $message -ForegroundColor Red};[Console]::Error.WriteLine($message);exit 2}
 
-$data=[ordered]@{schema_version=1;generated_at=(Get-Date).ToString('o');general=$general;player=$player;attack_range=$attackRanges;enemies=$enemies;ai=$aiSettings;rounds=$rounds;assets=$assets;difficulties=$difficulties;map_tiles=$mapTiles}
+$data=[ordered]@{schema_version=1;items=$items;drops=$drops;generated_at=(Get-Date).ToString('o');general=$general;player=$player;attack_range=$attackRanges;enemies=$enemies;ai=$aiSettings;rounds=$rounds;assets=$assets;difficulties=$difficulties;map_tiles=$mapTiles}
 $parent=Split-Path -Parent $OutputPath;if($parent){[IO.Directory]::CreateDirectory($parent)|Out-Null}
 [IO.File]::WriteAllText($OutputPath,($data|ConvertTo-Json -Depth 12),[Text.UTF8Encoding]::new($false))
 $result=[ordered]@{status='ok';output=$OutputPath;general=$general.Count;player=$player.Count;enemies=$enemies.Count;rounds=$rounds.Count;assets=$assets.Count;difficulties=$difficulties.Count}

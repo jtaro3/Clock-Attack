@@ -1,0 +1,13 @@
+﻿enabled,asset_key,description,effect_index,effect_type,value,type,min,max,unit,category,price,notes,notes2
+1,sand_blue,青の砂,1,heal,20,integer,1,1000,point,item,100,,
+0,sword_default,剣デフォルト,1,attack_up,0,integer,0,100,damage,equipment,100,,
+0,sword_2,剣2,1,attack_up,5,integer,1,100,damage,equipment,200,,
+0,sword_2,剣2,2,attack_range_up,10,integer,1,360,degrees,equipment,200,,
+0,sword_3,剣2,1,attack_up,10,integer,1,100,damage,equipment,200,,
+0,sword_3,剣2,2,attack_range_up,20,integer,1,360,degrees,equipment,200,,
+0,money,お金,1,money,0,integer,0,9999999,money,item,0,,
+1,sand_green,緑の砂,1,heal,40,integer,1,1000,point,item,100,,
+1,sand_red,赤の砂,1,heal,80,integer,1,1000,point,item,100,,
+1,sand_purple,紫の砂,1,heal,100,integer,1,1000,point,item,100,,
+1,sand_black,黒の砂,1,heal,200,integer,1,1000,point,item,100,,
+1,sand_white,白の砂,1,heal,500,integer,1,1000,point,item,100,,
