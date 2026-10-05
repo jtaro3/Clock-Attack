@@ -87,6 +87,11 @@ $enemies = [ordered]@{}; $enabledEnemyKeys=@{}; for($i=0;$i-lt$enemyRows.Count;$
     $knockback=18.75
     if(-not [string]::IsNullOrWhiteSpace([string]$row.knockback_distance_px)){$knockback=To-Number $row.knockback_distance_px 'sheet-enemy.csv' $line 'knockback_distance_px' 0}
     $enemyData['knockback_distance_px']=[double]$knockback
+    if(-not [string]::IsNullOrWhiteSpace([string]$row.collision_radius_px)){
+        $radius=To-Number $row.collision_radius_px 'sheet-enemy.csv' $line 'collision_radius_px' 0
+        if($radius -le 0){Add-DataError 'sheet-enemy.csv' $line 'collision_radius_px' '0より大きい半径(px)を指定してください。'}
+        $enemyData['collision_radius_px']=[double]$radius
+    }
     $enemies[$key]=$enemyData
 }
 

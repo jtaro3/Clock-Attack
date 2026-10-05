@@ -119,7 +119,7 @@
   round=activeRounds[0];
   const currentRoundConfig=roundNumber=>difficultyRounds[String(roundNumber)];
   const roundKillTarget=roundNumber=>Number(currentRoundConfig(roundNumber).kill_target);
-  const enemyType=(key,kind,hp,attack,color,radius)=>{const data=enemyData[key]||{};return{enemyKey:key,kind,hp:setting(data,'hp',hp),attack:setting(data,'attack',attack),deathHitStop:setting(data,'death_hit_stop_seconds',.1),knockbackDistance:Math.max(0,setting(data,'knockback_distance_px',18.75)),color,radius,knockback:data.super_armor===undefined?kind!=='black':!data.super_armor}};
+  const enemyType=(key,kind,hp,attack,color,radius)=>{const data=enemyData[key]||{};return{enemyKey:key,kind,hp:setting(data,'hp',hp),attack:setting(data,'attack',attack),deathHitStop:setting(data,'death_hit_stop_seconds',.1),knockbackDistance:Math.max(0,setting(data,'knockback_distance_px',18.75)),color,radius:AttackRange.enemyRadius(key,data),knockback:data.super_armor===undefined?kind!=='black':!data.super_armor}};
   const SLIME_TYPES={blue:enemyType('slime_blue','blue',1,1,'#66c8ee',14),green:enemyType('slime_green','green',2,1,'#74d590',16),red:enemyType('slime_red','red',3,1,'#e97a83',18),purple:enemyType('slime_purple','purple',10,5,'#b679e5',22),black:enemyType('slime_black','black',20,10,'#171a20',24),metal:enemyType('slime_metal','metal',50,20,'#bec8d1',26)};
 const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type.enemyKey,type]));
   const SLIME_ATTACK_DURATION=.42;

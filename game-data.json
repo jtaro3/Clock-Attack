@@ -286,6 +286,7 @@
     "enemies":  {
                     "slime_blue":  {
                                        "description":  "青スライム",
+                    "collision_radius_px": 1,
                                        "family":  "slime",
                                        "variant":  "blue",
                                        "hp":  1,
@@ -311,6 +312,7 @@
                                    },
                     "slime_green":  {
                                         "description":  "緑スライム",
+                    "collision_radius_px": 1,
                                         "family":  "slime",
                                         "variant":  "green",
                                         "hp":  2,
@@ -336,6 +338,7 @@
                                     },
                     "slime_red":  {
                                       "description":  "赤スライム",
+                    "collision_radius_px": 1,
                                       "family":  "slime",
                                       "variant":  "red",
                                       "hp":  5,
@@ -361,6 +364,7 @@
                                   },
                     "slime_purple":  {
                                          "description":  "紫スライム",
+                    "collision_radius_px": 1,
                                          "family":  "slime",
                                          "variant":  "purple",
                                          "hp":  10,
@@ -386,6 +390,7 @@
                                      },
                     "slime_black":  {
                                         "description":  "黒スライム",
+                    "collision_radius_px": 1,
                                         "family":  "slime",
                                         "variant":  "black",
                                         "hp":  20,
