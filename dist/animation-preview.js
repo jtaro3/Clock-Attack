@@ -11,7 +11,6 @@
   let tuningEdited=false;
   let tuning=readTuning(),category='',action='',selection=0,loop=false,startedAt=performance.now(),canvasWidth=0,canvasHeight=0,dpr=1,actorImages=[],swordImage=null;
   const playerBounds=[[386,362,850,928],[396,376,846,930],[432,356,812,956],[396,344,836,952],[386,350,866,946],[374,340,862,916],[394,344,828,926],[396,324,828,922]];
-  const playerNames=['man1.png','man2.png','man3.png','man4.png','man5.png','man6.png','man7.png','man8.png'];
   let enemyMoveImages=[],enemyAttackImages=[];
   const moveSettings=$('moveSettings'),attackSettings=$('attackSettings');
   const attackFrameDefault=.105;
@@ -107,7 +106,7 @@
     if(!response.ok)throw new Error('HTTP '+response.status);
     return response.json();
   }).then(data=>{
-    enemyMasterData=data.enemies||{};rangeMaster=data.attack_range||{};
+    enemyMasterData=data.enemies||{};loadPlayerImages(data.assets||[]);rangeMaster=data.attack_range||{};
     if(!tuningEdited&&!localStorage.getItem(storageKey())){tuning=masterTuning();refreshTuning()}
   }).catch(()=>{$('notice').textContent='ゲームデータを読み込めないため初期値を表示しています'});
   $('loadDataSettings').addEventListener('click',async()=>{
@@ -136,7 +135,7 @@
         c.putImageData(pixels,0,0);resolve({file,label:file,image:crop});
       };
       image.onerror=()=>resolve({file,label:file,image:null});
-      image.src='design/'+file;
+      image.src=file;
     });
   }
   function loadImage(file,label){
@@ -175,7 +174,14 @@
   }
   enemySearch.addEventListener('input',filterEnemyOptions);
   enemySelect.addEventListener('change',()=>{if(enemySelect.value)selectEnemy(enemySelect.value)});
-  Promise.all([...playerNames.map((name,i)=>loadSprite(name,i)),loadImage('sword.svg','sword.svg')]).then(items=>{actorImages=items.slice(0,8);swordImage=items[8];buildFileList();draw()});
+  let playerImageLoad=0;
+  async function loadPlayerImages(assetRows){
+    const version=++playerImageLoad,files=ClockAttackAssets.create(assetRows).playerFiles();
+    const items=await Promise.all(files.map((file,i)=>file?loadSprite(file,i):Promise.resolve({file:'',label:ClockAttackAssets.directions[i],image:null})));
+    if(version!==playerImageLoad)return;
+    actorImages=items;buildFileList();draw();
+  }
+  loadImage('sword.svg','sword.svg').then(item=>{swordImage=item;buildFileList();draw()});
   fetch('animation-manifest.json',{cache:'no-store'}).then(response=>{
     if(!response.ok)throw new Error('HTTP '+response.status);
     return response.json();

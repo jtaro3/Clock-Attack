@@ -1,4 +1,4 @@
-(()=>{
+(async()=>{
   'use strict';
   const canvas=document.getElementById('sample'),ctx=canvas.getContext('2d'),position=document.getElementById('position');
   const columns=64,rows=64,size=32,worldWidth=columns*size,worldHeight=rows*size;
@@ -7,12 +7,14 @@
   const tiles=Array.from({length:columns*rows},(_,i)=>{const x=i%columns,y=Math.floor(i/columns),noise=((x*73856093)^(y*19349663))>>>0;return (Math.abs(x-32)<=1||Math.abs(y-32)<=1||x===8||y===8||x===55||y===55)?3:noise%100<14?1:noise%100<24?2:0});
   for(const file of ['grass','grass-dark','flowers','soil']){const image=new Image();image.src='maps/tiles/'+file+'.png';images.push(image)}
   const bounds=[[386,362,850,928],[396,376,846,930],[432,356,812,956],[396,344,836,952],[386,350,866,946],[374,340,862,916],[394,344,828,926],[396,324,828,922]];
+  const master=await fetch('game-data.json',{cache:'no-store'}).then(r=>r.json());
+  const playerFiles=ClockAttackAssets.create(master.assets||[]).playerFiles();
   bounds.forEach(([left,top,right,bottom],i)=>{const image=new Image();image.onload=()=>{
     const sprite=document.createElement('canvas');sprite.width=right-left+33;sprite.height=bottom-top+33;
     const sc=sprite.getContext('2d',{willReadFrequently:true});sc.drawImage(image,left-16,top-16,sprite.width,sprite.height,0,0,sprite.width,sprite.height);
     const pixels=sc.getImageData(0,0,sprite.width,sprite.height);for(let p=0;p<pixels.data.length;p+=4)if(Math.max(pixels.data[p],pixels.data[p+1],pixels.data[p+2])<=2)pixels.data[p+3]=0;
     sc.putImageData(pixels,0,0);sprites[i]=sprite;
-  };image.src='design/man'+(i+1)+'.png'});
+  };if(playerFiles[i])image.src=playerFiles[i]});
   function resize(){width=innerWidth;height=innerHeight;const dpr=Math.min(devicePixelRatio||1,2);canvas.width=Math.round(width*dpr);canvas.height=Math.round(height*dpr);ctx.setTransform(dpr,0,0,dpr,0,0)}
   addEventListener('resize',resize);resize();
   const handled=['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','w','a','s','d'];

@@ -1,4 +1,5 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
+const ClockAttackAssets=require('../asset-paths.js');
 class Element{
   constructor(){this.children=[];this.listeners={};this.dataset={};this.value='';this.checked=false;this.hidden=false;this.classList={add(){},remove(){},contains:()=>true,toggle(){}};}
   addEventListener(name,fn){this.listeners[name]=fn}
@@ -19,7 +20,7 @@ const stored=new Map(),pendingGreen=[];
 let copied='',master={enemies:{slime_blue:{move_speed_px_per_second:27},slime_green:{move_speed_px_per_second:11,animation_move_frame_seconds:[.2,.3],animation_attack_frame_seconds:[.4]},slime_red:{move_speed_px_per_second:15}}};
 const manifest={enemies:{slime_blue:{move:['blue1.png'],attack:['blueAttack.png']},slime_green:{move:['green1.png','green2.png'],attack:['greenAttack.png']},slime_red:{move:['red1.png'],attack:[]}}};
 const c={document:{getElementById:get,querySelectorAll:s=>s==='[data-category]'?categories:[],createElement:()=>new Element()},localStorage:{getItem:k=>stored.get(k)||null,setItem:(k,v)=>stored.set(k,v)},navigator:{clipboard:{writeText:async text=>{copied=text}}},performance:{now:()=>1000},devicePixelRatio:1,ResizeObserver:class{observe(){}},requestAnimationFrame(){},fetch:async file=>({ok:true,json:async()=>file==='animation-manifest.json'?manifest:master}),Image:class{set src(file){if(file.includes('green'))pendingGreen.push(()=>this.onload());else queueMicrotask(()=>this.onload())}},console};
-vm.createContext(c);
+c.ClockAttackAssets=ClockAttackAssets;vm.createContext(c);
 let source=fs.readFileSync('animation-preview.js','utf8');
 source=source.replace(/\}\)\(\);\s*$/,`globalThis.preview={selectEnemy,snapshot:()=>({enemyKey,tuning,move:enemyMoveImages.map(i=>i.label),attack:enemyAttackImages.map(i=>i.label)}),setCanvasSize};})();`);
 vm.runInContext(source,c);

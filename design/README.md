@@ -9,10 +9,12 @@
 | `player.svg` | 上から見たプレイヤー。上向きが基準方向 |
 | `sword.svg` | 攻撃用の剣 |
 | `palette.json` | 色の指定値 |
-| `man1.png`～`man8.png` | 移動・攻撃方向に応じて切り替えるプレイヤーの8方向画像 |
+| `player/` | assetsシートのplayerアセットで指定する8方向画像 |
 | `maps/grassland-tiles.png` | 仮の草原マップチップ。草、濃い草、花、土の4種類 |
 
-`man1.png` から順に、背面、背面右、右、正面右、正面、正面左、左、背面左です。PNG は背景が黒いため、ゲームの表示時に黒い余白を透明にします。ゲームが読み込む公開用のコピーは `dist/design/` にあります。
+`player/man1.png` から順に、背面、背面右、右、正面右、正面、正面左、左、背面左です。PNG は背景が黒いため、ゲームの表示時に黒い余白を透明にします。ゲームが読み込む公開用のコピーは `dist/design/player/` にあります。
+
+assetsシートのasset_typeがplayerならdesign/player/、itemsならdesign/items/を参照します。sprite_fileにはフォルダーを含めずファイル名を記載します。playerはowner_key=player、direction=back/back_right/right/front_right/front/front_left/left/back_leftで画像を対応させます。itemsのowner_keyは対応するアイテムのキーを記載します。画像の追加・変更時は公開用のdistにも同じフォルダー構成で配置し、CSV・JSONを更新してください。プレイヤーの切り抜き範囲は従来の画像と同じです。
 
 各 SVG は 64×64 の座標で作成しています。`sword.svg` は攻撃時の剣としてゲームで使用し、公開用のコピーは `dist/design/sword.svg` にあります。その他の SVG はデザインの編集・管理用で、編集しただけでは公開中のゲーム画面には自動反映されません。
 

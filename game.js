@@ -17,9 +17,12 @@
   const player={x:0,y:0,r:14,angle:-Math.PI/2};
   // 上から時計回り: 背面、背面右、右、正面右、正面、正面左、左、背面左。
   const spriteBounds=[[386,362,850,928],[396,376,846,930],[432,356,812,956],[396,344,836,952],[386,350,866,946],[374,340,862,916],[394,344,828,926],[396,324,828,922]];
+  const assets=ClockAttackAssets.create(gameData.assets||[]),playerFiles=assets.playerFiles();
+  const bottleImagePath=bottle=>bottle?assets.itemPath(bottle.asset_key||`sand_${bottle.kind==='metal'?'white':bottle.kind}`):null;
   const playerSprites=Array(8).fill(null);
   const playerSpritesGray=Array(8).fill(null);
   spriteBounds.forEach(([left,top,right,bottom],i)=>{
+    if(!playerFiles[i]){console.warn('プレイヤー画像のマスター設定がありません：'+ClockAttackAssets.directions[i]);return}
     const image=new Image();
     image.onload=()=>{
       const margin=16,x=left-margin,y=top-margin;
@@ -48,7 +51,7 @@
       playerSpritesGray[i]=gray;
       image.onload=null;
     };
-    image.src=`design/man${i+1}.png`;
+    image.src=playerFiles[i];
   });
   const swordImage=new Image();
   swordImage.src='design/sword.svg';
@@ -217,7 +220,7 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
   for(let i=0;i<MAX_HOURGLASS_STOCK;i++){
     const slot=document.createElement('span');slot.className='stock-slot';
     slot.innerHTML='<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M12 3h8v5l3 3v16c0 2-2 3-4 3h-6c-2 0-4-1-4-3V11l3-3z"/><path d="M11 8h10"/><path class="bottle-sand" d="M11 21h10v6H11z"/></svg>'; 
-    ui.clockStock.appendChild(slot);stockSlots.push(slot);
+    slot.dataset.emptyMarkup=slot.innerHTML;ui.clockStock.appendChild(slot);stockSlots.push(slot);
   }
   function showSand(steps){
     ui.previewHourglass.style.setProperty('--sand-level',String(steps/MAX_HOURGLASS_STOCK));
@@ -249,7 +252,8 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
       item.style.setProperty('--start-x',`${(column-center)*64}px`);
       item.style.setProperty('--start-y',`${row*66-(bottles.length>5?33:0)}px`);
       item.style.setProperty('--merge-rotate',`${(i%2?1:-1)*(18+i*5)}deg`);
-      item.innerHTML='<svg viewBox="0 0 32 42" aria-hidden="true"><path d="M12 2h8v6l4 4v24c0 3-2 4-5 4h-6c-3 0-5-1-5-4V12l4-4z"/><path d="M10 9h12"/><path class="bottle-fill" d="M10 25h12v11H10z"/></svg>';
+      const imagePath=bottleImagePath(bottle);
+      item.innerHTML=imagePath&&!bottle.empty?`<img src="${imagePath}" alt="砂のビン">`:'<svg viewBox="0 0 32 42" aria-hidden="true"><path d="M12 2h8v6l4 4v24c0 3-2 4-5 4h-6c-3 0-5-1-5-4V12l4-4z"/><path d="M10 9h12"/><path class="bottle-fill" d="M10 25h12v11H10z"/></svg>';
       ui.mergeBottles.appendChild(item);
     });
     const initialLevel=clamp(energy/MAX_SAND_DISPLAY,0,1);
@@ -307,6 +311,9 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
     ui.energyBar.classList.toggle('hit',damageFlash>0);
     for(let i=0;i<stockSlots.length;i++){
       const bottle=sandBottles[i];
+      const imagePath=bottleImagePath(bottle);
+      const markup=imagePath?`<img src="${imagePath}" alt="砂のビン">`:stockSlots[i].dataset.emptyMarkup;
+      if(stockSlots[i].dataset.imagePath!==String(imagePath)){stockSlots[i].innerHTML=markup;stockSlots[i].dataset.imagePath=String(imagePath)}
       stockSlots[i].classList.toggle('unlocked',Boolean(bottle));
       stockSlots[i].style.setProperty('--bottle-color',bottle?.color||'#fff9e8');
       stockSlots[i].title=`砂のビン ${i+1}: ${bottle?`${bottle.kind}・回復${bottle.recovery}`:'空'}`;
