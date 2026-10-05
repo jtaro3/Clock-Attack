@@ -595,7 +595,7 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
     let defeated=false,deathHitStop=0;
     for(let i=enemies.length-1;i>=0;i--){
       const enemy=enemies[i],dx=enemy.x-player.x,dy=enemy.y-player.y,len=Math.hypot(dx,dy);
-      if(len>=player.r+enemy.r+extraRange||(attackAngle<360&&len>=25&&(dx*ax+dy*ay)/len<=minimumFacingDot))continue;
+      if(!AttackRange.contains(player,enemy,{range_px:extraRange,angle_degrees:attackAngle}))continue;
       const knockAngle=len>0?Math.atan2(dy,dx):player.angle;
       const aiConfig=gameData.ai?.[enemyData[enemy.enemyKey]?.ai_type];
       const reaction=SandboxAI.reactions(aiConfig,enemyData[enemy.enemyKey]?.super_armor,enemy.combatPhase==='prepare'||enemy.combatPhase==='attack'||enemy.attackTime>0);

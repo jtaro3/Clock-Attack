@@ -1,0 +1,12 @@
+const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');const c={window:{}};vm.runInNewContext(fs.readFileSync('attack-range.js','utf8'),c);const hit=c.window.AttackRange.contains,a={x:0,y:0,r:14,angle:0},s={range_px:42,angle_degrees:90};
+assert.equal(hit(a,{x:60,y:0,r:5},s),true,'円弧の外側でも体が重なれば命中');
+assert.equal(hit(a,{x:62,y:0,r:5},s),false);
+assert.equal(hit(a,{x:30,y:35,r:4},s),true,'横端と円の重なり');
+assert.equal(hit(a,{x:30,y:40,r:4},s),false);
+assert.equal(hit(a,{x:60,y:60,r:20},s),false,'角の外側は半径と角度を個別に足すだけでは判定できない');
+assert.equal(hit(a,{x:-3,y:0,r:4},s),true,'扇形の頂点との重なり');
+assert.equal(hit(a,{x:-20,y:0,r:4},s),false);
+assert.equal(hit(a,{x:-60,y:0,r:5},{range_px:42,angle_degrees:360}),true);
+assert.equal(hit(a,{x:0,y:0,r:5},{range_px:42,angle_degrees:0}),false);
+assert.ok(!fs.readFileSync('sandbox.js','utf8').includes('body.r+target.r+'),'表示に対象半径を含めない');
+console.log('Sector/circle intersection: passed');
