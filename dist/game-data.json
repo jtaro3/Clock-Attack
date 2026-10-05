@@ -72,9 +72,9 @@
                                      },
                                      {
                                          "index":  2,
-                                         "asset_key":  "sand_blue",
+                                         "asset_key":  "",
                                          "drop_weight":  10,
-                                         "quantity":  3
+                                         "quantity":  0
                                      },
                                      {
                                          "index":  3,
@@ -88,7 +88,7 @@
                                           "index":  1,
                                           "asset_key":  "sand_blue",
                                           "drop_weight":  40,
-                                          "quantity":  2
+                                          "quantity":  1
                                       },
                                       {
                                           "index":  2,
@@ -108,7 +108,7 @@
                                         "index":  1,
                                         "asset_key":  "sand_green",
                                         "drop_weight":  40,
-                                        "quantity":  2
+                                        "quantity":  1
                                     },
                                     {
                                         "index":  2,
@@ -128,7 +128,7 @@
                                            "index":  1,
                                            "asset_key":  "sand_red",
                                            "drop_weight":  50,
-                                           "quantity":  2
+                                           "quantity":  1
                                        },
                                        {
                                            "index":  2,
@@ -148,7 +148,7 @@
                                           "index":  1,
                                           "asset_key":  "sand_green",
                                           "drop_weight":  19,
-                                          "quantity":  2
+                                          "quantity":  1
                                       },
                                       {
                                           "index":  2,
@@ -170,7 +170,7 @@
                                       }
                                   ]
               },
-    "generated_at":  "2026-10-05T20:51:58.1916467+09:00",
+    "generated_at":  "2026-10-05T21:19:44.7468187+09:00",
     "general":  {
                     "movement_speed":  180,
                     "start_energy":  150,
@@ -526,11 +526,11 @@
                                              ]
                               },
                    "normal|1":  {
-                                    "kill_target":  10,
-                                    "enemy_hp_multiplier":  1,
-                                    "enemy_attack_multiplier":  1,
+                                    "kill_target":  20,
+                                    "enemy_hp_multiplier":  2,
+                                    "enemy_attack_multiplier":  2,
                                     "enemy_speed_multiplier":  1,
-                                    "spawn_interval_seconds":  1,
+                                    "spawn_interval_seconds":  0.7,
                                     "spawns":  [
                                                    {
                                                        "enemy_key":  "slime_blue",
@@ -559,11 +559,11 @@
                                                ]
                                 },
                    "normal|2":  {
-                                    "kill_target":  10,
-                                    "enemy_hp_multiplier":  1,
-                                    "enemy_attack_multiplier":  1,
+                                    "kill_target":  20,
+                                    "enemy_hp_multiplier":  2,
+                                    "enemy_attack_multiplier":  2,
                                     "enemy_speed_multiplier":  1,
-                                    "spawn_interval_seconds":  1,
+                                    "spawn_interval_seconds":  0.7,
                                     "spawns":  [
                                                    {
                                                        "enemy_key":  "slime_blue",
@@ -600,11 +600,11 @@
                                                ]
                                 },
                    "normal|3":  {
-                                    "kill_target":  10,
-                                    "enemy_hp_multiplier":  1,
-                                    "enemy_attack_multiplier":  1,
+                                    "kill_target":  20,
+                                    "enemy_hp_multiplier":  2,
+                                    "enemy_attack_multiplier":  2,
                                     "enemy_speed_multiplier":  1,
-                                    "spawn_interval_seconds":  1,
+                                    "spawn_interval_seconds":  0.7,
                                     "spawns":  [
                                                    {
                                                        "enemy_key":  "slime_red",
