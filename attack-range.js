@@ -13,5 +13,6 @@
     if(distance===0)return true;
     return (dx*Math.cos(attacker.angle)+dy*Math.sin(attacker.angle))/distance>Math.cos(angle*Math.PI/360);
   }
-  window.AttackRange={enemyRadius,contains};
+  function enemySpriteSize(data){const value=data?.sprite_size_px;return value!==undefined&&value!==null&&value!==''&&Number.isFinite(Number(value))&&Number(value)>0?Number(value):56}
+  window.AttackRange={enemyRadius,enemySpriteSize,contains};
 })();

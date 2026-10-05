@@ -286,7 +286,6 @@
                      },
     "enemies":  {
                     "slime_blue":  {
-                    "collision_radius_px": 1,
                                        "description":  "青スライム",
                                        "family":  "slime",
                                        "variant":  "blue",
@@ -296,6 +295,8 @@
                                        "ai_type":  "chase2",
                                        "death_hit_stop_seconds":  0.15,
                                        "knockback_distance_px":  40,
+                                       "sprite_size_px":  1,
+                                       "collision_radius_px":  1,
                                        "move_speed_px_per_second":  18,
                                        "animation_move_frame_seconds":  [
                                                                             0.2,
@@ -312,7 +313,6 @@
                                                                           ]
                                    },
                     "slime_green":  {
-                    "collision_radius_px": 1,
                                         "description":  "緑スライム",
                                         "family":  "slime",
                                         "variant":  "green",
@@ -322,6 +322,8 @@
                                         "ai_type":  "chase2",
                                         "death_hit_stop_seconds":  0.15,
                                         "knockback_distance_px":  30,
+                                        "sprite_size_px":  72,
+                                        "collision_radius_px":  36,
                                         "move_speed_px_per_second":  18,
                                         "animation_move_frame_seconds":  [
                                                                              0.2,
@@ -338,7 +340,6 @@
                                                                            ]
                                     },
                     "slime_red":  {
-                    "collision_radius_px": 1,
                                       "description":  "赤スライム",
                                       "family":  "slime",
                                       "variant":  "red",
@@ -348,6 +349,8 @@
                                       "ai_type":  "chase2",
                                       "death_hit_stop_seconds":  0.15,
                                       "knockback_distance_px":  15,
+                                      "sprite_size_px":  72,
+                                      "collision_radius_px":  36,
                                       "move_speed_px_per_second":  18,
                                       "animation_move_frame_seconds":  [
                                                                            0.2,
@@ -364,7 +367,6 @@
                                                                          ]
                                   },
                     "slime_purple":  {
-                    "collision_radius_px": 1,
                                          "description":  "紫スライム",
                                          "family":  "slime",
                                          "variant":  "purple",
@@ -374,6 +376,8 @@
                                          "ai_type":  "chase2",
                                          "death_hit_stop_seconds":  0.15,
                                          "knockback_distance_px":  15,
+                                         "sprite_size_px":  1,
+                                         "collision_radius_px":  1,
                                          "move_speed_px_per_second":  18,
                                          "animation_move_frame_seconds":  [
                                                                               0.2,
@@ -390,7 +394,6 @@
                                                                             ]
                                      },
                     "slime_black":  {
-                    "collision_radius_px": 1,
                                         "description":  "黒スライム",
                                         "family":  "slime",
                                         "variant":  "black",
@@ -400,6 +403,8 @@
                                         "ai_type":  "chase2",
                                         "death_hit_stop_seconds":  0.15,
                                         "knockback_distance_px":  15,
+                                        "sprite_size_px":  1,
+                                        "collision_radius_px":  1,
                                         "move_speed_px_per_second":  18,
                                         "animation_attack_frame_seconds":  [
                                                                                0.33,

@@ -788,7 +788,7 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
       const spriteFrame=enemyAnimationFrame(enemy);
       const spriteImageReady=!!spriteFrame?.image.complete&&spriteFrame.image.naturalWidth>0;
       if(spriteImageReady){
-        const spriteSize=56;
+        const spriteSize=AttackRange.enemySpriteSize(enemyData[enemy.enemyKey]);
         ctx.save();ctx.translate(enemy.x,y);if(spriteFrame.attack&&Math.cos(enemy.attackAngle||0)<0)ctx.scale(-1,1);ctx.imageSmoothingEnabled=false;
         ctx.drawImage(spriteFrame.image,-spriteSize/2,-spriteSize/2,spriteSize,spriteSize);ctx.restore();ctx.imageSmoothingEnabled=true;
         if(enemy.hit>0&&spriteFrame.flash){
@@ -796,7 +796,7 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
           ctx.drawImage(spriteFrame.flash,enemy.x-spriteSize/2,y-spriteSize/2,spriteSize,spriteSize);ctx.restore();
         }
       }else{
-        const attacking=!dying&&enemy.attackTime>0,attackProgress=attacking?1-enemy.attackTime/SLIME_ATTACK_DURATION:0;
+        const visualRadius=AttackRange.enemySpriteSize(enemyData[enemy.enemyKey])/2;const attacking=!dying&&enemy.attackTime>0,attackProgress=attacking?1-enemy.attackTime/SLIME_ATTACK_DURATION:0;
         let stretchX=1,stretchY=1,lunge=0;
         if(attacking){
           if(attackProgress<.25){const p=attackProgress/.25;stretchX=1+.22*p;stretchY=1-.22*p;lunge=-2*p}
@@ -805,14 +805,14 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
           else{const p=(attackProgress-.75)/.25;stretchX=1.12-.12*p;stretchY=.9+.1*p;lunge=10*(1-p)}
         }
         ctx.save();ctx.translate(enemy.x,y);ctx.translate(Math.cos(enemy.attackAngle||0)*lunge,Math.sin(enemy.attackAngle||0)*lunge);ctx.scale(stretchX,stretchY);
-        ctx.fillStyle='#0b172277';ctx.beginPath();ctx.ellipse(0,enemy.r*.8,enemy.r,5,0,0,Math.PI*2);ctx.fill();
-        ctx.fillStyle=enemy.hit>0?'#fff':enemy.color;ctx.beginPath();ctx.arc(0,0,enemy.r,Math.PI,0);
-        ctx.quadraticCurveTo(enemy.r,enemy.r*.85,0,enemy.r*.7);
-        ctx.quadraticCurveTo(-enemy.r,enemy.r*.85,-enemy.r,0);ctx.fill();
+        ctx.fillStyle='#0b172277';ctx.beginPath();ctx.ellipse(0,visualRadius*.8,visualRadius,5,0,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle=enemy.hit>0?'#fff':enemy.color;ctx.beginPath();ctx.arc(0,0,visualRadius,Math.PI,0);
+        ctx.quadraticCurveTo(visualRadius,visualRadius*.85,0,visualRadius*.7);
+        ctx.quadraticCurveTo(-visualRadius,visualRadius*.85,-visualRadius,0);ctx.fill();
         ctx.fillStyle='#24333b';ctx.beginPath();ctx.arc(-5,-2,2,0,7);ctx.arc(5,-2,2,0,7);ctx.fill();ctx.restore();
       }
       if(dying)continue;
-      const barW=Math.max(34,enemy.r*2),barX=enemy.x-barW/2,barY=y-(spriteImageReady?56/2:enemy.r)-12;
+      const barW=Math.max(34,enemy.r*2),barX=enemy.x-barW/2,barY=y-(spriteImageReady?AttackRange.enemySpriteSize(enemyData[enemy.enemyKey])/2:enemy.r)-12;
       ctx.fillStyle='#17242adf';ctx.fillRect(barX-2,barY-2,barW+4,8);
       ctx.fillStyle='#642d35';ctx.fillRect(barX,barY,barW,4);
       ctx.fillStyle=enemy.hp/enemy.hpMax>.5?'#80d98a':enemy.hp/enemy.hpMax>.25?'#f1c66b':'#f07773';
