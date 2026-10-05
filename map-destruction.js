@@ -12,13 +12,13 @@
     map.tiles.forEach((id,i)=>add(id,i%map.width,Math.floor(i/map.width),i,null));
     (map.objects||[]).forEach(o=>add(o.id,o.x,o.y,null,o));
     function activeMap(){return {...map,objects:(map.objects||[]).filter(o=>!o.destroyed)}}
-    function hit(x,y,angle,range,damage,fullCircle){
+    function hit(x,y,angle,range,damage,fullCircle,angleDegrees=203){
       const hits=[];
       for(const t of targets){
         if(t.destroyed)continue;
         const nx=Math.max(t.left,Math.min(t.right,x)),ny=Math.max(t.top,Math.min(t.bottom,y));
         const dx=nx-x,dy=ny-y,distance=Math.hypot(dx,dy);
-        if(distance>range||(!fullCircle&&distance>0&&(dx*Math.cos(angle)+dy*Math.sin(angle))/distance<=-.2))continue;
+        if(distance>range||(!fullCircle&&angleDegrees<360&&distance>0&&(dx*Math.cos(angle)+dy*Math.sin(angle))/distance<=Math.cos(angleDegrees*Math.PI/360)))continue;
         t.hp=Math.max(0,t.hp-damage);
         if(t.hp===0){t.destroyed=true;if(t.object)t.object.destroyed=true;else map.tiles[t.index]=floor;}
         hits.push({x:nx,y:ny,hp:t.hp,destroyed:t.destroyed,damage});

@@ -59,6 +59,7 @@ function To-Number($Value, [string]$File, [int]$Line, [string]$Column, [double]$
 
 $generalRows = @(Read-Table 'general' @('key','description','value','type','min','max','unit','notes')) | Where-Object { -not [string]::IsNullOrWhiteSpace($_.key) }
 $playerRows = @(Read-Table 'player' @('key','description','value','type','min','max','unit','notes')) | Where-Object { -not [string]::IsNullOrWhiteSpace($_.key) }
+$attackRangeRows = @(Read-Table 'attack_range' @('enabled','owner_type','owner_key','action','range_px','angle_degrees')) | Where-Object { $_.owner_type -or $_.owner_key -or $_.action }
 $enemyRows = @(Read-Table 'enemy' @('enabled','enemy_key','description','family','variant','hp','attack','super_armor','ai_type','sand_type','death_hit_stop_seconds')) | Where-Object { -not [string]::IsNullOrWhiteSpace($_.enemy_key) }
 $animationRows = @(Read-Table 'animation' @('enabled','enemy_key','action','frame_index','frame_seconds','move_speed_px_per_second')) | Where-Object { -not [string]::IsNullOrWhiteSpace($_.enemy_key) }
 $roundRows = @(Read-Table 'round' @('enabled','round','kill_target','enemy_hp_multiplier','enemy_attack_multiplier','enemy_speed_multiplier','spawn_interval_seconds')) | Where-Object { -not [string]::IsNullOrWhiteSpace($_.round) }
@@ -88,6 +89,27 @@ $enemies = [ordered]@{}; $enabledEnemyKeys=@{}; for($i=0;$i-lt$enemyRows.Count;$
 }
 
 $animationFrames=@{}; $animationSpeedKeys=@{}
+$attackRanges=[ordered]@{player=[ordered]@{};enemy=[ordered]@{}}
+$rangeKeys=@{}
+for($i=0;$i-lt$attackRangeRows.Count;$i++){
+    $row=$attackRangeRows[$i];$line=$i+2;$file='sheet-attack_range.csv'
+    if(-not(Test-Enabled $row $file $line)){continue};if($row.enabled-ne'1'){continue}
+    $ownerType=([string]$row.owner_type).Trim();$ownerKey=([string]$row.owner_key).Trim();$action=([string]$row.action).Trim()
+    if($ownerType-notin@('player','enemy')){Add-DataError $file $line 'owner_type' 'playerまたはenemyを指定してください。';continue}
+    if($ownerType-eq'player' -and ($ownerKey-ne'player' -or $action-notin@('normal','spin','object'))){Add-DataError $file $line 'owner_key/action' 'playerのnormal、spin、objectを指定してください。';continue}
+    if($ownerType-eq'enemy' -and (-not$enabledEnemyKeys.ContainsKey($ownerKey) -or -not$action)){Add-DataError $file $line 'owner_key/action' '有効なenemy_keyとactionが必要です。';continue}
+    $pair="${ownerType}|${ownerKey}|${action}"
+    if($rangeKeys.ContainsKey($pair)){Add-DataError $file $line 'owner_type/owner_key/action' "${pair}が重複しています。"};$rangeKeys[$pair]=$true
+    $range=To-Number $row.range_px $file $line 'range_px' 0
+    $angle=To-Number $row.angle_degrees $file $line 'angle_degrees' 0
+    if([double]::IsNaN($range) -or [double]::IsInfinity($range)){Add-DataError $file $line 'range_px' '有限の数値を指定してください。'}
+    if([double]::IsNaN($angle) -or [double]::IsInfinity($angle)){Add-DataError $file $line 'angle_degrees' '有限の数値を指定してください。'}
+    if($angle-gt360){Add-DataError $file $line 'angle_degrees' '360以下を指定してください。'}
+    if(-not$attackRanges[$ownerType].Contains($ownerKey)){$attackRanges[$ownerType][$ownerKey]=[ordered]@{}}
+    $attackRanges[$ownerType][$ownerKey][$action]=[ordered]@{range_px=[double]$range;angle_degrees=[double]$angle}
+}
+foreach($action in @('normal','spin','object')){if(-not$rangeKeys.ContainsKey("player|player|${action}")){Add-DataError 'sheet-attack_range.csv' 0 'action' "playerの${action}にenabled=1の行が必要です。"}}
+foreach($key in @('normal_attack_range_px','normal_attack_angle_degrees','spin_attack_range_px','object_attack_range_px')){if($player.Contains($key)){Add-DataError 'sheet-player.csv' 0 'key' "${key}はattack_rangeへ移してください。"}}
 for($i=0;$i-lt$animationRows.Count;$i++){
     $row=$animationRows[$i];$line=$i+2;$file='sheet-animation.csv'
     if(-not(Test-Enabled $row $file $line)){continue};if($row.enabled-ne'1'){continue}
@@ -168,7 +190,7 @@ for($i=0;$i-lt$mapTileRows.Count;$i++){
 
 if($errors.Count-gt0){$message="データ検証で$($errors.Count)件のエラーが見つかりました。`n"+($errors-join"`n");if($ErrorReportPath){[IO.File]::WriteAllText($ErrorReportPath,$message,[Text.UTF8Encoding]::new($false))};if(-not$Silent){Write-Host $message -ForegroundColor Red};[Console]::Error.WriteLine($message);exit 2}
 
-$data=[ordered]@{schema_version=1;generated_at=(Get-Date).ToString('o');general=$general;player=$player;enemies=$enemies;rounds=$rounds;assets=$assets;difficulties=$difficulties;map_tiles=$mapTiles}
+$data=[ordered]@{schema_version=1;generated_at=(Get-Date).ToString('o');general=$general;player=$player;attack_range=$attackRanges;enemies=$enemies;rounds=$rounds;assets=$assets;difficulties=$difficulties;map_tiles=$mapTiles}
 $parent=Split-Path -Parent $OutputPath;if($parent){[IO.Directory]::CreateDirectory($parent)|Out-Null}
 [IO.File]::WriteAllText($OutputPath,($data|ConvertTo-Json -Depth 12),[Text.UTF8Encoding]::new($false))
 $result=[ordered]@{status='ok';output=$OutputPath;general=$general.Count;player=$player.Count;enemies=$enemies.Count;rounds=$rounds.Count;assets=$assets.Count;difficulties=$difficulties.Count}

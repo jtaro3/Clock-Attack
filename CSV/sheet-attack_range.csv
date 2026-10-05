@@ -1,0 +1,5 @@
+﻿enabled,owner_type,owner_key,action,range_px,angle_degrees,notes2
+1,player,player,normal,42,182,
+1,player,player,spin,42,360,
+1,player,player,object,42,203,
+0,enemy,slime_blue,contact,0,360,

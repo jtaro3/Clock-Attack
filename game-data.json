@@ -30,6 +30,27 @@
                    "red_attack_effect_scale":  2,
                    "damage_knockback_distance_px":  20
                },
+    "attack_range":  {
+                         "player":  {
+                                        "player":  {
+                                                       "normal":  {
+                                                                      "range_px":  42,
+                                                                      "angle_degrees":  182
+                                                                  },
+                                                       "spin":  {
+                                                                    "range_px":  42,
+                                                                    "angle_degrees":  360
+                                                                },
+                                                       "object":  {
+                                                                      "range_px":  42,
+                                                                      "angle_degrees":  203
+                                                                  }
+                                                   }
+                                    },
+                         "enemy":  {
+
+                                   }
+                     },
     "enemies":  {
                     "slime_blue":  {
                                        "description":  "青スライム",

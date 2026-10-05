@@ -105,9 +105,9 @@
           <div class="choices"><button class="sub-choice active" data-range-mode="normal" type="button">通常攻撃</button><button class="sub-choice" data-range-mode="spin" type="button">回転斬り</button><button class="sub-choice" data-range-mode="object" type="button">オブジェクト</button></div>
           <label class="loop-row"><input id="rangeGridToggle" type="checkbox" checked>グリッド表示（32px）</label>
           <div class="slider-row"><label id="rangeDistanceLabel" for="rangeDistance">通常攻撃の距離</label><output id="rangeDistanceValue"></output><input id="rangeDistance" type="range" min="0" max="200" step="1" value="51"></div>
-          <div class="slider-row" id="rangeAngleRow"><label for="rangeAngle">通常攻撃の角度</label><output id="rangeAngleValue"></output><input id="rangeAngle" type="range" min="30" max="360" step="1" value="203"></div>
+          <div class="slider-row" id="rangeAngleRow"><label id="rangeAngleLabel" for="rangeAngle">通常攻撃の角度</label><output id="rangeAngleValue"></output><input id="rangeAngle" type="range" min="0" max="360" step="1" value="203"></div>
           <div class="slider-row"><label for="rangeFacing">プレイヤーの向き</label><output id="rangeFacingValue">0°</output><input id="rangeFacing" type="range" min="0" max="359" step="1" value="0"></div>
-          <p class="save-hint">初期値は通常39px・182°、回転42px、オブジェクト42pxです。調整値はこのブラウザー内に保存し、「調整値をコピー」で取り出せます。</p>
+          <p class="save-hint">初期値は通常42px・182°、回転42px・360°、オブジェクト42px・203°です。調整値はこのブラウザー内に保存し、「調整値をコピー」で取り出せます。</p>
           <div class="choices"><button id="rangeAttackTest" class="small-button" type="button">攻撃テスト</button><output id="rangeHitStatus" aria-live="polite">エネミーをドラッグして位置を調整します</output></div>
           <button id="copyRangeSettings" class="small-button" type="button">調整値をコピー</button>
           <button id="loadRangeSettings" class="small-button" type="button">現在のゲーム設定に戻す</button>
@@ -132,6 +132,6 @@
       .then(value=>{const version=value.trim();if(!/^\d+\.\d+(?:\.\d+)?$/.test(version))throw new Error('Invalid version');document.getElementById('version').textContent=`VERSION ${version}`})
       .catch(()=>{document.getElementById('version').textContent='VERSION 取得できません'});
   </script>
-  <script src="animation-preview.js?v=1.10"></script>
+  <script src="animation-preview.js?v=1.11"></script>
 </body>
 </html>

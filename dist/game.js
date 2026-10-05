@@ -98,6 +98,9 @@
   const MAX_ENEMIES=setting(general,'max_enemies',20),MAX_PARTICLES=setting(general,'max_particles',200),MAX_SWORD_COUNT=setting(playerData,'max_sword_count',150),MAX_EASY_ROUND=setting(gameData.difficulties?.easy||{},'max_round',3);
   const MAX_HOURGLASS_STOCK=setting(general,'max_hourglass_stock',10),MAX_SAND_DISPLAY=setting(general,'max_sand_display',1000),IDLE_WARNING_SECONDS=setting(general,'idle_warning_seconds',60),GAME_OVER_COUNTDOWN_SECONDS=setting(general,'game_over_countdown_seconds',5),RECOVERY_INVINCIBLE_SECONDS=setting(general,'recovery_invincible_seconds',2),BATTLE_START_DELAY_SECONDS=setting(general,'battle_start_delay_seconds',2);
   const BASE_ATTACK_DAMAGE=setting(playerData,'base_attack_damage',1),WHITE_AURA_DAMAGE=setting(playerData,'white_aura_damage',5),RED_AURA_DAMAGE=setting(playerData,'red_aura_damage',20),SPIN_SWORD_COST=setting(playerData,'spin_sword_cost',10),SPIN_MIN_DAMAGE=setting(playerData,'spin_min_damage',5),WHITE_AURA_INTERVAL=setting(playerData,'white_aura_interval',50),RED_AURA_INTERVAL=setting(playerData,'red_aura_interval',100),SPIN_CHARGE_SECONDS=setting(playerData,'spin_charge_seconds',2);
+  const attackRanges=gameData.attack_range?.player?.player;
+  if(!attackRanges||['normal','spin','object'].some(action=>!attackRanges[action])){ui.panel.textContent='攻撃範囲の設定がありません。attack_rangeシートをCSV出力してください。';return}
+  const NORMAL_ATTACK_RANGE_PX=Math.max(0,setting(attackRanges.normal,'range_px',42)),NORMAL_ATTACK_ANGLE_DEGREES=clamp(setting(attackRanges.normal,'angle_degrees',182),0,360),SPIN_ATTACK_RANGE_PX=Math.max(0,setting(attackRanges.spin,'range_px',42)),SPIN_ATTACK_ANGLE_DEGREES=clamp(setting(attackRanges.spin,'angle_degrees',360),0,360),OBJECT_ATTACK_RANGE_PX=Math.max(0,setting(attackRanges.object,'range_px',42)),OBJECT_ATTACK_ANGLE_DEGREES=clamp(setting(attackRanges.object,'angle_degrees',203),0,360);
   const PLAYER_SCALE=setting(playerData,'player_scale',1),SWORD_SCALE=setting(playerData,'sword_scale',1);
   const NORMAL_ATTACK_EFFECT_SCALE=setting(playerData,'normal_attack_effect_scale',1),WHITE_ATTACK_EFFECT_SCALE=setting(playerData,'white_attack_effect_scale',1.5),RED_ATTACK_EFFECT_SCALE=setting(playerData,'red_attack_effect_scale',2);
   const activeRounds=Object.keys(roundData).map(Number).filter(n=>Number.isInteger(n)&&n>0&&n<=MAX_EASY_ROUND).sort((a,b)=>a-b);
@@ -556,7 +559,7 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
     round=nextRound;roundKills=0;roundSpawned=0;roundElapsed=0;roundSpawnCounts={};spawnTimer=0;enemies.length=0;
   }
   function hitObjects(damage,fullCircle){
-    const hits=objectDestruction.hit(player.x,player.y,player.angle,player.r+51,damage,fullCircle);
+    const hits=objectDestruction.hit(player.x,player.y,player.angle,player.r+OBJECT_ATTACK_RANGE_PX,damage,fullCircle,OBJECT_ATTACK_ANGLE_DEGREES);
     for(const hit of hits){
       showDamage({...hit,r:0},damage);burst(hit.x,hit.y,hit.destroyed?'#c89860':'#fff1c3',hit.destroyed?18:8);
       explosions.push({x:hit.x,y:hit.y,r:16,life:.25,max:.25});
@@ -565,10 +568,13 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
   }
   function hitEnemies(damage,fullCircle){
     const ax=Math.cos(player.angle),ay=Math.sin(player.angle);
+    const extraRange=fullCircle?SPIN_ATTACK_RANGE_PX:NORMAL_ATTACK_RANGE_PX;
+    const attackAngle=fullCircle?SPIN_ATTACK_ANGLE_DEGREES:NORMAL_ATTACK_ANGLE_DEGREES;
+    const minimumFacingDot=Math.cos(attackAngle*Math.PI/360);
     let defeated=false,deathHitStop=0;
     for(let i=enemies.length-1;i>=0;i--){
       const enemy=enemies[i],dx=enemy.x-player.x,dy=enemy.y-player.y,len=Math.hypot(dx,dy);
-      if(len>=player.r+enemy.r+51||(!fullCircle&&len>=25&&(dx*ax+dy*ay)/len<=-.2))continue;
+      if(len>=player.r+enemy.r+extraRange||(attackAngle<360&&len>=25&&(dx*ax+dy*ay)/len<=minimumFacingDot))continue;
       const knockAngle=len>0?Math.atan2(dy,dx):player.angle;
       if(enemy.knockback)moveBody(enemy,Math.cos(knockAngle)*enemy.knockbackDistance,Math.sin(knockAngle)*enemy.knockbackDistance,enemy.r);
       enemy.hp-=damage;enemy.hit=.18;
