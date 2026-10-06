@@ -657,7 +657,8 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
     }
     if(!type)return;
     const hp=Math.max(1,Math.round(type.hp*setting(config,'enemy_hp_multiplier',1))),attack=Math.max(0,type.attack*setting(config,'enemy_attack_multiplier',round)),r=type.radius;
-    const point=WorldSpawn.around(player.x,player.y,320,map.width*32,map.height*32,r,obstacles);
+    const spawnDistance=setting(general,'enemy_spawn_distance_px',320);
+    const point=WorldSpawn.around(player.x,player.y,spawnDistance,map.width*32,map.height*32,r,obstacles);
     if(!point)return;
     const {x,y}=point;
     enemies.push({x,y,r,hp,hpMax:hp,enemyKey:type.enemyKey,kind:type.kind,attack,deathHitStop:type.deathHitStop,knockback:type.knockback!==false,knockbackDistance:type.knockbackDistance,color:type.color,speed:Math.max(0,Math.min(80,setting(enemyData[type.enemyKey]||{},'move_speed_px_per_second',type.enemyKey==='slime_blue'?27:21+Math.random()*12+score*.3)))*setting(config,'enemy_speed_multiplier',1),hit:0,wobble:Math.random()*6.28,animationTime:Math.random()*(enemyAnimations.get(type.enemyKey)?.moveDuration||1),attackTime:0,attackAngle:0});
