@@ -13,7 +13,7 @@
   const $=id=>document.getElementById(id);
   const canvas=$('field'),ctx=canvas.getContext('2d');
   const query=new URLSearchParams(location.search),effectPreviewMode=query.has('effectPreview'),clearPreviewMode=query.has('clearPreview');
-  const ui={overlay:$('overlay'),panel:$('panel'),title:$('title'),eyebrow:$('eyebrow'),description:$('description'),resultValue:$('resultValue'),stop:$('stop'),sub:$('sub'),score:$('score'),moneyValue:$('moneyValue'),moneyIcon:$('moneyIcon'),roundNumber:$('roundNumber'),roundTarget:$('roundTarget'),elapsedTime:$('elapsedTime'),energyValue:$('energyValue'),energyFill:$('energyFill'),grayDamageFill:$('grayDamageFill'),energyBar:document.querySelector('.energy-bar'),swordCounter:$('swordCounter'),attackCount:$('attackCount'),clockCount:$('clockCount'),clockButton:$('clockButton'),clockStock:$('clockStock'),buttonHourglass:$('buttonHourglass'),mergeStage:$('mergeStage'),mergeBottles:$('mergeBottles'),mergeHourglass:$('mergeHourglass'),sandPreview:$('sandPreview'),previewSandCount:$('previewSandCount'),previewHourglass:$('previewHourglass'),killWarning:$('killWarning'),killCountdown:$('killCountdown'),attack:$('attack'),speedButton:$('speedButton'),instantKillButton:$('instantKillButton'),pauseButton:$('pauseButton'),pauseScreen:$('pauseScreen'),resumeButton:$('resumeButton'),gridToggle:$('gridToggle'),clearScreen:$('clearScreen'),clearAnnouncement:$('clearAnnouncement'),clearHourglass:$('clearHourglass'),clearScore:$('clearScore'),clearTime:$('clearTime'),clearActions:$('clearActions'),clearRetry:$('clearRetry'),clearTitleLink:$('clearTitleLink')};
+  const ui={overlay:$('overlay'),panel:$('panel'),title:$('title'),eyebrow:$('eyebrow'),description:$('description'),resultValue:$('resultValue'),stop:$('stop'),sub:$('sub'),score:$('score'),moneyValue:$('moneyValue'),moneyIcon:$('moneyIcon'),roundNumber:$('roundNumber'),roundTarget:$('roundTarget'),elapsedTime:$('elapsedTime'),energyValue:$('energyValue'),energyFill:$('energyFill'),grayDamageFill:$('grayDamageFill'),energyBar:document.querySelector('.energy-bar'),swordCounter:$('swordCounter'),attackCount:$('attackCount'),clockCount:$('clockCount'),clockButton:$('clockButton'),clockStock:$('clockStock'),buttonHourglass:$('buttonHourglass'),mergeStage:$('mergeStage'),mergeBottles:$('mergeBottles'),mergeHourglass:$('mergeHourglass'),sandPreview:$('sandPreview'),previewSandCount:$('previewSandCount'),previewHourglass:$('previewHourglass'),killWarning:$('killWarning'),killCountdown:$('killCountdown'),attack:$('attack'),speedButton:$('speedButton'),instantKillButton:$('instantKillButton'),pauseButton:$('pauseButton'),pauseScreen:$('pauseScreen'),resumeButton:$('resumeButton'),gridToggle:$('gridToggle'),playerRangeToggle:$('playerRangeToggle'),enemyRangeToggle:$('enemyRangeToggle'),clearScreen:$('clearScreen'),clearAnnouncement:$('clearAnnouncement'),clearHourglass:$('clearHourglass'),clearScore:$('clearScore'),clearTime:$('clearTime'),clearActions:$('clearActions'),clearRetry:$('clearRetry'),clearTitleLink:$('clearTitleLink')};
   const player={x:0,y:0,r:14,angle:-Math.PI/2};
   // 上から時計回り: 背面、背面右、右、正面右、正面、正面左、左、背面左。
   const assets=ClockAttackAssets.create(gameData.assets||[]),playerFiles=assets.playerFiles();
@@ -89,6 +89,7 @@
   let energy=0,moveProgress=0,unlocked=0,score=0,round=1,roundKills=0,roundSpawned=0,roundElapsed=0,swordCount=0,elapsed=0,timeSinceKill=0,spawnTimer=0,invincible=0,damageFlash=0,grayHits=0,entryGray=0,lowEnergyGray=false,swing=0,spin=0,swingAngle=0,swingScale=1,spinScale=1,shake=0,hitStop=0,timeScale=1,roundSpawnCounts={};
   let recoveryGaugeFrom=0,recoveryGaugeRemaining=0;
   const RECOVERY_GAUGE_SECONDS=1/1.3;
+  let showPlayerRange=false,showEnemyRange=false;
   let showGrid=localStorage.getItem('clock-attack-grid')!=='0';
   const sandBottles=[];
   const drops=ClockAttackDrops.create(gameData);
@@ -315,6 +316,7 @@
     const auraDamage=attackDamage(swordCount);
     ui.swordCounter.classList.toggle('aura-white',auraDamage===WHITE_AURA_DAMAGE);
     ui.swordCounter.classList.toggle('aura-red',auraDamage===RED_AURA_DAMAGE);
+    for(const [button,visible,label] of [[ui.playerRangeToggle,showPlayerRange,'プレイヤー攻撃範囲'],[ui.enemyRangeToggle,showEnemyRange,'エネミー攻撃範囲']]){button.setAttribute('aria-pressed',String(visible));button.textContent=label+'：'+(visible?'ON':'OFF')}
     ui.gridToggle.setAttribute('aria-pressed',String(showGrid));
     ui.gridToggle.textContent=`グリッド表示：${showGrid?'ON':'OFF'}`;
     ui.energyBar.classList.toggle('hit',damageFlash>0);
@@ -406,6 +408,8 @@
     if(mode!=='manual-pause')return;
     mode='play';ui.pauseScreen.classList.add('hidden');last=performance.now();setHud();
   });
+  ui.playerRangeToggle.addEventListener('click',()=>{showPlayerRange=!showPlayerRange;setHud()});
+  ui.enemyRangeToggle.addEventListener('click',()=>{showEnemyRange=!showEnemyRange;setHud()});
   ui.gridToggle.addEventListener('click',()=>{
     showGrid=!showGrid;
     localStorage.setItem('clock-attack-grid',showGrid?'1':'0');
@@ -765,6 +769,14 @@
     ctx.drawImage(swordImage,-size/2,-44*SWORD_SCALE,size,size);
     ctx.restore();
   }
+  function drawDebugAttackRange(body,settings,color){
+    if(!settings||Number(settings.angle_degrees)<=0)return;
+    const radius=Math.max(0,body.r+Number(settings.range_px)),half=Math.min(360,Number(settings.angle_degrees))*Math.PI/360;
+    ctx.save();ctx.translate(body.x,body.y);ctx.fillStyle=color+'25';ctx.strokeStyle=color;ctx.lineWidth=2/cameraZoom();ctx.beginPath();
+    if(half>=Math.PI)ctx.arc(0,0,radius,0,Math.PI*2);
+    else{ctx.moveTo(0,0);ctx.arc(0,0,radius,body.angle-half,body.angle+half);ctx.closePath()}
+    ctx.fill();ctx.stroke();ctx.restore();
+  }
   function draw(now){
     ctx.clearRect(0,0,w,h);ctx.save();
     ctx.fillStyle='#447a45';ctx.fillRect(0,0,w,h);
@@ -781,6 +793,11 @@
     }
     ctx.save();ctx.strokeStyle='#fff2b6';ctx.lineWidth=2;ctx.strokeRect(0,0,map.width*32,map.height*32);ctx.restore();
     groundEffects.draw(ctx);
+    if(showPlayerRange)drawDebugAttackRange({...player,angle:swing>0||spin>0?swingAngle:player.angle},spin>0?attackRanges.spin:attackRanges.normal,'#67d9ff');
+    if(showEnemyRange)for(const enemy of enemies){
+      const angle=enemy.attackTime>0?enemy.attackAngle:Math.atan2(player.y-enemy.y,player.x-enemy.x);
+      drawDebugAttackRange({...enemy,angle},gameData.attack_range?.enemy?.[enemy.enemyKey]?.normal,'#ff8696');
+    }
     for(const drop of drops.ground){
       const image=dropImages.get(drop.asset_key);
       ctx.save();ctx.fillStyle='#10182066';ctx.beginPath();ctx.ellipse(drop.x,drop.y+12,12,4,0,0,Math.PI*2);ctx.fill();
