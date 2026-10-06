@@ -135,7 +135,7 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
           flashCtx.globalCompositeOperation='source-in';flashCtx.fillStyle='#fff';
           flashCtx.fillRect(0,0,flash.width,flash.height);frame.flash=flash;
         };
-        frame.image.src=`${file}?sprite=1.06`;
+        frame.image.src=`${file}?sprite=1.33`;
         return frame;
       });
     }
@@ -782,15 +782,15 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
       const spriteFrame=enemyAnimationFrame(enemy);
       const spriteImageReady=!!spriteFrame?.image.complete&&spriteFrame.image.naturalWidth>0;
       if(spriteImageReady){
-        const spriteSize=AttackRange.enemySpriteSize(enemyData[enemy.enemyKey]);
+        const spriteSize=spriteFrame.image.naturalWidth,spriteHeight=spriteFrame.image.naturalHeight;
         const spriteAngle=spriteFrame.attack?(enemy.attackAngle||0):(enemy.angle??Math.atan2(player.y-enemy.y,player.x-enemy.x));
         const spriteFlipped=AttackRange.enemySpriteFlipped(spriteAngle,enemyData[enemy.enemyKey]);
         ctx.save();ctx.translate(enemy.x,y);if(spriteFlipped)ctx.scale(-1,1);ctx.imageSmoothingEnabled=false;
-        ctx.drawImage(spriteFrame.image,-spriteSize/2,-spriteSize/2,spriteSize,spriteSize);ctx.restore();ctx.imageSmoothingEnabled=true;
+        ctx.drawImage(spriteFrame.image,-spriteSize/2,-spriteHeight/2);ctx.restore();ctx.imageSmoothingEnabled=true;
         if(enemy.hit>0&&spriteFrame.flash){
           ctx.save();ctx.globalAlpha=clamp(enemy.hit/.18,0,.9);
           ctx.translate(enemy.x,y);if(spriteFlipped)ctx.scale(-1,1);
-          ctx.drawImage(spriteFrame.flash,-spriteSize/2,-spriteSize/2,spriteSize,spriteSize);ctx.restore();
+          ctx.drawImage(spriteFrame.flash,-spriteSize/2,-spriteHeight/2);ctx.restore();
         }
       }else{
         const visualRadius=AttackRange.enemySpriteSize(enemyData[enemy.enemyKey])/2;const attacking=!dying&&enemy.attackTime>0,attackProgress=attacking?1-enemy.attackTime/SLIME_ATTACK_DURATION:0;

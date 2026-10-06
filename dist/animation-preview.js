@@ -135,7 +135,7 @@
       const image=new Image();
       image.onload=()=>resolve({file,label,image});
       image.onerror=()=>resolve({file,label,image:null});
-      image.src=file==='sword.svg'?'design/sword.svg':`${label}?sprite=1.07`;
+      image.src=file==='sword.svg'?'design/sword.svg':`${label}?sprite=1.33`;
     });
   }
   async function selectEnemy(key){
@@ -296,7 +296,7 @@
     if(!item?.image)return;
     ctx.imageSmoothingEnabled=false;ctx.drawImage(item.image,x-w/2,y-h/2,w,h);ctx.imageSmoothingEnabled=true;
   }
-  function drawEnemyImage(item,x,y,angle){ctx.save();ctx.translate(x,y);if(AttackRange.enemySpriteFlipped(angle,enemyMasterData[enemyKey]))ctx.scale(-1,1);drawImage(item,0,0,56,56);ctx.restore()}
+  function drawEnemyImage(item,x,y,angle){if(!item?.image)return;ctx.save();ctx.translate(x,y);if(AttackRange.enemySpriteFlipped(angle,enemyMasterData[enemyKey]))ctx.scale(-1,1);drawImage(item,0,0,item.image.naturalWidth||item.image.width,item.image.naturalHeight||item.image.height);ctx.restore()}
   function drawRangePreview(cx,cy){
     const scale=48/32,target=rangeTarget||{x:cx+canvasWidth*.22,y:cy},settings=rangeSettings[rangeMode];
     if(rangeGrid){ctx.strokeStyle='rgba(222,239,220,.20)';ctx.lineWidth=1;const step=32*scale;for(let x=cx%step;x<canvasWidth;x+=step){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,canvasHeight);ctx.stroke()}for(let y=cy%step;y<canvasHeight;y+=step){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(canvasWidth,y);ctx.stroke()}}
