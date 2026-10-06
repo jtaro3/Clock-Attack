@@ -58,7 +58,7 @@
     const version=await fetch('VERSION',{cache:'no-store'});$('version').textContent='v'+(await version.text()).trim();
     for(const [key,enemy] of Object.entries(data.enemies)){const option=document.createElement('option');option.value=key;option.textContent=enemy.description+' ('+key+')';$('enemySelect').append(option)}
     if(!$('enemySelect').options.length)throw Error('有効なエネミーがありません');await selectEnemy();for(const id of ['start','reset','masterReset'])$(id).disabled=false;
-    playerImages=await Promise.all(ClockAttackAssets.create(data.assets||[]).playerFiles().map(path=>path?loadImage(path):null));
+    playerImages=await Promise.all(ClockAttackAssets.create(data.assets||[]).playerFiles().map(path=>path?loadImage(path+'?player=1.32'):null));
   }catch(error){notice=error.message}
   function animate(now){step(Math.min(.05,(now-last)/1000));last=now;draw();requestAnimationFrame(animate)}requestAnimationFrame(animate);
 })();

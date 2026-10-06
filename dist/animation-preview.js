@@ -127,7 +127,7 @@
         resolve({file,label:file,image});
       };
       image.onerror=()=>resolve({file,label:file,image:null});
-      image.src=file;
+      image.src=file+'?player=1.32';
     });
   }
   function loadImage(file,label){

@@ -8,7 +8,7 @@
   for(const file of ['grass','grass-dark','flowers','soil']){const image=new Image();image.src='maps/tiles/'+file+'.png';images.push(image)}
   const master=await fetch('game-data.json',{cache:'no-store'}).then(r=>r.json());
   const playerFiles=ClockAttackAssets.create(master.assets||[]).playerFiles();
-  playerFiles.forEach((file,i)=>{if(!file)return;const image=new Image();image.onload=()=>{sprites[i]=image};image.src=file});
+  playerFiles.forEach((file,i)=>{if(!file)return;const image=new Image();image.onload=()=>{sprites[i]=image};image.src=file+'?player=1.32'});
   function resize(){width=innerWidth;height=innerHeight;const dpr=Math.min(devicePixelRatio||1,2);canvas.width=Math.round(width*dpr);canvas.height=Math.round(height*dpr);ctx.setTransform(dpr,0,0,dpr,0,0)}
   addEventListener('resize',resize);resize();
   const handled=['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','w','a','s','d'];

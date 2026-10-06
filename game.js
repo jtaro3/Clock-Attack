@@ -44,7 +44,7 @@
       playerSpritesGray[i]=gray;
       image.onload=null;
     };
-    image.src=playerFiles[i];
+    image.src=playerFiles[i]+'?player=1.32';
   });
   const swordImage=new Image();
   swordImage.src='design/sword.svg';

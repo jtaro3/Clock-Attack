@@ -1,6 +1,7 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
 const read=file=>fs.readFileSync(file,'utf8');
 const image={naturalWidth:54,naturalHeight:54,width:54,height:54};
+for(const file of ['game.js','animation-preview.js','sandbox.js','camera-sample.js'])assert.ok(read(file).includes('?player=1.32'),file+' requests updated player assets instead of cached original images');
 let calls=[];
 const ctx={drawImage:(...args)=>calls.push(args)};
 const preview=read('animation-preview.js');
