@@ -17,6 +17,8 @@
   const player={x:0,y:0,r:14,angle:-Math.PI/2};
   // 上から時計回り: 背面、背面右、右、正面右、正面、正面左、左、背面左。
   const assets=ClockAttackAssets.create(gameData.assets||[]),playerFiles=assets.playerFiles();
+  const groundEffects=ClockAttackGroundEffects.create(gameData.assets,AttackRange.contains,asset=>{const image=new Image();const path=ClockAttackAssets.effectPath(asset);if(path)image.src=path;return image});
+  const groundLimits=()=>({width:map.width,height:map.height});
   const bottleImagePath=bottle=>bottle?assets.itemPath(bottle.asset_key||`sand_${bottle.kind==='metal'?'white':bottle.kind}`):null;
   const playerSprites=Array(8).fill(null);
   const playerSpritesGray=Array(8).fill(null);
@@ -422,7 +424,7 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
     ui.pauseScreen.classList.add('hidden');
     ui.clearScreen.classList.add('hidden');
     ui.killWarning.classList.add('hidden');
-    drops.reset();enemies.length=0;deadEnemies.length=0;particles.length=0;explosions.length=0;damageNumbers.length=0;
+    groundEffects.clear();drops.reset();enemies.length=0;deadEnemies.length=0;particles.length=0;explosions.length=0;damageNumbers.length=0;
     recoveryGaugeFrom=0;recoveryGaugeRemaining=0;
     player.x=map.width*16;player.y=map.height*16;ensurePlayerFree();invincible=0;entryGray=0;swing=0;spin=0;hitStop=0;
     objectDestruction.reset();obstacles=MapCollision.build(objectDestruction.activeMap(),collisionCatalog);renderTerrain();
@@ -570,7 +572,7 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
     if(roundKills<roundKillTarget(round))return;
     const nextRound=activeRounds.find(number=>number>round);
     if(nextRound===undefined){gameClear();return}
-    round=nextRound;roundKills=0;roundSpawned=0;roundElapsed=0;roundSpawnCounts={};spawnTimer=0;enemies.length=0;
+    round=nextRound;roundKills=0;roundSpawned=0;roundElapsed=0;roundSpawnCounts={};spawnTimer=0;enemies.length=0;groundEffects.clear();
   }
   function hitObjects(damage,fullCircle){
     const hits=objectDestruction.hit(player.x,player.y,player.angle,player.r+OBJECT_ATTACK_RANGE_PX,damage,fullCircle,OBJECT_ATTACK_ANGLE_DEGREES);
@@ -623,6 +625,7 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
     if(mode!=='play'||energy<=0||swing>0||spin>0||hitStop>0)return;
     const damage=attackDamage(swordCount);
     spendEnergy(NORMAL_ATTACK_ENERGY_COST);swing=.27;swingAngle=player.angle;swingScale=attackEffectScale(damage);
+    groundEffects.schedule({...player,angle:swingAngle},attackRanges.normal,.27,groundLimits());
     hitObjects(damage,false);hitEnemies(damage,false);
     setHud();checkExhausted();
   }
@@ -630,6 +633,7 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
     if(mode!=='play'||energy<=0||swordCount<SPIN_SWORD_COST||swing>0||spin>0||hitStop>0)return;
     const damage=Math.max(SPIN_MIN_DAMAGE,attackDamage(swordCount));
     swordCount-=SPIN_SWORD_COST;spin=.55;swingAngle=player.angle;spinScale=attackEffectScale(damage);
+    groundEffects.schedule({...player,angle:swingAngle},attackRanges.spin,.55,groundLimits());
     hitObjects(damage,true);hitEnemies(damage,true);
     setHud();checkExhausted();
   }
@@ -674,6 +678,8 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
     enemy.attackDuration=enemyAnimations.get(enemy.enemyKey)?.attackDuration||SLIME_ATTACK_DURATION;
     enemy.attackTime=enemy.attackDuration;enemy.attackAngle=angle;
     enemy.pendingAttack=!contactHit;
+    enemy.groundAttackBody=contactHit?null:{x:enemy.x,y:enemy.y,r:enemy.r,angle};
+    enemy.groundAttackSettings=contactHit?null:settings.normal;
     return contactHit;
   }
   function update(dt){
@@ -715,15 +721,17 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
     spawnTimer+=dt;
     if(spawnTimer>=setting(currentRoundConfig(round),'spawn_interval_seconds',1)){spawnTimer=0;spawn()}
     invincible=Math.max(0,invincible-dt);damageFlash=Math.max(0,damageFlash-dt);ui.energyBar.classList.toggle('hit',damageFlash>0);
+    groundEffects.update(dt);
     swing=Math.max(0,swing-dt);spin=Math.max(0,spin-dt);shake=Math.max(0,shake-dt);
     for(const enemy of enemies){
+      const previousAttackTime=enemy.attackTime||0;
       enemy.wobble+=dt*5;if(enemy.attackTime<=0)enemy.animationTime=(enemy.animationTime+dt)%(enemyAnimations.get(enemy.enemyKey)?.moveDuration||1);enemy.hit=Math.max(0,enemy.hit-dt);enemy.attackTime=Math.max(0,(enemy.attackTime||0)-dt);
       const ex=player.x-enemy.x,ey=player.y-enemy.y,len=Math.hypot(ex,ey)||1;
       const aiConfig=gameData.ai?.[enemyData[enemy.enemyKey]?.ai_type];let attackHit;
       if(aiConfig){
         const ranges=gameData.attack_range?.enemy?.[enemy.enemyKey]||{};
-        attackHit=SandboxAI.stepCombat(enemy,player,dt,aiConfig,{duration:enemyAnimations.get(enemy.enemyKey)?.attackDuration||SLIME_ATTACK_DURATION,normal:ranges.normal||{range_px:0,angle_degrees:360},contact:ranges.contact||{range_px:0,angle_degrees:360},contains:AttackRange.contains,move:(body,x,y)=>moveBody(body,x,y,body.r),blocked:(x,y,r)=>x<r||y<r||x>map.width*32-r||y>map.height*32-r||MapCollision.blocked(x,y,r,obstacles)});
-      }else{if(enemy.attackTime<=0)moveBody(enemy,ex/len*enemy.speed*dt,ey/len*enemy.speed*dt,enemy.r);attackHit=updateEnemyAttack(enemy)}
+        attackHit=SandboxAI.stepCombat(enemy,player,dt,aiConfig,{duration:enemyAnimations.get(enemy.enemyKey)?.attackDuration||SLIME_ATTACK_DURATION,normal:ranges.normal||{range_px:0,angle_degrees:360},onAttackStarted:()=>{enemy.groundAttackBody={x:enemy.x,y:enemy.y,r:enemy.r,angle:enemy.attackAngle};enemy.groundAttackSettings={...ranges.normal}},onAttackFinished:()=>{if(enemy.groundAttackBody)groundEffects.schedule(enemy.groundAttackBody,enemy.groundAttackSettings,0,groundLimits());enemy.groundAttackBody=null},contact:ranges.contact||{range_px:0,angle_degrees:360},contains:AttackRange.contains,move:(body,x,y)=>moveBody(body,x,y,body.r),blocked:(x,y,r)=>x<r||y<r||x>map.width*32-r||y>map.height*32-r||MapCollision.blocked(x,y,r,obstacles)});
+      }else{if(previousAttackTime>0&&enemy.attackTime<=0&&enemy.groundAttackBody){groundEffects.schedule(enemy.groundAttackBody,enemy.groundAttackSettings,0,groundLimits());enemy.groundAttackBody=null}if(enemy.attackTime<=0)moveBody(enemy,ex/len*enemy.speed*dt,ey/len*enemy.speed*dt,enemy.r);attackHit=updateEnemyAttack(enemy)}
       if(attackHit&&invincible<=0){
         damageFlash=.5;
         const bounds=playerMovementBounds();
@@ -767,6 +775,7 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
       ctx.stroke();ctx.restore();
     }
     ctx.save();ctx.strokeStyle='#fff2b6';ctx.lineWidth=2;ctx.strokeRect(0,0,map.width*32,map.height*32);ctx.restore();
+    groundEffects.draw(ctx);
     for(const drop of drops.ground){
       const image=dropImages.get(drop.asset_key);
       ctx.save();ctx.fillStyle='#10182066';ctx.beginPath();ctx.ellipse(drop.x,drop.y+12,12,4,0,0,Math.PI*2);ctx.fill();

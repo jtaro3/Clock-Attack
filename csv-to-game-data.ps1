@@ -122,7 +122,20 @@ for($i=0;$i-lt$attackRangeRows.Count;$i++){
     if([double]::IsNaN($angle) -or [double]::IsInfinity($angle)){Add-DataError $file $line 'angle_degrees' '有限の数値を指定してください。'}
     if($angle-gt360){Add-DataError $file $line 'angle_degrees' '360以下を指定してください。'}
     if(-not$attackRanges[$ownerType].Contains($ownerKey)){$attackRanges[$ownerType][$ownerKey]=[ordered]@{}}
-    $attackRanges[$ownerType][$ownerKey][$action]=[ordered]@{range_px=[double]$range;angle_degrees=[double]$angle}
+    $settings=[ordered]@{range_px=[double]$range;angle_degrees=[double]$angle}
+    $effectKey=([string]$row.ground_effect_key).Trim()
+    if($effectKey){
+        if($action-eq'contact' -or $action-eq'object'){Add-DataError $file $line 'ground_effect_key' '地面演出はnormalまたはspinに設定してください。'}
+        $settings['ground_effect_key']=$effectKey
+        foreach($column in @('ground_effect_duration_seconds','ground_effect_frame_seconds','ground_effect_delay_seconds')){
+            $raw=[string]$row.$column
+            if([string]::IsNullOrWhiteSpace($raw) -and $column-eq'ground_effect_delay_seconds'){$raw='0'}
+            $value=To-Number $raw $file $line $column 0
+            if([double]::IsNaN($value) -or [double]::IsInfinity($value) -or ($column-ne'ground_effect_delay_seconds' -and $value-le0)){Add-DataError $file $line $column '持続時間と画像時間は0より大きい有限の秒数、待ち時間は0以上を指定してください。'}
+            $settings[$column]=[double]$value
+        }
+    }
+    $attackRanges[$ownerType][$ownerKey][$action]=$settings
 }
 foreach($action in @('normal','spin','object')){if(-not$rangeKeys.ContainsKey("player|player|${action}")){Add-DataError 'sheet-attack_range.csv' 0 'action' "playerの${action}にenabled=1の行が必要です。"}}
 foreach($key in @('normal_attack_range_px','normal_attack_angle_degrees','spin_attack_range_px','object_attack_range_px')){if($player.Contains($key)){Add-DataError 'sheet-player.csv' 0 'key' "${key}はattack_rangeへ移してください。"}}
@@ -288,6 +301,11 @@ if(Test-Path -LiteralPath (Join-Path $CsvFolder 'sheet-drop.csv')){
  }
  foreach($key in $drops.Keys){if(($drops[$key]|ForEach-Object { $_.drop_weight }|Measure-Object -Sum).Sum-le0){Add-DataError 'sheet-drop.csv' 0 'drop_weight' "${key}の重みの合計は0より大きくしてください。"}}
 }
+
+foreach($ownerType in $attackRanges.Keys){foreach($ownerKey in $attackRanges[$ownerType].Keys){foreach($action in $attackRanges[$ownerType][$ownerKey].Keys){
+    $settings=$attackRanges[$ownerType][$ownerKey][$action]
+    if($settings.ground_effect_key -and -not @($assets|Where-Object {$_.asset_type-eq'effect' -and $_.owner_key-eq$settings.ground_effect_key}).Count){Add-DataError 'sheet-attack_range.csv' 0 'ground_effect_key' "${ownerType}/${ownerKey}/${action}に対応する有効なeffectアセットがありません。"}
+}}}
 
 if($errors.Count-gt0){$message="データ検証で$($errors.Count)件のエラーが見つかりました。`n"+($errors-join"`n");if($ErrorReportPath){[IO.File]::WriteAllText($ErrorReportPath,$message,[Text.UTF8Encoding]::new($false))};if(-not$Silent){Write-Host $message -ForegroundColor Red};[Console]::Error.WriteLine($message);exit 2}
 

@@ -15,7 +15,12 @@
       itemPath:key=>{const asset=enabled.find(asset=>asset.asset_key===key&&asset.asset_type==='items');return path(asset)}
     };
   }
-  const api={path,create,directions};
+  function effectPath(asset){
+    const file=String(asset?.sprite_file||'').trim(),key=String(asset?.owner_key||'').trim();
+    if(!file||/[\\/]/.test(file)||file==='.'||file==='..'||!/^[-a-zA-Z0-9_]+$/.test(key))return null;
+    return 'design/effect/'+(key==='fire_ground'?'fire':key)+'/'+encodeURIComponent(file);
+  }
+  const api={path,create,directions,effectPath};
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   root.ClockAttackAssets=api;
 })(typeof window!=='undefined'?window:globalThis);

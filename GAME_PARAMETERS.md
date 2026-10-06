@@ -85,3 +85,16 @@ normalは射程内で攻撃開始し、向きを固定してアニメーショ�
 ## エネミー画像の元の向き
 
 main.odsのenemyシートのsprite_facingは元画像の向きを示す。rightは右向き、leftは左向き。空欄または列なしはrightとして扱い、列名と値の前後の空白は読み込み時に取り除く。CSV出力後、game-data.jsonのenemiesからサンドバッグ・ゲーム・演出確認が読み、移動方向や攻撃方向に応じて左右反転する。移動・攻撃の画像は同じ元の向きで用意する。
+
+## 攻撃後に地面へ残す演出
+
+attack_rangeのnormal（プレイヤー・敵）またはspin（プレイヤー）に設定する。ground_effect_keyが空欄なら演出なし。
+
+- ground_effect_key: assetsの有効なeffect行のowner_key。fire_groundはdesign/effect/fire/内のsprite_fileをasset_key順にループする。他のキーはdesign/effect/<owner_key>/を参照。
+- ground_effect_duration_seconds: 地面に残る秒数。画像読み込み完了とは独立し、発生時から数える。
+- ground_effect_frame_seconds: 画像1枚の表示秒数。3枚なら0.12で1周0.36秒。
+- ground_effect_delay_seconds: 攻撃モーション終了から発生までの追加待ち秒数。0で終了直後。
+
+攻撃開始時の位置・向き・範囲を固定し、マス中心が範囲に入る32×32pxのマスへ配置する。マップ外には置かない。AI攻撃が中断された場合は発生しない。空振りでも発生する。重なった同じ演出は残り時間を更新し、描画を重複させない。地面演出の追加ダメージ・通行妨害はなし。一時停止・回復画面ではゲーム時間に合わせて停止する。
+
+演出確認→攻撃範囲→エネミー→dragon_frost→通常攻撃→攻撃テストで確認できる。調整はブラウザー内のみ。調整値を台帳へ移し、attack_rangeをCSV出力するとゲームへ反映される。

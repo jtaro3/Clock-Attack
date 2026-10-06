@@ -180,7 +180,7 @@
                                       }
                                   ]
               },
-    "generated_at":  "2026-10-05T21:32:27.4763843+09:00",
+    "generated_at":  "2026-10-06T23:35:27.5366255+09:00",
     "general":  {
                     "movement_speed":  180,
                     "start_energy":  150,
@@ -901,6 +901,33 @@
                        "direction":  "",
                        "sprite_scale":  1,
                        "sprite_file":  "bottle_metal.svg"
+                   },
+                   {
+                       "asset_key": "ground_fire_01",
+                       "asset_type": "effect",
+                       "owner_key": "fire_ground",
+                       "description": "地面(炎1)",
+                       "direction": "",
+                       "sprite_scale": 1,
+                       "sprite_file": "ground_fire_01.png"
+                   },
+                   {
+                       "asset_key": "ground_fire_02",
+                       "asset_type": "effect",
+                       "owner_key": "fire_ground",
+                       "description": "地面(炎2)",
+                       "direction": "",
+                       "sprite_scale": 1,
+                       "sprite_file": "ground_fire_02.png"
+                   },
+                   {
+                       "asset_key": "ground_fire_03",
+                       "asset_type": "effect",
+                       "owner_key": "fire_ground",
+                       "description": "地面(炎3)",
+                       "direction": "",
+                       "sprite_scale": 1,
+                       "sprite_file": "ground_fire_03.png"
                    }
                ],
     "difficulties":  {

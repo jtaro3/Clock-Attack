@@ -34,3 +34,6 @@
 1,sand_black,items,sand_black,黒の砂,,1,bottle_black.svg,,
 1,sand_white,items,sand_white,白の砂,,1,bottle_metal.svg,,
 0,,,,,,,,,
+1,ground_fire_01,effect,fire_ground ,地面(炎1),,,ground_fire_01.png,,
+1,ground_fire_02,effect,fire_ground ,地面(炎2),,,ground_fire_02.png,,
+1,ground_fire_03,effect,fire_ground ,地面(炎3),,,ground_fire_03.png,,
