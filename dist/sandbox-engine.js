@@ -48,12 +48,12 @@
       }else move();
     }else if(enemy.combatPhase==='prepare'){
       face();enemy.phaseRemaining-=dt;
-      if(enemy.phaseRemaining<=0){enemy.combatPhase='attack';enemy.phaseRemaining=options.duration;enemy.attackDuration=options.duration;enemy.attackTime=options.duration;enemy.attackAngle=enemy.angle;enemy.strikeDone=false;enemy.state='attack'}
+      if(enemy.phaseRemaining<=0){enemy.combatPhase='attack';enemy.phaseRemaining=options.duration;enemy.attackDuration=options.duration;enemy.attackTime=options.duration;enemy.attackAngle=enemy.angle;enemy.strikeDone=false;enemy.state='attack';options.onAttackStarted?.()}
     }else if(enemy.combatPhase==='attack'){
       if(number('ai_move_during_attack')===1){const angle=enemy.attackAngle;options.move(enemy,Math.cos(angle)*enemy.speed*dt,Math.sin(angle)*enemy.speed*dt)}
       enemy.phaseRemaining=Math.max(0,enemy.phaseRemaining-dt);enemy.attackTime=enemy.phaseRemaining;
       if(!enemy.strikeDone&&enemy.phaseRemaining<=options.duration/2){enemy.strikeDone=true;hit=options.contains({...enemy,angle:enemy.attackAngle},player,options.normal)}
-      if(enemy.phaseRemaining===0)cancelAttack(enemy,config);
+      if(enemy.phaseRemaining===0){options.onAttackFinished?.();cancelAttack(enemy,config)}
     }else{
       enemy.phaseRemaining-=dt;
       if(enemy.phaseRemaining<=0){enemy.combatPhase='chase';enemy.state='wait';enemy.waitRemaining=number('ai_wait_seconds')}

@@ -5,7 +5,7 @@ const root=path.resolve(__dirname,'..');
 const animationRoot=path.join(root,'design','enemies');
 const output={enemies:{}};
 for(const enemy of fs.readdirSync(animationRoot,{withFileTypes:true}).filter(entry=>entry.isDirectory()).sort((a,b)=>a.name.localeCompare(b.name))){
-  for(const action of ['move','attack']){
+  for(const action of ['move','attack','special']){
     const folder=path.join(animationRoot,enemy.name,action);
     if(!fs.existsSync(folder))continue;
     const files=fs.readdirSync(folder,{withFileTypes:true})
@@ -13,7 +13,7 @@ for(const enemy of fs.readdirSync(animationRoot,{withFileTypes:true}).filter(ent
       .map(entry=>entry.name)
       .sort((a,b)=>Number(a.match(/(\d+)\.png$/i)[1])-Number(b.match(/(\d+)\.png$/i)[1])||a.localeCompare(b));
     if(!files.length)continue;
-    output.enemies[enemy.name]??={move:[],attack:[]};
+    output.enemies[enemy.name]??={move:[],attack:[],special:[]};
     output.enemies[enemy.name][action]=files.map(file=>path.posix.join('design/enemies',enemy.name,action,file));
     const distFolder=path.join(root,'dist','design','enemies',enemy.name,action);
     fs.mkdirSync(distFolder,{recursive:true});

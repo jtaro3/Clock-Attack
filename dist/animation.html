@@ -113,6 +113,11 @@
           <div class="slider-row"><label id="rangeFacingLabel" for="rangeFacing">プレイヤーの向き</label><output id="rangeFacingValue">0°</output><input id="rangeFacing" type="range" min="0" max="359" step="1" value="0"></div>
           <p id="rangeHelp" class="save-hint">初期値は通常42px・182°、回転42px・360°、オブジェクト42px・203°です。調整値はこのブラウザー内に保存し、「調整値をコピー」で取り出せます。</p>
           <div class="choices"><button id="rangeAttackTest" class="small-button" type="button">攻撃テスト</button><output id="rangeHitStatus" aria-live="polite">エネミーをドラッグして位置を調整します</output></div>
+          <div class="frame-settings"><label for="groundEffectKey">攻撃後に地面へ残す演出</label><select id="groundEffectKey"><option value="">なし</option></select>
+          <label for="groundEffectDuration">地面に残る時間（秒）</label><input id="groundEffectDuration" type="number" min="0.01" step="0.1" value="3">
+          <label for="groundEffectFrame">画像1枚の表示時間（秒）</label><input id="groundEffectFrame" type="number" min="0.01" step="0.01" value="0.12">
+          <label for="groundEffectDelay">攻撃終了後の追加待ち時間（秒）</label><input id="groundEffectDelay" type="number" min="0" step="0.1" value="0">
+          <p class="save-hint">攻撃終了後、中心が範囲内にある32pxのマスへ演出を置きます。画像はasset_key順でループします。地面演出自体の追加ダメージはありません。</p></div>
           <button id="copyRangeSettings" class="small-button" type="button">調整値をコピー</button>
           <button id="loadRangeSettings" class="small-button" type="button">現在のゲーム設定に戻す</button>
           <div id="rangeNotice" class="notice" aria-live="polite"></div>
@@ -137,6 +142,6 @@
       .catch(()=>{document.getElementById('version').textContent='VERSION 取得できません'});
   </script>
   <script src="attack-range.js?v=1.30"></script>
-  <script src="asset-paths.js?v=1.19"></script><script src="animation-preview.js?v=1.38"></script>
+  <script src="asset-paths.js?v=1.19"></script><script src="ground-effects.js?v=1.39"></script><script src="animation-preview.js?v=1.40"></script>
 </body>
 </html>

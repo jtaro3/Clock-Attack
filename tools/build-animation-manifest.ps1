@@ -8,8 +8,8 @@ $distRoot = Join-Path $ProjectRoot 'dist'
 $enemies = [ordered]@{}
 
 foreach ($enemy in @(Get-ChildItem -LiteralPath $animationRoot -Directory | Sort-Object Name)) {
- $enemyFrames = [ordered]@{ move = @(); attack = @() }
- foreach ($action in @('move', 'attack')) {
+ $enemyFrames = [ordered]@{ move = @(); attack = @(); special = @() }
+ foreach ($action in @('move', 'attack', 'special')) {
   $sourceFolder = Join-Path $enemy.FullName $action
   $destinationFolder = Join-Path $distRoot "design\enemies\$($enemy.Name)\$action"
   if (-not (Test-Path -LiteralPath $sourceFolder)) { continue }
@@ -24,7 +24,7 @@ foreach ($enemy in @(Get-ChildItem -LiteralPath $animationRoot -Directory | Sort
     $enemyFrames[$action] += "design/enemies/$($enemy.Name)/$action/$($file.Name)"
   }
  }
- if ($enemyFrames.move.Count -or $enemyFrames.attack.Count) { $enemies[$enemy.Name] = $enemyFrames }
+ if ($enemyFrames.move.Count -or $enemyFrames.attack.Count -or $enemyFrames.special.Count) { $enemies[$enemy.Name] = $enemyFrames }
 }
 
 $manifest = [ordered]@{ enemies = $enemies }

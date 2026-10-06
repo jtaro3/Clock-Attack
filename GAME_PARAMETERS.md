@@ -88,7 +88,7 @@ main.odsのenemyシートのsprite_facingは元画像の向きを示す。right�
 
 ## 攻撃後に地面へ残す演出
 
-attack_rangeのnormal（プレイヤー・敵）またはspin（プレイヤー）に設定する。ground_effect_keyが空欄なら演出なし。
+attack_rangeのnormal（プレイヤー・敵）、special（敵）またはspin（プレイヤー）に設定する。ground_effect_keyが空欄なら演出なし。
 
 - ground_effect_key: assetsの有効なeffect行のowner_key。fire_groundはdesign/effect/fire/内のsprite_fileをasset_key順にループする。他のキーはdesign/effect/<owner_key>/を参照。
 - ground_effect_duration_seconds: 地面に残る秒数。画像読み込み完了とは独立し、発生時から数える。
@@ -98,3 +98,11 @@ attack_rangeのnormal（プレイヤー・敵）またはspin（プレイヤー�
 攻撃開始時の位置・向き・範囲を固定し、マス中心が範囲に入る32×32pxのマスへ配置する。マップ外には置かない。AI攻撃が中断された場合は発生しない。空振りでも発生する。重なった同じ演出は残り時間を更新し、描画を重複させない。地面演出の追加ダメージ・通行妨害はなし。一時停止・回復画面ではゲーム時間に合わせて停止する。
 
 演出確認→攻撃範囲→エネミー→dragon_frost→通常攻撃→攻撃テストで確認できる。調整はブラウザー内のみ。調整値を台帳へ移し、attack_rangeをCSV出力するとゲームへ反映される。
+
+## ドラゴンの通常攻撃と必殺技
+
+design/enemies/dragon_frost/attackは爪の通常攻撃10枚、specialは噛みつき4枚。各フォルダの末尾連番を小さい順に読む。画像の内容やファイル名は移動時に変更しない。
+
+animationシートはaction=attackで通常攻撃、action=specialで必殺技の各画像時間を設定する。爪は初期値1枚0.1秒。噛みつきの画像時間と炎の各時間は変更前の設定を引き継ぐ。attack_rangeのspecial行が噛みつきと炎の範囲、normal行が爪の範囲。通常攻撃から炎の設定を移す。
+
+演出確認のエネミー画像と攻撃範囲で通常攻撃・必殺技を別々に確認できる。現時点の戦闘AIはnormalを使う。必殺技を自動発動する条件・頻度は未設定。

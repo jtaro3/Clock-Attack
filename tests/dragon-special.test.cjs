@@ -1,0 +1,10 @@
+const fs=require('node:fs'),assert=require('node:assert/strict');
+const manifest=JSON.parse(fs.readFileSync('animation-manifest.json','utf8')).enemies.dragon_frost;
+assert.equal(manifest.attack.length,10);assert.equal(manifest.special.length,4);
+for(const action of ['attack','special'])manifest[action].forEach((file,i)=>{assert(file.includes('/'+action+'/'));assert(file.endsWith('_'+(i+1)+'.png'));assert(fs.existsSync(file));assert(fs.readFileSync(file).equals(fs.readFileSync('dist/'+file))),'Built sprite must match source'});
+assert(!fs.existsSync('design/enemies/dragon_frost/attack_claw'),'claw files moved to attack');
+const data=JSON.parse(fs.readFileSync('game-data.json','utf8')),dragon=data.enemies.dragon_frost;
+assert.equal(dragon.animation_attack_frame_seconds.length,10);assert.equal(dragon.animation_special_frame_seconds.length,4);
+assert(!data.attack_range.enemy.dragon_frost.normal.ground_effect_key);assert.equal(data.attack_range.enemy.dragon_frost.special.ground_effect_key,'fire_ground');
+assert.deepEqual(JSON.parse(fs.readFileSync('dist/animation-manifest.json','utf8')),JSON.parse(fs.readFileSync('animation-manifest.json','utf8')));
+console.log('Dragon attacks: claw 10 frames, special bite 4 frames, numeric order, root/dist bytes, timings, and special-only fire passed');

@@ -113,7 +113,7 @@ for($i=0;$i-lt$attackRangeRows.Count;$i++){
     $ownerType=([string]$row.owner_type).Trim();$ownerKey=([string]$row.owner_key).Trim();$action=([string]$row.action).Trim()
     if($ownerType-notin@('player','enemy')){Add-DataError $file $line 'owner_type' 'playerまたはenemyを指定してください。';continue}
     if($ownerType-eq'player' -and ($ownerKey-ne'player' -or $action-notin@('normal','spin','object'))){Add-DataError $file $line 'owner_key/action' 'playerのnormal、spin、objectを指定してください。';continue}
-    if($ownerType-eq'enemy' -and (-not$enabledEnemyKeys.ContainsKey($ownerKey) -or $action-notin@('contact','normal'))){Add-DataError $file $line 'owner_key/action' '有効なenemy_keyとcontactまたはnormalが必要です。';continue}
+    if($ownerType-eq'enemy' -and (-not$enabledEnemyKeys.ContainsKey($ownerKey) -or $action-notin@('contact','normal','special'))){Add-DataError $file $line 'owner_key/action' '有効なenemy_keyとcontact、normal、specialが必要です。';continue}
     $pair="${ownerType}|${ownerKey}|${action}"
     if($rangeKeys.ContainsKey($pair)){Add-DataError $file $line 'owner_type/owner_key/action' "${pair}が重複しています。"};$rangeKeys[$pair]=$true
     $range=To-Number $row.range_px $file $line 'range_px' 0
@@ -125,7 +125,7 @@ for($i=0;$i-lt$attackRangeRows.Count;$i++){
     $settings=[ordered]@{range_px=[double]$range;angle_degrees=[double]$angle}
     $effectKey=([string]$row.ground_effect_key).Trim()
     if($effectKey){
-        if($action-eq'contact' -or $action-eq'object'){Add-DataError $file $line 'ground_effect_key' '地面演出はnormalまたはspinに設定してください。'}
+        if($action-eq'contact' -or $action-eq'object'){Add-DataError $file $line 'ground_effect_key' '地面演出はnormal、specialまたはspinに設定してください。'}
         $settings['ground_effect_key']=$effectKey
         foreach($column in @('ground_effect_duration_seconds','ground_effect_frame_seconds','ground_effect_delay_seconds')){
             $raw=[string]$row.$column
@@ -152,7 +152,7 @@ for($i=0;$i-lt$animationRows.Count;$i++){
         $enemies[$key]['move_speed_px_per_second']=[double]$speed
         continue
     }
-    if($action-notin@('move','attack')){Add-DataError $file $line 'action' 'move_speed、move、attackを指定してください。';continue}
+    if($action-notin@('move','attack','special')){Add-DataError $file $line 'action' 'move_speed、move、attack、specialを指定してください。';continue}
     $frame=To-Number $row.frame_index $file $line 'frame_index' 1
     if($frame -ne [Math]::Truncate($frame)){Add-DataError $file $line 'frame_index' '整数を指定してください。';continue}
     $duration=To-Number $row.frame_seconds $file $line 'frame_seconds' 0.04

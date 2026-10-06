@@ -122,14 +122,14 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
   for(const [enemyKey,files] of Object.entries(animationManifest.enemies||{})){
     const data=enemyData[enemyKey]||{};
     const animation={move:[],attack:[],moveDuration:0,attackDuration:SLIME_ATTACK_DURATION};
-    for(const action of ['move','attack']){
+    for(const action of ['move','attack','special']){
       const times=data[`animation_${action}_frame_seconds`]||[];
       const legacyMove=[setting(data,'animation_idle_seconds',.38),setting(data,'animation_jump_mid_seconds',.12),setting(data,'animation_jump_peak_seconds',.12),setting(data,'animation_jump_mid_seconds',.12)];
       animation[action]=(files[action]||[]).map((file,index)=>{
         const configured=Number(times[index]);
-        const fallback=action==='attack'?.105:enemyKey==='slime_blue'?(legacyMove[index]??.12):.12;
-        const duration=Number.isFinite(configured)&&configured>0?Math.max(.04,Math.min(action==='attack'?.5:1.2,configured)):fallback;
-        const frame={file,duration,image:new Image(),attack:action==='attack'};
+        const fallback=action!=='move'?.105:enemyKey==='slime_blue'?(legacyMove[index]??.12):.12;
+        const duration=Number.isFinite(configured)&&configured>0?Math.max(.04,Math.min(action!=='move'?.5:1.2,configured)):fallback;
+        const frame={file,duration,image:new Image(),attack:action!=='move'};
         frame.image.onload=()=>{
           const flash=document.createElement('canvas');
           flash.width=frame.image.naturalWidth;flash.height=frame.image.naturalHeight;
@@ -137,7 +137,7 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
           flashCtx.globalCompositeOperation='source-in';flashCtx.fillStyle='#fff';
           flashCtx.fillRect(0,0,flash.width,flash.height);frame.flash=flash;
         };
-        frame.image.src=`${file}?sprite=1.33`;
+        frame.image.src=`${file}?sprite=1.40`;
         return frame;
       });
     }

@@ -7,12 +7,14 @@ $output=Join-Path $folder 'result.json'
 function Run-Export { $ErrorActionPreference='Continue'; & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $project 'csv-to-game-data.ps1') -CsvFolder $folder -OutputPath $output -Silent 2>&1 | Out-Null; return $LASTEXITCODE }
 if((Run-Export)-ne0){throw 'Valid flame settings rejected'}
 $data=Get-Content -LiteralPath $output -Raw -Encoding utf8|ConvertFrom-Json
-$settings=$data.attack_range.enemy.dragon_frost.normal
-if($settings.ground_effect_key-ne'fire_ground' -or $settings.ground_effect_duration_seconds-ne3 -or $settings.ground_effect_frame_seconds-ne.12 -or $settings.ground_effect_delay_seconds-ne0){throw 'Flame settings were not serialized'}
+$settings=$data.attack_range.enemy.dragon_frost.special
+$expected=Import-Csv -LiteralPath (Join-Path $folder 'sheet-attack_range.csv')|Where-Object {$_.owner_key-eq'dragon_frost' -and $_.action-eq'special'}
+if($settings.ground_effect_key-ne$expected.ground_effect_key.Trim() -or $settings.ground_effect_duration_seconds-ne[double]$expected.ground_effect_duration_seconds -or $settings.ground_effect_frame_seconds-ne[double]$expected.ground_effect_frame_seconds -or $settings.ground_effect_delay_seconds-ne[double]$expected.ground_effect_delay_seconds){throw 'Flame settings were not serialized'}
+if($data.attack_range.enemy.dragon_frost.normal.ground_effect_key){throw 'Normal claw attack must not leave fire'}
 $original=[IO.File]::ReadAllText($output)
 $rows=@(Import-Csv -LiteralPath (Join-Path $folder 'sheet-attack_range.csv'))
 foreach($case in @('unknown_effect','zero_duration','zero_frame','negative_delay','nonfinite','contact')){
-    $testRows=@($rows|ForEach-Object {$_.PSObject.Copy()});$target=$testRows|Where-Object {$_.owner_key-eq'dragon_frost' -and $_.action-eq'normal'}
+    $testRows=@($rows|ForEach-Object {$_.PSObject.Copy()});$target=$testRows|Where-Object {$_.owner_key-eq'dragon_frost' -and $_.action-eq'special'}
     switch($case){
         'unknown_effect' {$target.ground_effect_key='missing'}
         'zero_duration' {$target.ground_effect_duration_seconds='0'}

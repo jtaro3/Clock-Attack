@@ -180,7 +180,7 @@
                                       }
                                   ]
               },
-    "generated_at":  "2026-10-06T23:35:27.5366255+09:00",
+    "generated_at":  "2026-10-07T00:12:15.6403511+09:00",
     "general":  {
                     "movement_speed":  180,
                     "start_energy":  150,
@@ -280,7 +280,25 @@
                                                                           "range_px":  40,
                                                                           "angle_degrees":  90
                                                                       }
-                                                       }
+                                                       },
+                                       "dragon_frost":  {
+                                                            "contact":  {
+                                                                            "range_px":  0,
+                                                                            "angle_degrees":  360
+                                                                        },
+                                                            "normal":  {
+                                                                           "range_px":  150,
+                                                                           "angle_degrees":  90
+                                                                       },
+                                                            "special":  {
+                                                                            "range_px":  150,
+                                                                            "angle_degrees":  90,
+                                                                            "ground_effect_key":  "fire_ground",
+                                                                            "ground_effect_duration_seconds":  3,
+                                                                            "ground_effect_frame_seconds":  0.15,
+                                                                            "ground_effect_delay_seconds":  0
+                                                                        }
+                                                        }
                                    }
                      },
     "enemies":  {
@@ -423,7 +441,52 @@
                                                                              0.5,
                                                                              0.23
                                                                          ]
-                                    }
+                                    },
+                    "dragon_frost":  {
+                                         "description":  "炎竜",
+                                         "family":  "dragon",
+                                         "variant":  "blue",
+                                         "hp":  100,
+                                         "attack":  30,
+                                         "super_armor":  false,
+                                         "ai_type":  "chase",
+                                         "death_hit_stop_seconds":  0.15,
+                                         "knockback_distance_px":  50,
+                                         "sprite_facing":  "left",
+                                         "sprite_size_px":  94,
+                                         "collision_radius_px":  47,
+                                         "move_speed_px_per_second":  10,
+                                         "animation_move_frame_seconds":  [
+                                                                              0.18,
+                                                                              0.18,
+                                                                              0.18,
+                                                                              0.18,
+                                                                              0.18,
+                                                                              0.18,
+                                                                              0.18,
+                                                                              0.18,
+                                                                              0.18,
+                                                                              0.18
+                                                                          ],
+                                         "animation_special_frame_seconds":  [
+                                                                                 0.6,
+                                                                                 0.09,
+                                                                                 1.15,
+                                                                                 0.1
+                                                                             ],
+                                         "animation_attack_frame_seconds":  [
+                                                                                0.1,
+                                                                                0.1,
+                                                                                0.1,
+                                                                                0.1,
+                                                                                0.1,
+                                                                                0.1,
+                                                                                0.1,
+                                                                                0.1,
+                                                                                0.1,
+                                                                                0.1
+                                                                            ]
+                                     }
                 },
     "ai":  {
                "chase2":  {
@@ -903,31 +966,31 @@
                        "sprite_file":  "bottle_metal.svg"
                    },
                    {
-                       "asset_key": "ground_fire_01",
-                       "asset_type": "effect",
-                       "owner_key": "fire_ground",
-                       "description": "地面(炎1)",
-                       "direction": "",
-                       "sprite_scale": 1,
-                       "sprite_file": "ground_fire_01.png"
+                       "asset_key":  "ground_fire_01",
+                       "asset_type":  "effect",
+                       "owner_key":  "fire_ground",
+                       "description":  "地面(炎1)",
+                       "direction":  "",
+                       "sprite_scale":  1,
+                       "sprite_file":  "ground_fire_01.png"
                    },
                    {
-                       "asset_key": "ground_fire_02",
-                       "asset_type": "effect",
-                       "owner_key": "fire_ground",
-                       "description": "地面(炎2)",
-                       "direction": "",
-                       "sprite_scale": 1,
-                       "sprite_file": "ground_fire_02.png"
+                       "asset_key":  "ground_fire_02",
+                       "asset_type":  "effect",
+                       "owner_key":  "fire_ground",
+                       "description":  "地面(炎2)",
+                       "direction":  "",
+                       "sprite_scale":  1,
+                       "sprite_file":  "ground_fire_02.png"
                    },
                    {
-                       "asset_key": "ground_fire_03",
-                       "asset_type": "effect",
-                       "owner_key": "fire_ground",
-                       "description": "地面(炎3)",
-                       "direction": "",
-                       "sprite_scale": 1,
-                       "sprite_file": "ground_fire_03.png"
+                       "asset_key":  "ground_fire_03",
+                       "asset_type":  "effect",
+                       "owner_key":  "fire_ground",
+                       "description":  "地面(炎3)",
+                       "direction":  "",
+                       "sprite_scale":  1,
+                       "sprite_file":  "ground_fire_03.png"
                    }
                ],
     "difficulties":  {
