@@ -1,9 +1,9 @@
 # 青いドラゴンの歩行画像
 
-元画像：design/enemies/dragon/candidates/dragon_03_frost.png。内蔵image_genで7コマの歩行シートを生成し、頭の位置と縮小率をそろえて94×94pxの透明PNGに分割しています。
+元画像：design/enemies/dragon/candidates/dragon_03_frost.png。94×94pxの透明PNGを10枚。数字順にループします。
 
-move/dragon_frost_1.png～dragon_frost_7.pngを1→2→3→4→5→6→7→1の順に繰り返します。確認GIFは各コマ0.14秒、1周0.98秒です。
+生成した歩行構成を参考に元画像の形を保ち、腰を固定した脚の変形で10等分の周期へ調整しました。左右の脚は180度ずらして交互に動きます。足先の前後幅は6px、持ち上げは最大4px。頭・翼・胴体の揺れを抑えています。
 
-preview/walk_94.gifは原寸の透明GIF、preview/walk_3x.gifは3倍表示、preview/frames.pngは2倍表示のコマ一覧です。PNGがゲーム用の素材です。
+確認GIFは1コマ0.14秒、1周1.4秒。preview/walk_94.gifは原寸、preview/walk_3x.gifは3倍表示、preview/frames.pngは2倍表示の10枚一覧です。
 
-ゲームへの組み込み・マスターの変更は行っていません。採用時はenemy_keyにdragon_frostを使い、animationシートの移動frame_indexに1～7を設定して、build-animation-manifest.cmdを実行します。
+採用時はanimationシートでdragon_frostの移動frame_indexを1～10に設定し、build-animation-manifest.cmdを実行します。
