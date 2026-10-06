@@ -66,6 +66,7 @@
       .tuning{grid-template-columns:repeat(2,minmax(0,1fr))}
       .loop-row,.save-hint,.small-button,.notice{grid-column:1/-1}
     }
+  .time-controls{grid-column:1/-1;display:flex;gap:8px;align-items:center}.bulk-time{background:#b63843;color:white;border:1px solid #ff929a;border-radius:8px;padding:8px 12px;font-weight:700;cursor:pointer}.time-controls input,#moveSpeedNumber{width:100px;padding:8px;color:inherit;background:#10211e;border:1px solid #9db898;border-radius:7px}
   </style>
 </head>
 <body>
@@ -117,7 +118,7 @@
           <div id="rangeNotice" class="notice" aria-live="polite"></div>
         </div>
         <div id="tuning" class="tuning" hidden>
-          <div class="slider-row move-setting"><label for="moveSpeed">移動速度</label><output id="moveSpeedValue"></output><input id="moveSpeed" type="range" min="0" max="80" step="1" value="27"></div>
+          <div class="slider-row move-setting"><label for="moveSpeed">移動速度</label><output id="moveSpeedValue"></output><input id="moveSpeed" type="range" min="0" max="80" step="1" value="27"><input id="moveSpeedNumber" type="number" min="0" max="80" step="1" aria-label="移動速度（px/s）"></div>
           <div id="moveSettings" class="frame-settings" hidden></div>
           <div id="attackSettings" class="frame-settings" hidden></div>
           <p class="save-hint">調整値はこのブラウザーに保存され、演出確認のプレビューに反映します。本番ゲームはマスターの値を使います。台帳をCSV出力した後は「ゲームデータの値に戻す」で同期できます。</p>
@@ -136,6 +137,6 @@
       .catch(()=>{document.getElementById('version').textContent='VERSION 取得できません'});
   </script>
   <script src="attack-range.js?v=1.30"></script>
-  <script src="asset-paths.js?v=1.19"></script><script src="animation-preview.js?v=1.37"></script>
+  <script src="asset-paths.js?v=1.19"></script><script src="animation-preview.js?v=1.38"></script>
 </body>
 </html>

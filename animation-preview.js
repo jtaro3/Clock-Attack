@@ -4,6 +4,7 @@
   const home=$('home'),previewScreen=$('previewScreen'),gameFrame=$('gameFrame'),canvas=$('assetCanvas'),ctx=canvas.getContext('2d');
   const hint=$('hint'),panel=$('debugPanel'),subChoices=$('subChoices'),fileList=$('fileList'),loopToggle=$('loopToggle'),tuningPanel=$('tuning'),rangePanel=$('rangePanel');
   const moveSpeedInput=$('moveSpeed'),moveSpeedOutput=$('moveSpeedValue');
+  const moveSpeedNumber=$('moveSpeedNumber');
   const enemySelect=$('enemySelect'),enemyPicker=$('enemyPicker'),enemySearch=$('enemySearch'),enemySearchStatus=$('enemySearchStatus');
   let enemyKey='slime_blue',enemyManifest={},enemyMasterData={},enemyLoadVersion=0;
   const storageKey=()=>enemyKey==='slime_blue'?'clock-attack-blue-slime-tuning-v1':`clock-attack-enemy-tuning-v1:${enemyKey}`;
@@ -77,7 +78,10 @@
       input.addEventListener('input',()=>applyTime(Number(input.value)));
       seconds.addEventListener('input',()=>{if(seconds.value!==''&&seconds.validity.valid)applyTime(Number(seconds.value))});
       seconds.addEventListener('change',()=>applyTime(seconds.value===''?timeFor(index):Number(seconds.value)));
-      row.append(label,output,input,seconds);container.append(row);
+      const controls=document.createElement('div');controls.className='time-controls';
+      const bulk=document.createElement('button');bulk.type='button';bulk.textContent='一括反映';bulk.className='bulk-time';bulk.setAttribute('aria-label',`画像${index+1}の値を${actionName==='move'?'移動':'攻撃'}画像すべてに一括反映`);
+      bulk.addEventListener('click',()=>{applyTime(seconds.value===''?timeFor(index):Number(seconds.value));tuning[actionName+'Times']=frames.map(()=>Number(input.value));localStorage.setItem(storageKey(),JSON.stringify(tuning));buildFrameSettings(container,frames,actionName,timeFor);draw()});
+      controls.append(seconds,bulk);row.append(label,output,input,controls);container.append(row);
     });
   }
   function attackTime(index){
@@ -95,8 +99,12 @@
   }
   function updateOutputs(){
     moveSpeedOutput.textContent=tuning.moveSpeed+' px/s';
+    moveSpeedNumber.value=String(tuning.moveSpeed);
   }
   moveSpeedInput.addEventListener('input',saveTuning);
+  function applyMoveSpeed(){const value=moveSpeedNumber.value===''?tuning.moveSpeed:Number(moveSpeedNumber.value);if(!Number.isFinite(value))return;moveSpeedInput.value=String(Math.round(Math.max(Number(moveSpeedInput.min),Math.min(Number(moveSpeedInput.max),value))));saveTuning()}
+  moveSpeedNumber.addEventListener('input',()=>{if(moveSpeedNumber.value!==''&&moveSpeedNumber.validity.valid)applyMoveSpeed()});
+  moveSpeedNumber.addEventListener('change',applyMoveSpeed);
   updateOutputs();
   function masterTuning(){
     const enemy=enemyMasterData[enemyKey]||{};
