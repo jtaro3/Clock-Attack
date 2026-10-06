@@ -58,25 +58,31 @@
   function moveTime(index){
     const value=Number(tuning.moveTimes[index]);
     const fallback=[tuning.idleTime,tuning.midTime,tuning.peakTime,tuning.midTime][index]??tuning.midTime;
-    return Number.isFinite(value)&&value>0?Math.max(.04,Math.min(1.2,value)):fallback;
+    return Number.isFinite(value)&&value>0?Math.max(.04,Math.min(2,value)):fallback;
   }
   function buildFrameSettings(container,frames,actionName,timeFor){
     container.replaceChildren();
     frames.forEach((frame,index)=>{
       const row=document.createElement('div'),label=document.createElement('label'),output=document.createElement('output'),input=document.createElement('input');
       row.className='slider-row';label.htmlFor=`${actionName}Time${index}`;label.textContent=`画像${index+1}の速度`;
-      input.id=label.htmlFor;input.type='range';input.min='.04';input.max=actionName==='move'?'1.20':'.50';input.step='.01';input.value=String(timeFor(index));
+      input.id=label.htmlFor;input.type='range';input.min='.04';input.max='2';input.step='.01';input.value=String(timeFor(index));
+      const seconds=document.createElement('input');seconds.type='number';seconds.min='.04';seconds.max='2';seconds.step='.01';seconds.value=input.value;seconds.setAttribute('aria-label',`画像${index+1}の${actionName==='move'?'移動':'攻撃'}表示時間（秒）`);seconds.style.cssText='width:100px;max-width:100%;padding:8px;color:inherit;background:#10211e;border:1px solid #9db898;border-radius:7px';
       output.textContent=`${Number(input.value).toFixed(2)} s`;
-      input.addEventListener('input',()=>{
-        tuning[actionName+'Times'][index]=Number(input.value);output.textContent=`${Number(input.value).toFixed(2)} s`;
+      function applyTime(value){
+        if(!Number.isFinite(value))return;
+        const time=Math.round(Math.max(.04,Math.min(2,value))*100)/100;input.value=String(time);seconds.value=String(time);
+        tuning[actionName+'Times'][index]=time;output.textContent=`${time.toFixed(2)} s`;
         tuningEdited=true;localStorage.setItem(storageKey(),JSON.stringify(tuning));startedAt=performance.now();draw();
-      });
-      row.append(label,output,input);container.append(row);
+      }
+      input.addEventListener('input',()=>applyTime(Number(input.value)));
+      seconds.addEventListener('input',()=>{if(seconds.value!==''&&seconds.validity.valid)applyTime(Number(seconds.value))});
+      seconds.addEventListener('change',()=>applyTime(seconds.value===''?timeFor(index):Number(seconds.value)));
+      row.append(label,output,input,seconds);container.append(row);
     });
   }
   function attackTime(index){
     const value=Number(tuning.attackTimes[index]);
-    return Number.isFinite(value)&&value>0?Math.max(.04,Math.min(.5,value)):attackFrameDefault;
+    return Number.isFinite(value)&&value>0?Math.max(.04,Math.min(2,value)):attackFrameDefault;
   }
   function buildAttackSettings(){buildFrameSettings(attackSettings,enemyAttackImages,'attack',attackTime)}
   function buildMoveSettings(){buildFrameSettings(moveSettings,enemyMoveImages,'move',moveTime)}
