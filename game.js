@@ -116,7 +116,10 @@
   const roundKillTarget=roundNumber=>Number(currentRoundConfig(roundNumber).kill_target);
   const enemyType=(key,kind,hp,attack,color,radius)=>{const data=enemyData[key]||{};return{enemyKey:key,kind,hp:setting(data,'hp',hp),attack:setting(data,'attack',attack),deathHitStop:setting(data,'death_hit_stop_seconds',.1),knockbackDistance:Math.max(0,setting(data,'knockback_distance_px',18.75)),color,radius:AttackRange.enemyRadius(key,data),knockback:data.super_armor===undefined?kind!=='black':!data.super_armor}};
   const SLIME_TYPES={blue:enemyType('slime_blue','blue',1,1,'#66c8ee',14),green:enemyType('slime_green','green',2,1,'#74d590',16),red:enemyType('slime_red','red',3,1,'#e97a83',18),purple:enemyType('slime_purple','purple',10,5,'#b679e5',22),black:enemyType('slime_black','black',20,10,'#171a20',24),metal:enemyType('slime_metal','metal',50,20,'#bec8d1',26)};
-const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type.enemyKey,type]));
+  const ENEMY_BY_KEY=Object.fromEntries(Object.entries(enemyData).map(([key,data])=>{
+    const kind=data.variant||'blue',color=SLIME_TYPES[kind]?.color||'#bec8d1';
+    return [key,enemyType(key,kind,1,1,color,14)];
+  }));
   const SLIME_ATTACK_DURATION=.42;
   const enemyAnimations=new Map();
   for(const [enemyKey,files] of Object.entries(animationManifest.enemies||{})){
@@ -643,14 +646,14 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
     let rule=null,type=null;
     if(rules.length){
       const eligible=rules.filter(candidate=>{
-        const candidateType=SLIME_BY_KEY[candidate.enemy_key];if(!enemyData[candidate.enemy_key]||!candidateType||roundElapsed<Number(candidate.start_elapsed_seconds||0))return false;
+        const candidateType=ENEMY_BY_KEY[candidate.enemy_key];if(!enemyData[candidate.enemy_key]||!candidateType||roundElapsed<Number(candidate.start_elapsed_seconds||0))return false;
         if(Number(candidate.max_alive||0)>0&&enemies.filter(enemy=>enemy.enemyKey===candidate.enemy_key).length>=Number(candidate.max_alive))return false;
         return !(Number(candidate.max_per_round||0)>0&&Number(roundSpawnCounts[candidate.enemy_key]||0)>=Number(candidate.max_per_round));
       });
       const guaranteed=eligible.find(candidate=>candidate.guaranteed_once&&!roundSpawnCounts[candidate.enemy_key]);
       const total=eligible.reduce((sum,candidate)=>sum+Number(candidate.spawn_weight||0),0);let pick=Math.random()*total;
       rule=guaranteed||eligible.find(candidate=>(pick-=Number(candidate.spawn_weight||0))<=0)||eligible[eligible.length-1];
-      type=rule?SLIME_BY_KEY[rule.enemy_key]:null;
+      type=rule?ENEMY_BY_KEY[rule.enemy_key]:null;
     }
     if(!type)return;
     const hp=Math.max(1,Math.round(type.hp*setting(config,'enemy_hp_multiplier',1))),attack=Math.max(0,type.attack*setting(config,'enemy_attack_multiplier',round)),r=type.radius;
