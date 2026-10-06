@@ -19,11 +19,7 @@
   let placingPlayer=false,previewPlayer=null,previewSprite=null;
   const previewImage=new Image();
   previewImage.onload=()=>{
-    const sprite=document.createElement('canvas');sprite.width=513;sprite.height=629;
-    const context=sprite.getContext('2d',{willReadFrequently:true});context.drawImage(previewImage,370,334,513,629,0,0,513,629);
-    const pixels=context.getImageData(0,0,513,629);
-    for(let i=0;i<pixels.data.length;i+=4)if(Math.max(pixels.data[i],pixels.data[i+1],pixels.data[i+2])<=2)pixels.data[i+3]=0;
-    context.putImageData(pixels,0,0);previewSprite=sprite;drawOverlay();
+    previewSprite=previewImage;drawOverlay();
   };
   previewImage.src=window.ClockAttackPlayerPreview;
 
@@ -89,7 +85,7 @@
       for(const rect of MapCollision.build(map,tools.catalog))overlayCtx.strokeRect(mapX+rect.left,mapY+rect.top,rect.right-rect.left,rect.bottom-rect.top);
     }
     if(previewPlayer&&previewSprite){
-      const height=56*(window.ClockAttackPreviewScale||1),width=height*previewSprite.width/previewSprite.height;
+      const height=previewSprite.naturalHeight,width=previewSprite.naturalWidth;
       overlayCtx.imageSmoothingEnabled=false;overlayCtx.drawImage(previewSprite,mapX+previewPlayer.x-width/2,mapY+previewPlayer.y+21-height,width,height);
     }
   }

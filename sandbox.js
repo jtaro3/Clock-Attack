@@ -41,7 +41,7 @@
   function draw(){
     ctx.fillStyle='#000';ctx.fillRect(0,0,W,H);if($('grid').checked){ctx.strokeStyle='#ffffff24';ctx.lineWidth=1;ctx.beginPath();for(let x=0;x<=W;x+=32){ctx.moveTo(x,0);ctx.lineTo(x,H)}for(let y=0;y<=H;y+=32){ctx.moveTo(0,y);ctx.lineTo(W,y)}ctx.stroke()}
     if(playerAttackRange&&$('playerRange').checked)range(p,e,playerAttackRange,'#67d9ff');if(enemyAttackRange&&$('enemyRange').checked)range(e,p,enemyAttackRange,'#ff8696');
-    const facing=(Math.round((p.angle+Math.PI/2)/(Math.PI/4))+8)%8,pi=playerImages[facing];if(pi)ctx.drawImage(pi,p.x-24,p.y-32,48,64);else{ctx.fillStyle='#67d9ff';ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,7);ctx.fill()}
+    const facing=(Math.round((p.angle+Math.PI/2)/(Math.PI/4))+8)%8,pi=playerImages[facing];if(pi)ctx.drawImage(pi,p.x-pi.naturalWidth/2,p.y-pi.naturalHeight/2);else{ctx.fillStyle='#67d9ff';ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,7);ctx.fill()}
     const image=frame(time<enemyAttackUntil?'attack':'move');if(image){ctx.save();ctx.translate(e.x,e.y);if(AttackRange.enemySpriteFlipped(e.angle,data.enemies[selected]))ctx.scale(-1,1);const size=AttackRange.enemySpriteSize(data.enemies[selected]);ctx.drawImage(image,-size/2,-size/2,size,size);ctx.restore()}else{ctx.fillStyle=({slime_blue:'#66c8ee',slime_green:'#74d590',slime_red:'#e97a83',slime_purple:'#b679e5',slime_black:'#444',slime_metal:'#bec8d1'})[selected]||'#7ac9e8';ctx.beginPath();ctx.arc(e.x,e.y,AttackRange.enemySpriteSize(data.enemies[selected])/2,0,7);ctx.fill()}
     if(time<playerAttackUntil){ctx.strokeStyle='#ffe297';ctx.lineWidth=6;ctx.beginPath();ctx.arc(p.x,p.y,45,p.angle-.95,p.angle+.95);ctx.stroke()}
     for(const [b,color,label] of [[p,'#67d9ff','プレイヤー'],[e,'#ff8696','エネミー']]){ctx.fillStyle=color;ctx.font='bold 12px system-ui';ctx.textAlign='center';ctx.fillText(label,b.x,b.y-(b===e?AttackRange.enemySpriteSize(data.enemies[selected])/2+12:40));ctx.beginPath();ctx.moveTo(b.x,b.y);ctx.lineTo(b.x+Math.cos(b.angle)*20,b.y+Math.sin(b.angle)*20);ctx.strokeStyle=color;ctx.lineWidth=2;ctx.stroke()}
@@ -58,8 +58,7 @@
     const version=await fetch('VERSION',{cache:'no-store'});$('version').textContent='v'+(await version.text()).trim();
     for(const [key,enemy] of Object.entries(data.enemies)){const option=document.createElement('option');option.value=key;option.textContent=enemy.description+' ('+key+')';$('enemySelect').append(option)}
     if(!$('enemySelect').options.length)throw Error('有効なエネミーがありません');await selectEnemy();for(const id of ['start','reset','masterReset'])$(id).disabled=false;
-    const bounds=[[386,362,850,928],[396,376,846,930],[432,356,812,956],[396,344,836,952],[386,350,866,946],[374,340,862,916],[394,344,828,926],[396,324,828,922]];
-    playerImages=await Promise.all(bounds.map(async([l,t,r,b],i)=>{const path=ClockAttackAssets.create(data.assets||[]).playerFiles()[i];const image=path?await loadImage(path):null;if(!image)return null;const out=document.createElement('canvas');out.width=r-l+32;out.height=b-t+32;const c=out.getContext('2d');c.drawImage(image,l-16,t-16,out.width,out.height,0,0,out.width,out.height);const pixels=c.getImageData(0,0,out.width,out.height);for(let j=0;j<pixels.data.length;j+=4)if(Math.max(...pixels.data.slice(j,j+3))<=2)pixels.data[j+3]=0;c.putImageData(pixels,0,0);return out}));
+    playerImages=await Promise.all(ClockAttackAssets.create(data.assets||[]).playerFiles().map(path=>path?loadImage(path):null));
   }catch(error){notice=error.message}
   function animate(now){step(Math.min(.05,(now-last)/1000));last=now;draw();requestAnimationFrame(animate)}requestAnimationFrame(animate);
 })();

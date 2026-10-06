@@ -16,26 +16,19 @@
   const ui={overlay:$('overlay'),panel:$('panel'),title:$('title'),eyebrow:$('eyebrow'),description:$('description'),resultValue:$('resultValue'),stop:$('stop'),sub:$('sub'),score:$('score'),moneyValue:$('moneyValue'),moneyIcon:$('moneyIcon'),roundNumber:$('roundNumber'),roundTarget:$('roundTarget'),elapsedTime:$('elapsedTime'),energyValue:$('energyValue'),energyFill:$('energyFill'),grayDamageFill:$('grayDamageFill'),energyBar:document.querySelector('.energy-bar'),swordCounter:$('swordCounter'),attackCount:$('attackCount'),clockCount:$('clockCount'),clockButton:$('clockButton'),clockStock:$('clockStock'),buttonHourglass:$('buttonHourglass'),mergeStage:$('mergeStage'),mergeBottles:$('mergeBottles'),mergeHourglass:$('mergeHourglass'),sandPreview:$('sandPreview'),previewSandCount:$('previewSandCount'),previewHourglass:$('previewHourglass'),killWarning:$('killWarning'),killCountdown:$('killCountdown'),attack:$('attack'),speedButton:$('speedButton'),instantKillButton:$('instantKillButton'),pauseButton:$('pauseButton'),pauseScreen:$('pauseScreen'),resumeButton:$('resumeButton'),gridToggle:$('gridToggle'),clearScreen:$('clearScreen'),clearAnnouncement:$('clearAnnouncement'),clearHourglass:$('clearHourglass'),clearScore:$('clearScore'),clearTime:$('clearTime'),clearActions:$('clearActions'),clearRetry:$('clearRetry'),clearTitleLink:$('clearTitleLink')};
   const player={x:0,y:0,r:14,angle:-Math.PI/2};
   // 上から時計回り: 背面、背面右、右、正面右、正面、正面左、左、背面左。
-  const spriteBounds=[[386,362,850,928],[396,376,846,930],[432,356,812,956],[396,344,836,952],[386,350,866,946],[374,340,862,916],[394,344,828,926],[396,324,828,922]];
   const assets=ClockAttackAssets.create(gameData.assets||[]),playerFiles=assets.playerFiles();
   const bottleImagePath=bottle=>bottle?assets.itemPath(bottle.asset_key||`sand_${bottle.kind==='metal'?'white':bottle.kind}`):null;
   const playerSprites=Array(8).fill(null);
   const playerSpritesGray=Array(8).fill(null);
-  spriteBounds.forEach(([left,top,right,bottom],i)=>{
+  playerFiles.forEach((file,i)=>{
     if(!playerFiles[i]){console.warn('プレイヤー画像のマスター設定がありません：'+ClockAttackAssets.directions[i]);return}
     const image=new Image();
     image.onload=()=>{
-      const margin=16,x=left-margin,y=top-margin;
       const sprite=document.createElement('canvas');
-      sprite.width=right-left+margin*2+1;sprite.height=bottom-top+margin*2+1;
+      sprite.width=image.naturalWidth;sprite.height=image.naturalHeight;
       const spriteContext=sprite.getContext('2d',{willReadFrequently:true});
-      spriteContext.drawImage(image,x,y,sprite.width,sprite.height,0,0,sprite.width,sprite.height);
+      spriteContext.drawImage(image,0,0);
       const pixels=spriteContext.getImageData(0,0,sprite.width,sprite.height);
-      for(let p=0;p<pixels.data.length;p+=4){
-        // 元画像の黒い背景（RGB 0〜2）だけを透明にする。
-        if(Math.max(pixels.data[p],pixels.data[p+1],pixels.data[p+2])<=2)pixels.data[p+3]=0;
-      }
-      spriteContext.putImageData(pixels,0,0);
       // 灰色版を画像データから作る。スマホの Canvas filter 対応に依存しない。
       const gray=document.createElement('canvas');gray.width=sprite.width;gray.height=sprite.height;
       const grayContext=gray.getContext('2d');
@@ -108,7 +101,7 @@
   const attackRanges=gameData.attack_range?.player?.player;
   if(!attackRanges||['normal','spin','object'].some(action=>!attackRanges[action])){ui.panel.textContent='攻撃範囲の設定がありません。attack_rangeシートをCSV出力してください。';return}
   const NORMAL_ATTACK_RANGE_PX=Math.max(0,setting(attackRanges.normal,'range_px',42)),NORMAL_ATTACK_ANGLE_DEGREES=clamp(setting(attackRanges.normal,'angle_degrees',182),0,360),SPIN_ATTACK_RANGE_PX=Math.max(0,setting(attackRanges.spin,'range_px',42)),SPIN_ATTACK_ANGLE_DEGREES=clamp(setting(attackRanges.spin,'angle_degrees',360),0,360),OBJECT_ATTACK_RANGE_PX=Math.max(0,setting(attackRanges.object,'range_px',42)),OBJECT_ATTACK_ANGLE_DEGREES=clamp(setting(attackRanges.object,'angle_degrees',203),0,360);
-  const PLAYER_SCALE=setting(playerData,'player_scale',1),SWORD_SCALE=setting(playerData,'sword_scale',1);
+  const SWORD_SCALE=setting(playerData,'sword_scale',1);
   const NORMAL_ATTACK_EFFECT_SCALE=setting(playerData,'normal_attack_effect_scale',1),WHITE_ATTACK_EFFECT_SCALE=setting(playerData,'white_attack_effect_scale',1.5),RED_ATTACK_EFFECT_SCALE=setting(playerData,'red_attack_effect_scale',2);
   const requestedDifficulty=query.get('difficulty')||'easy';
   const difficultyKey=['easy','normal','hard'].includes(requestedDifficulty)?requestedDifficulty:'easy';
@@ -166,8 +159,8 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
   }
   const attackEffectScale=damage=>damage===RED_AURA_DAMAGE?RED_ATTACK_EFFECT_SCALE:damage===WHITE_AURA_DAMAGE?WHITE_ATTACK_EFFECT_SCALE:NORMAL_ATTACK_EFFECT_SCALE;
   const playerMovementBounds=()=>{
-    const maxRatio=Math.max(...spriteBounds.map(([l,t,r,b])=>(r-l+33)/(b-t+33)));
-    return BattleMapBounds.centers({left:0,top:0,right:map.width*32,bottom:map.height*32},{x:Math.max(player.r,56*PLAYER_SCALE*maxRatio/2),top:Math.max(player.r,56*PLAYER_SCALE-21),bottom:Math.max(player.r,21)});
+    const width=Math.max(player.r*2,...playerSprites.map(sprite=>sprite?.width||0)),height=Math.max(player.r*2,...playerSprites.map(sprite=>sprite?.height||0));
+    return BattleMapBounds.centers({left:0,top:0,right:map.width*32,bottom:map.height*32},{x:Math.max(player.r,width/2),top:Math.max(player.r,height-21),bottom:Math.max(player.r,21)});
   };
   const mapOffset=()=>({x:0,y:0});
   function moveBody(body,dx,dy,r,feet=0){
@@ -849,7 +842,7 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
     const direction=((Math.round((player.angle+Math.PI/2)/(Math.PI/4))%8)+8)%8;
     const sprite=playerSprites[direction],graySprite=playerSpritesGray[direction];
     if(sprite){
-      const height=56*PLAYER_SCALE,width=height*sprite.width/sprite.height;
+      const height=sprite.height,width=sprite.width;
       ctx.imageSmoothingEnabled=false;
       const left=player.x-width/2,top=player.y+21-height;
       if((entryGray>0||energy===0&&unlocked>0)&&graySprite)ctx.drawImage(graySprite,left,top,width,height);

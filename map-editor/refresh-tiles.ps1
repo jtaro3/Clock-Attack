@@ -44,6 +44,11 @@ try {
     }
     $json = ConvertTo-Json -InputObject $catalog -Depth 4 -Compress
     [IO.File]::WriteAllText((Join-Path $PSScriptRoot 'tile-catalog.js'),('window.ClockAttackTileCatalog='+$json+';window.ClockAttackPreviewScale='+$previewScale.ToString([Globalization.CultureInfo]::InvariantCulture)+';'),[Text.UTF8Encoding]::new($false))
+    $playerFile = Join-Path $PSScriptRoot '../design/player/man5.png'
+    if (Test-Path -LiteralPath $playerFile) {
+        $playerPreview = 'window.ClockAttackPlayerPreview="data:image/png;base64,'+[Convert]::ToBase64String([IO.File]::ReadAllBytes($playerFile))+'";'
+        [IO.File]::WriteAllText((Join-Path $PSScriptRoot 'player-preview.js'),$playerPreview,[Text.UTF8Encoding]::new($false))
+    }
     $groundCount = @($catalog | Where-Object category -eq 'ground').Count
     $objectCount = @($catalog | Where-Object category -eq 'object').Count
     Write-Host ('OK: '+$groundCount+' ground tiles and '+$objectCount+' objects registered.')

@@ -1,0 +1,37 @@
+const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
+const read=file=>fs.readFileSync(file,'utf8');
+const image={naturalWidth:54,naturalHeight:54,width:54,height:54};
+let calls=[];
+const ctx={drawImage:(...args)=>calls.push(args)};
+const preview=read('animation-preview.js');
+const start=preview.indexOf('  function drawPlayer('),end=preview.indexOf('  function drawEnemyImage(',start);
+vm.runInNewContext(preview.slice(start,end)+'\ndrawPlayer({image},100,100);',{ctx,image});
+assert.deepEqual(calls[0],[image,73,73,54,54],'preview preserves 54px and aspect ratio');
+calls=[];
+const sandbox=read('sandbox.js'),sandboxDraw=sandbox.match(/if\(pi\)(ctx\.drawImage\(pi,[^;]+);/)[1];
+vm.runInNewContext(sandboxDraw,{ctx,pi:image,p:{x:100,y:100}});
+assert.deepEqual(calls[0],[image,73,73],'sandbox draws without destination resizing');
+calls=[];
+const camera=read('camera-sample.js'),cameraDraw=camera.match(/if\(sprite\)\{(ctx\.drawImage\(sprite,[^}]+)\}/)[1];
+vm.runInNewContext(cameraDraw,{ctx,sprite:image,player:{x:100,y:100}});
+assert.deepEqual(calls[0],[image,73,73],'camera sample draws native pixels');
+const game=read('game.js');
+const playerDraw=game.slice(game.indexOf('      const height=sprite.height'),game.indexOf('      ctx.imageSmoothingEnabled=true;',game.indexOf('      const height=sprite.height')));
+calls=[];
+vm.runInNewContext(playerDraw,{ctx,sprite:image,graySprite:image,player:{x:100,y:100},entryGray:0,energy:1,unlocked:0,lowEnergyGray:false});
+assert.deepEqual(calls[0],[image,73,67,54,54],'game preserves native size and feet anchor');
+const editor=read('map-editor/editor.js');
+const editorDraw=editor.slice(editor.indexOf('      const height=previewSprite.naturalHeight'),editor.indexOf('\n',editor.indexOf('overlayCtx.imageSmoothingEnabled=false;overlayCtx.drawImage')));
+calls=[];
+vm.runInNewContext(editorDraw,{overlayCtx:ctx,previewSprite:image,previewPlayer:{x:100,y:100},mapX:0,mapY:0});
+assert.deepEqual(calls[0],[image,73,67,54,54],'editor matches game feet anchor and size');
+for(const file of ['game.js','animation-preview.js','sandbox.js','camera-sample.js','map-editor/editor.js'])assert.ok(!/386,362|370,334|PLAYER_SCALE|ClockAttackPreviewScale/.test(read(file)),file+' has no old crop or player scale');
+for(let i=1;i<=8;i++){
+ const file=`design/player/man${i}.png`,png=fs.readFileSync(file);
+ assert.equal(png.readUInt32BE(16),54);assert.equal(png.readUInt32BE(20),54);
+ assert.ok(png.equals(fs.readFileSync('dist/'+file)),'published player asset matches source');
+}
+const embedded=Buffer.from(read('map-editor/player-preview.js').match(/base64,([^\"]+)/)[1],'base64');
+assert.ok(embedded.equals(fs.readFileSync('design/player/man5.png')),'standalone editor uses current image');
+for(const file of ['game.js','animation-preview.js','sandbox.js','camera-sample.js'])assert.equal(read(file),read('dist/'+file));
+console.log('Native player size and drawing verified in all five screens; source/dist/editor assets match');

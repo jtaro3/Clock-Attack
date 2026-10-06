@@ -10,7 +10,6 @@
   const defaults={moveSpeed:27,idleTime:.38,midTime:.12,peakTime:.12};
   let tuningEdited=false;
   let tuning=readTuning(),category='',action='',selection=0,loop=false,startedAt=performance.now(),canvasWidth=0,canvasHeight=0,dpr=1,actorImages=[],swordImage=null;
-  const playerBounds=[[386,362,850,928],[396,376,846,930],[432,356,812,956],[396,344,836,952],[386,350,866,946],[374,340,862,916],[394,344,828,926],[396,324,828,922]];
   let enemyMoveImages=[],enemyAttackImages=[];
   const moveSettings=$('moveSettings'),attackSettings=$('attackSettings');
   const attackFrameDefault=.105;
@@ -125,14 +124,7 @@
     return new Promise(resolve=>{
       const image=new Image();
       image.onload=()=>{
-        const [left,top,right,bottom]=playerBounds[index],margin=16;
-        const sw=right-left+margin*2+1,sh=bottom-top+margin*2+1;
-        const crop=document.createElement('canvas');crop.width=sw;crop.height=sh;
-        const c=crop.getContext('2d',{willReadFrequently:true});
-        c.drawImage(image,left-margin,top-margin,sw,sh,0,0,sw,sh);
-        const pixels=c.getImageData(0,0,sw,sh);
-        for(let p=0;p<pixels.data.length;p+=4)if(Math.max(pixels.data[p],pixels.data[p+1],pixels.data[p+2])<=2)pixels.data[p+3]=0;
-        c.putImageData(pixels,0,0);resolve({file,label:file,image:crop});
+        resolve({file,label:file,image});
       };
       image.onerror=()=>resolve({file,label:file,image:null});
       image.src=file;
@@ -297,6 +289,9 @@
     const index=Math.floor(elapsed/.14)%files.length;
     return files[index];
   }
+  function drawPlayer(item,x,y){
+    if(item?.image)drawImage(item,x,y,item.image.naturalWidth||item.image.width,item.image.naturalHeight||item.image.height);
+  }
   function drawImage(item,x,y,w,h){
     if(!item?.image)return;
     ctx.imageSmoothingEnabled=false;ctx.drawImage(item.image,x-w/2,y-h/2,w,h);ctx.imageSmoothingEnabled=true;
@@ -313,7 +308,7 @@
     if(rangeOwner==='enemy'&&striking&&enemyAttackImages.length){let time=(now-rangeStrikeStartedAt)/1000;enemy=enemyAttackImages.at(-1);for(let i=0;i<enemyAttackImages.length;i++){if(time<attackTime(i)){enemy=enemyAttackImages[i];break}time-=attackTime(i)}}
     const enemyX=rangeOwner==='enemy'?cx:target.x,enemyY=rangeOwner==='enemy'?cy:target.y,playerX=rangeOwner==='enemy'?target.x:cx,playerY=rangeOwner==='enemy'?target.y:cy;
     if(enemy){const angle=rangeOwner==='enemy'?rangePlayerAngle:Math.atan2(playerY-enemyY,playerX-enemyX);drawEnemyImage(enemy,enemyX,enemyY,angle)}else{ctx.fillStyle='#b88257';ctx.beginPath();ctx.arc(enemyX,enemyY,AttackRange.enemyRadius(enemyKey,enemyMasterData[enemyKey])*scale,0,Math.PI*2);ctx.fill()}
-    drawImage(actorImages[4],playerX,playerY,64,64);
+    drawPlayer(actorImages[4],playerX,playerY);
     if(striking&&rangeStrikeHit&&progress>.35){ctx.save();ctx.globalAlpha=Math.max(0,1-progress);ctx.strokeStyle='#fff5c6';ctx.lineWidth=5;ctx.beginPath();ctx.arc(target.x,target.y,22+progress*18,0,Math.PI*2);ctx.stroke();ctx.restore()}
     if(striking&&rangeOwner==='player'){
       const angle=rangeMode==='spin'?rangePlayerAngle+progress*Math.PI*2:rangePlayerAngle-1.1+progress*2.2;
@@ -330,11 +325,11 @@
       drawRangePreview(cx,cy);
     }else if(category==='player'){
       const frame=selectedFrame(now),player=actorImages[Math.min(selection,7)];
-      if(action==='move')drawImage(frame||player,cx,cy,64,64);
+      if(action==='move')drawPlayer(frame||player,cx,cy);
       else if(action==='attack'){
         const elapsed=(now-startedAt)/650,phase=loop?elapsed%1:Math.min(elapsed,1),angle=-Math.PI/2+phase*Math.PI*2;
         const chosen=frame||player;
-        drawImage(actorImages[4]||player,cx,cy,64,64);
+        drawPlayer(actorImages[4]||player,cx,cy);
         if(loop||elapsed<1){
           ctx.save();ctx.translate(cx,cy-5);ctx.rotate(angle+Math.PI/2);drawImage(swordImage,0,-48,38,38);ctx.restore();
           ctx.beginPath();ctx.arc(cx,cy,55,angle-1.05,angle+1.05);ctx.strokeStyle='rgba(255,220,147,'+(0.25+0.65*(1-phase))+')';ctx.lineWidth=9;ctx.stroke();
@@ -344,7 +339,7 @@
     }else if(category==='enemy'){
       const playerImage=actorImages[4],files=filesForSelection(),enemy=selectedFrame(now)||files[0],time=(now-startedAt)/1000;
       if(!files.length){ctx.fillStyle='#c2d0c6';ctx.font='14px system-ui';ctx.textAlign='center';ctx.fillText(`${enemyKey}の${action==='attack'?'攻撃':'移動'}画像は未配置です`,cx,cy);return}
-      drawImage(playerImage,cx,cy,64,64);
+      drawPlayer(playerImage,cx,cy);
       if(action==='move'){
         const startX=Math.min(canvasWidth-50,cx+Math.min(200,canvasWidth*.38)),endX=cx+45,distance=Math.max(1,startX-endX);
         const travel=tuning.moveSpeed>0?distance/tuning.moveSpeed:Infinity;
