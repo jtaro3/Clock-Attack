@@ -81,3 +81,7 @@ main.odsのattack_rangeシートをCSV出力し、game-data.jsonのattack_range.
 attack_rangeのenemy行はowner_keyで敵を識別し、contactは接触、normalは通常攻撃として扱う。範囲は攻撃者と対象の当たり判定半径にrange_pxを加えた距離。contactは従来と同じ3pxの重なりを必要とする。
 
 normalは射程内で攻撃開始し、向きを固定してアニメーションの中間で一度命中判定する。途中で範囲から出れば空振り。contactとnormalが有効でも同じ攻撃で二重にダメージを与えない。未登録の敵は従来の接触攻撃を使う。演出確認は攻撃者を切り替えて距離・角度・アニメーションを確認でき、未設定の敵は設定なしと表示する。
+
+## エネミー画像の元の向き
+
+main.odsのenemyシートのsprite_facingは元画像の向きを示す。rightは右向き、leftは左向き。空欄または列なしはrightとして扱い、列名と値の前後の空白は読み込み時に取り除く。CSV出力後、game-data.jsonのenemiesからサンドバッグ・ゲーム・演出確認が読み、移動方向や攻撃方向に応じて左右反転する。移動・攻撃の画像は同じ元の向きで用意する。

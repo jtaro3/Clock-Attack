@@ -790,11 +790,14 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
       const spriteImageReady=!!spriteFrame?.image.complete&&spriteFrame.image.naturalWidth>0;
       if(spriteImageReady){
         const spriteSize=AttackRange.enemySpriteSize(enemyData[enemy.enemyKey]);
-        ctx.save();ctx.translate(enemy.x,y);if(spriteFrame.attack&&Math.cos(enemy.attackAngle||0)<0)ctx.scale(-1,1);ctx.imageSmoothingEnabled=false;
+        const spriteAngle=spriteFrame.attack?(enemy.attackAngle||0):(enemy.angle??Math.atan2(player.y-enemy.y,player.x-enemy.x));
+        const spriteFlipped=AttackRange.enemySpriteFlipped(spriteAngle,enemyData[enemy.enemyKey]);
+        ctx.save();ctx.translate(enemy.x,y);if(spriteFlipped)ctx.scale(-1,1);ctx.imageSmoothingEnabled=false;
         ctx.drawImage(spriteFrame.image,-spriteSize/2,-spriteSize/2,spriteSize,spriteSize);ctx.restore();ctx.imageSmoothingEnabled=true;
         if(enemy.hit>0&&spriteFrame.flash){
           ctx.save();ctx.globalAlpha=clamp(enemy.hit/.18,0,.9);
-          ctx.drawImage(spriteFrame.flash,enemy.x-spriteSize/2,y-spriteSize/2,spriteSize,spriteSize);ctx.restore();
+          ctx.translate(enemy.x,y);if(spriteFlipped)ctx.scale(-1,1);
+          ctx.drawImage(spriteFrame.flash,-spriteSize/2,-spriteSize/2,spriteSize,spriteSize);ctx.restore();
         }
       }else{
         const visualRadius=AttackRange.enemySpriteSize(enemyData[enemy.enemyKey])/2;const attacking=!dying&&enemy.attackTime>0,attackProgress=attacking?1-enemy.attackTime/SLIME_ATTACK_DURATION:0;

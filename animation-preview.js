@@ -301,6 +301,7 @@
     if(!item?.image)return;
     ctx.imageSmoothingEnabled=false;ctx.drawImage(item.image,x-w/2,y-h/2,w,h);ctx.imageSmoothingEnabled=true;
   }
+  function drawEnemyImage(item,x,y,angle){ctx.save();ctx.translate(x,y);if(AttackRange.enemySpriteFlipped(angle,enemyMasterData[enemyKey]))ctx.scale(-1,1);drawImage(item,0,0,56,56);ctx.restore()}
   function drawRangePreview(cx,cy){
     const scale=48/32,target=rangeTarget||{x:cx+canvasWidth*.22,y:cy},settings=rangeSettings[rangeMode];
     if(rangeGrid){ctx.strokeStyle='rgba(222,239,220,.20)';ctx.lineWidth=1;const step=32*scale;for(let x=cx%step;x<canvasWidth;x+=step){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,canvasHeight);ctx.stroke()}for(let y=cy%step;y<canvasHeight;y+=step){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(canvasWidth,y);ctx.stroke()}}
@@ -311,7 +312,7 @@
     let enemy=enemyMoveImages.find(item=>item.image)||enemyAttackImages.find(item=>item.image);
     if(rangeOwner==='enemy'&&striking&&enemyAttackImages.length){let time=(now-rangeStrikeStartedAt)/1000;enemy=enemyAttackImages.at(-1);for(let i=0;i<enemyAttackImages.length;i++){if(time<attackTime(i)){enemy=enemyAttackImages[i];break}time-=attackTime(i)}}
     const enemyX=rangeOwner==='enemy'?cx:target.x,enemyY=rangeOwner==='enemy'?cy:target.y,playerX=rangeOwner==='enemy'?target.x:cx,playerY=rangeOwner==='enemy'?target.y:cy;
-    if(enemy){ctx.save();ctx.translate(enemyX,enemyY);if(rangeOwner==='enemy'&&Math.cos(rangePlayerAngle)<0)ctx.scale(-1,1);drawImage(enemy,0,0,56,56);ctx.restore()}else{ctx.fillStyle='#b88257';ctx.beginPath();ctx.arc(enemyX,enemyY,AttackRange.enemyRadius(enemyKey,enemyMasterData[enemyKey])*scale,0,Math.PI*2);ctx.fill()}
+    if(enemy){const angle=rangeOwner==='enemy'?rangePlayerAngle:Math.atan2(playerY-enemyY,playerX-enemyX);drawEnemyImage(enemy,enemyX,enemyY,angle)}else{ctx.fillStyle='#b88257';ctx.beginPath();ctx.arc(enemyX,enemyY,AttackRange.enemyRadius(enemyKey,enemyMasterData[enemyKey])*scale,0,Math.PI*2);ctx.fill()}
     drawImage(actorImages[4],playerX,playerY,64,64);
     if(striking&&rangeStrikeHit&&progress>.35){ctx.save();ctx.globalAlpha=Math.max(0,1-progress);ctx.strokeStyle='#fff5c6';ctx.lineWidth=5;ctx.beginPath();ctx.arc(target.x,target.y,22+progress*18,0,Math.PI*2);ctx.stroke();ctx.restore()}
     if(striking&&rangeOwner==='player'){
@@ -348,9 +349,9 @@
         const startX=Math.min(canvasWidth-50,cx+Math.min(200,canvasWidth*.38)),endX=cx+45,distance=Math.max(1,startX-endX);
         const travel=tuning.moveSpeed>0?distance/tuning.moveSpeed:Infinity;
         const x=tuning.moveSpeed===0?startX:startX-(time%travel)*tuning.moveSpeed;
-        drawImage(enemy,x,cy,56,56);
+        drawEnemyImage(enemy,x,cy,Math.PI);
       }else if(action==='attack'){
-        ctx.save();ctx.translate(cx+40,cy);ctx.scale(-1,1);drawImage(enemy,0,0,56,56);ctx.restore();
+        drawEnemyImage(enemy,cx+40,cy,Math.PI);
       }
     }
   }

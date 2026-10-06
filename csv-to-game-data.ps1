@@ -87,6 +87,10 @@ $enemies = [ordered]@{}; $enabledEnemyKeys=@{}; for($i=0;$i-lt$enemyRows.Count;$
     $knockback=18.75
     if(-not [string]::IsNullOrWhiteSpace([string]$row.knockback_distance_px)){$knockback=To-Number $row.knockback_distance_px 'sheet-enemy.csv' $line 'knockback_distance_px' 0}
     $enemyData['knockback_distance_px']=[double]$knockback
+    $facing=([string]$row.sprite_facing).Trim().ToLowerInvariant()
+    if(-not$facing){$facing='right'}
+    if($facing-notin@('left','right')){Add-DataError 'sheet-enemy.csv' $line 'sprite_facing' 'leftまたはrightを指定してください。'}
+    $enemyData['sprite_facing']=$facing
     if(-not [string]::IsNullOrWhiteSpace([string]$row.sprite_size_px)){
         $size=To-Number $row.sprite_size_px 'sheet-enemy.csv' $line 'sprite_size_px' 0
         if($size -le 0){Add-DataError 'sheet-enemy.csv' $line 'sprite_size_px' '0より大きい表示サイズ(px)を指定してください。'}
