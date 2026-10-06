@@ -14,4 +14,4 @@ enabled,owner_type,owner_key,action,range_px,angle_degrees,notes2,ground_effect_
 1,enemy,slime_black,normal,40,90,,,,,,
 1,enemy,dragon_frost,contact,0,360,,,,,,
 1,enemy,dragon_frost,normal,150,90,,,,,,
-1,enemy,dragon_frost,special,150,90,,fire_ground,3,0.15,0,
+1,enemy,dragon_frost,special,150,90,fire_ground,3,0.15,0.2,

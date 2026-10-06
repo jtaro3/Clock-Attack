@@ -139,6 +139,7 @@ for($i=0;$i-lt$attackRangeRows.Count;$i++){
 }
 foreach($action in @('normal','spin','object')){if(-not$rangeKeys.ContainsKey("player|player|${action}")){Add-DataError 'sheet-attack_range.csv' 0 'action' "playerの${action}にenabled=1の行が必要です。"}}
 foreach($key in @('normal_attack_range_px','normal_attack_angle_degrees','spin_attack_range_px','object_attack_range_px')){if($player.Contains($key)){Add-DataError 'sheet-player.csv' 0 'key' "${key}はattack_rangeへ移してください。"}}
+$groundStartFrames=@{}
 for($i=0;$i-lt$animationRows.Count;$i++){
     $row=$animationRows[$i];$line=$i+2;$file='sheet-animation.csv'
     if(-not(Test-Enabled $row $file $line)){continue};if($row.enabled-ne'1'){continue}
@@ -158,6 +159,13 @@ for($i=0;$i-lt$animationRows.Count;$i++){
     $duration=To-Number $row.frame_seconds $file $line 'frame_seconds' 0.04
     if($duration-gt1.2){Add-DataError $file $line 'frame_seconds' '1.2以下を指定してください。'}
     $group="${key}|${action}"
+    $start=([string]$row.ground_effect_start).Trim()
+    if($start -and $start -notin @('0','1')){Add-DataError $file $line 'ground_effect_start' '空欄、0、1を指定してください。'}
+    if($start -eq '1'){
+        if($action -eq 'move'){Add-DataError $file $line 'ground_effect_start' 'attackまたはspecialに指定してください。'}
+        if($groundStartFrames.ContainsKey($group)){Add-DataError $file $line 'ground_effect_start' '同じ敵・動作では1行だけ指定してください。'}
+        $groundStartFrames[$group]=[int]$frame
+    }
     if(-not$animationFrames.ContainsKey($group)){$animationFrames[$group]=@{}}
     if($animationFrames[$group].ContainsKey([int]$frame)){Add-DataError $file $line 'frame_index' "${group}の${frame}枚目が重複しています。"}
     $animationFrames[$group][[int]$frame]=[double]$duration
@@ -169,6 +177,7 @@ foreach($group in $animationFrames.Keys){
         $durations += [double]$frames[$frame]
     }
     $enemies[$parts[0]]["animation_$($parts[1])_frame_seconds"]=$durations
+    if($groundStartFrames.ContainsKey($group)){$enemies[$parts[0]]["animation_$($parts[1])_ground_effect_start_frame"]=$groundStartFrames[$group]}
 }
 
 function Get-RoundKey($Row, [string]$File, [int]$Line) {

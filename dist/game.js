@@ -661,6 +661,7 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
     enemies.push({x,y,r,hp,hpMax:hp,enemyKey:type.enemyKey,kind:type.kind,attack,deathHitStop:type.deathHitStop,knockback:type.knockback!==false,knockbackDistance:type.knockbackDistance,color:type.color,speed:Math.max(0,Math.min(80,setting(enemyData[type.enemyKey]||{},'move_speed_px_per_second',type.enemyKey==='slime_blue'?27:21+Math.random()*12+score*.3)))*setting(config,'enemy_speed_multiplier',1),hit:0,wobble:Math.random()*6.28,animationTime:Math.random()*(enemyAnimations.get(type.enemyKey)?.moveDuration||1),attackTime:0,attackAngle:0});
     roundSpawned++;roundSpawnCounts[type.enemyKey]=(roundSpawnCounts[type.enemyKey]||0)+1;
   }
+  function scheduleEnemyGroundEffect(enemy,body,settings){const frames=enemyAnimations.get(enemy.enemyKey)?.attack||[];groundEffects.schedule(body,settings,ClockAttackGroundEffects.startSeconds(frames.map(frame=>frame.duration),enemyData[enemy.enemyKey]?.animation_attack_ground_effect_start_frame,enemy.attackDuration),groundLimits())}
   function updateEnemyAttack(enemy){
     const configured=gameData.attack_range?.enemy?.[enemy.enemyKey];
     const settings=configured||{contact:{range_px:0,angle_degrees:360}};
@@ -680,6 +681,7 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
     enemy.pendingAttack=!contactHit;
     enemy.groundAttackBody=contactHit?null:{x:enemy.x,y:enemy.y,r:enemy.r,angle};
     enemy.groundAttackSettings=contactHit?null:settings.normal;
+    if(!contactHit){scheduleEnemyGroundEffect(enemy,enemy.groundAttackBody,enemy.groundAttackSettings);enemy.groundAttackBody=null;}
     return contactHit;
   }
   function update(dt){
@@ -730,7 +732,7 @@ const SLIME_BY_KEY=Object.fromEntries(Object.values(SLIME_TYPES).map(type=>[type
       const aiConfig=gameData.ai?.[enemyData[enemy.enemyKey]?.ai_type];let attackHit;
       if(aiConfig){
         const ranges=gameData.attack_range?.enemy?.[enemy.enemyKey]||{};
-        attackHit=SandboxAI.stepCombat(enemy,player,dt,aiConfig,{duration:enemyAnimations.get(enemy.enemyKey)?.attackDuration||SLIME_ATTACK_DURATION,normal:ranges.normal||{range_px:0,angle_degrees:360},onAttackStarted:()=>{enemy.groundAttackBody={x:enemy.x,y:enemy.y,r:enemy.r,angle:enemy.attackAngle};enemy.groundAttackSettings={...ranges.normal}},onAttackFinished:()=>{if(enemy.groundAttackBody)groundEffects.schedule(enemy.groundAttackBody,enemy.groundAttackSettings,0,groundLimits());enemy.groundAttackBody=null},contact:ranges.contact||{range_px:0,angle_degrees:360},contains:AttackRange.contains,move:(body,x,y)=>moveBody(body,x,y,body.r),blocked:(x,y,r)=>x<r||y<r||x>map.width*32-r||y>map.height*32-r||MapCollision.blocked(x,y,r,obstacles)});
+        attackHit=SandboxAI.stepCombat(enemy,player,dt,aiConfig,{duration:enemyAnimations.get(enemy.enemyKey)?.attackDuration||SLIME_ATTACK_DURATION,normal:ranges.normal||{range_px:0,angle_degrees:360},onAttackStarted:()=>{enemy.groundAttackBody={x:enemy.x,y:enemy.y,r:enemy.r,angle:enemy.attackAngle};enemy.groundAttackSettings={...ranges.normal};scheduleEnemyGroundEffect(enemy,enemy.groundAttackBody,enemy.groundAttackSettings)},onAttackFinished:()=>{enemy.groundAttackBody=null},contact:ranges.contact||{range_px:0,angle_degrees:360},contains:AttackRange.contains,move:(body,x,y)=>moveBody(body,x,y,body.r),blocked:(x,y,r)=>x<r||y<r||x>map.width*32-r||y>map.height*32-r||MapCollision.blocked(x,y,r,obstacles)});
       }else{if(previousAttackTime>0&&enemy.attackTime<=0&&enemy.groundAttackBody){groundEffects.schedule(enemy.groundAttackBody,enemy.groundAttackSettings,0,groundLimits());enemy.groundAttackBody=null}if(enemy.attackTime<=0)moveBody(enemy,ex/len*enemy.speed*dt,ey/len*enemy.speed*dt,enemy.r);attackHit=updateEnemyAttack(enemy)}
       if(attackHit&&invincible<=0){
         damageFlash=.5;

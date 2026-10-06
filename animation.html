@@ -116,8 +116,8 @@
           <div class="frame-settings"><label for="groundEffectKey">攻撃後に地面へ残す演出</label><select id="groundEffectKey"><option value="">なし</option></select>
           <label for="groundEffectDuration">地面に残る時間（秒）</label><input id="groundEffectDuration" type="number" min="0.01" step="0.1" value="3">
           <label for="groundEffectFrame">画像1枚の表示時間（秒）</label><input id="groundEffectFrame" type="number" min="0.01" step="0.01" value="0.12">
-          <label for="groundEffectDelay">攻撃終了後の追加待ち時間（秒）</label><input id="groundEffectDelay" type="number" min="0" step="0.1" value="0">
-          <p class="save-hint">攻撃終了後、中心が範囲内にある32pxのマスへ演出を置きます。画像はasset_key順でループします。地面演出自体の追加ダメージはありません。</p></div>
+          <label for="groundEffectDelay">開始タイミングからの追加待ち時間（秒）</label><input id="groundEffectDelay" type="number" min="0" step="0.1" value="0">
+          <p class="save-hint">指定フレーム開始＋追加待ち時間で、中心が範囲内にある32pxのマスへ演出を置きます。フレーム未指定の場合は攻撃終了を基準にします。画像はasset_key順でループします。地面演出自体の追加ダメージはありません。</p></div>
           <button id="copyRangeSettings" class="small-button" type="button">調整値をコピー</button>
           <button id="loadRangeSettings" class="small-button" type="button">現在のゲーム設定に戻す</button>
           <div id="rangeNotice" class="notice" aria-live="polite"></div>

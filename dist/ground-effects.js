@@ -47,5 +47,6 @@
     }
     return {schedule,update,draw,clear(){active.clear();pending.length=0},active,pending};
   }
-  const api={cells,create};root.ClockAttackGroundEffects=api;if(typeof module!=='undefined')module.exports=api;
+  function startSeconds(durations,frame,fallback){const index=Number(frame);return Number.isInteger(index)&&index>=1&&index<=durations.length?durations.slice(0,index-1).reduce((sum,value)=>sum+Number(value),0):fallback}
+  const api={cells,create,startSeconds};root.ClockAttackGroundEffects=api;if(typeof module!=='undefined')module.exports=api;
 })(typeof window==='undefined'?globalThis:window);
