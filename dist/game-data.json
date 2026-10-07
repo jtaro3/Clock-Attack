@@ -180,7 +180,7 @@
                                       }
                                   ]
               },
-    "generated_at":  "2026-10-07T00:44:33.3770497+09:00",
+    "generated_at":  "2026-10-07T01:43:12.9402777+09:00",
     "general":  {
                     "movement_speed":  180,
                     "start_energy":  150,
@@ -290,16 +290,16 @@
                                                                             "angle_degrees":  360
                                                                         },
                                                             "normal":  {
-                                                                           "range_px":  150,
+                                                                           "range_px":  25,
                                                                            "angle_degrees":  90
                                                                        },
                                                             "special":  {
-                                                                            "range_px":  150,
-                                                                            "angle_degrees":  90,
+                                                                            "range_px":  80,
+                                                                            "angle_degrees":  120,
                                                                             "ground_effect_key":  "fire_ground",
                                                                             "ground_effect_duration_seconds":  3,
                                                                             "ground_effect_frame_seconds":  0.15,
-                                                                            "ground_effect_delay_seconds":  0.2
+                                                                            "ground_effect_delay_seconds":  0.4
                                                                         }
                                                         }
                                    }
@@ -446,12 +446,12 @@
                                                                            ]
                                     },
                     "dragon_frost":  {
-                                         "description":  "炎竜",
+                                         "description":  "青竜",
                                          "family":  "dragon",
                                          "variant":  "blue",
                                          "hp":  100,
-                                         "attack":  30,
-                                         "super_armor":  false,
+                                         "attack":  1,
+                                         "super_armor":  true,
                                          "ai_type":  "chase",
                                          "death_hit_stop_seconds":  0.15,
                                          "knockback_distance_px":  50,
@@ -732,32 +732,8 @@
                                   "spawn_interval_seconds":  0.7,
                                   "spawns":  [
                                                  {
-                                                     "enemy_key":  "slime_green",
+                                                     "enemy_key":  "dragon_frost",
                                                      "spawn_weight":  20,
-                                                     "max_alive":  0,
-                                                     "max_per_round":  0,
-                                                     "start_elapsed_seconds":  0,
-                                                     "guaranteed_once":  false
-                                                 },
-                                                 {
-                                                     "enemy_key":  "slime_red",
-                                                     "spawn_weight":  35,
-                                                     "max_alive":  0,
-                                                     "max_per_round":  0,
-                                                     "start_elapsed_seconds":  0,
-                                                     "guaranteed_once":  false
-                                                 },
-                                                 {
-                                                     "enemy_key":  "slime_black",
-                                                     "spawn_weight":  15,
-                                                     "max_alive":  0,
-                                                     "max_per_round":  0,
-                                                     "start_elapsed_seconds":  20,
-                                                     "guaranteed_once":  true
-                                                 },
-                                                 {
-                                                     "enemy_key":  "slime_purple",
-                                                     "spawn_weight":  30,
                                                      "max_alive":  0,
                                                      "max_per_round":  0,
                                                      "start_elapsed_seconds":  0,
@@ -808,6 +784,23 @@
                                                  {
                                                      "enemy_key":  "slime_purple",
                                                      "spawn_weight":  50,
+                                                     "max_alive":  0,
+                                                     "max_per_round":  0,
+                                                     "start_elapsed_seconds":  0,
+                                                     "guaranteed_once":  false
+                                                 }
+                                             ]
+                              },
+                   "hard|4":  {
+                                  "kill_target":  30,
+                                  "enemy_hp_multiplier":  4,
+                                  "enemy_attack_multiplier":  4,
+                                  "enemy_speed_multiplier":  3,
+                                  "spawn_interval_seconds":  0.7,
+                                  "spawns":  [
+                                                 {
+                                                     "enemy_key":  "dragon_frost",
+                                                     "spawn_weight":  45,
                                                      "max_alive":  0,
                                                      "max_per_round":  0,
                                                      "start_elapsed_seconds":  0,
