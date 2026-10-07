@@ -15,8 +15,6 @@
   const moveSettings=$('moveSettings'),attackSettings=$('attackSettings');
   const attackFrameDefault=.105;
   const rangeDefaults={normal:{range_px:42,angle_degrees:182},spin:{range_px:42,angle_degrees:360},object:{range_px:42,angle_degrees:203}};
-  const RANGE_PREVIEW_SCALE=1.5;
-  $('rangeDisplayScale').textContent=`表示倍率：${RANGE_PREVIEW_SCALE}倍（ゲーム内32px → 表示48px）`;
   let rangeEffects=ClockAttackGroundEffects.create([],AttackRange.contains,()=>null),rangeEffectsTime=performance.now();
   let rangeMaster={},rangeOwner='player',rangeSettings={},rangeMode='normal',rangeTarget=null,rangePlayerAngle=0,rangeStrikeStartedAt=0,rangeStrikeUntil=0,rangeStrikeHit=false,rangeGrid=true,rangeLoadVersion=0;
   const menuButtons=[...document.querySelectorAll('[data-category]')];
@@ -61,7 +59,7 @@
   $('rangeAttackTest').addEventListener('click',()=>{if(!rangeSettings[rangeMode])return;rangeStrikeHit=rangeTargetIsHit();rangeStrikeStartedAt=performance.now();rangeStrikeUntil=rangeStrikeStartedAt+rangeAttackDuration();rangeEffectsTime=rangeStrikeStartedAt;rangeEffects.schedule({x:0,y:0,r:rangeOwner==='enemy'?AttackRange.enemyRadius(enemyKey,enemyMasterData[enemyKey]):14,angle:rangePlayerAngle},rangeSettings[rangeMode],ClockAttackGroundEffects.startSeconds(rangeAttackFrames().map((_,i)=>rangeFrameTime(i)),rangeOwner==='enemy'?enemyMasterData[enemyKey]?.[`animation_${rangeMode==='normal'?'attack':rangeMode}_ground_effect_start_frame`]:null,rangeAttackDuration()/1000));$('rangeHitStatus').textContent=rangeStrikeHit?'命中':'空振り（範囲外）';$('rangeHitStatus').style.color=rangeStrikeHit?'#9ef0a8':'#ff9c91';draw()});
   canvas.addEventListener('pointerdown',e=>{if(category!=='attackRange'||action!=='player')return;e.preventDefault();canvas.setPointerCapture(e.pointerId);moveRangeTarget(e)});canvas.addEventListener('pointermove',e=>{if(category==='attackRange'&&action==='player'&&canvas.hasPointerCapture(e.pointerId))moveRangeTarget(e)});
   function moveRangeTarget(e){const r=canvas.getBoundingClientRect();rangeTarget={x:(e.clientX-r.left)*canvasWidth/r.width,y:(e.clientY-r.top)*canvasHeight/r.height};rangeStrikeUntil=0;rangeEffects.clear();refreshRangeControls()}
-  function rangeTargetIsHit(){if(!rangeTarget||!canvasWidth||!canvasHeight)return false;const scale=RANGE_PREVIEW_SCALE,enemyRadius=AttackRange.enemyRadius(enemyKey,enemyMasterData[enemyKey]),attackerRadius=rangeOwner==='enemy'?enemyRadius:14,targetRadius=rangeOwner==='enemy'?14:enemyRadius;return AttackRange.contains({x:canvasWidth/2/scale,y:canvasHeight/2/scale,r:attackerRadius,angle:rangePlayerAngle},{x:rangeTarget.x/scale,y:rangeTarget.y/scale,r:targetRadius},rangeSettings[rangeMode],rangeOwner==='enemy'&&rangeMode==='contact')}
+  function rangeTargetIsHit(){if(!rangeTarget||!canvasWidth||!canvasHeight)return false;const enemyRadius=AttackRange.enemyRadius(enemyKey,enemyMasterData[enemyKey]),attackerRadius=rangeOwner==='enemy'?enemyRadius:14,targetRadius=rangeOwner==='enemy'?14:enemyRadius;return AttackRange.contains({x:canvasWidth/2,y:canvasHeight/2,r:attackerRadius,angle:rangePlayerAngle},{x:rangeTarget.x,y:rangeTarget.y,r:targetRadius},rangeSettings[rangeMode],rangeOwner==='enemy'&&rangeMode==='contact')}
   function readTuning(){
     try{
       const saved=JSON.parse(localStorage.getItem(storageKey())||'{}');
@@ -333,18 +331,18 @@
   function drawEnemyImage(item,x,y,angle,scale=1){if(!item?.image)return;ctx.save();ctx.translate(x,y);if(AttackRange.enemySpriteFlipped(angle,enemyMasterData[enemyKey]))ctx.scale(-1,1);const size=AttackRange.enemySpriteSize(enemyMasterData[enemyKey])*scale;drawImage(item,0,0,size,size);ctx.restore()}
   function drawRangePreview(cx,cy){
     const effectNow=performance.now();rangeEffects.update(Math.max(0,(effectNow-rangeEffectsTime)/1000));rangeEffectsTime=effectNow;
-    const scale=RANGE_PREVIEW_SCALE,target=rangeTarget||{x:cx+canvasWidth*.22,y:cy},settings=rangeSettings[rangeMode];
-    if(rangeGrid){ctx.strokeStyle='rgba(222,239,220,.20)';ctx.lineWidth=1;const step=32*scale;for(let x=cx%step;x<canvasWidth;x+=step){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,canvasHeight);ctx.stroke()}for(let y=cy%step;y<canvasHeight;y+=step){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(canvasWidth,y);ctx.stroke()}}
-    const limit=((rangeOwner==='enemy'?AttackRange.enemyRadius(enemyKey,enemyMasterData[enemyKey]):14)+Number(settings?.range_px||0)-(rangeOwner==='enemy'&&rangeMode==='contact'?3:0))*scale;
+    const target=rangeTarget||{x:cx+canvasWidth*.22,y:cy},settings=rangeSettings[rangeMode];
+    if(rangeGrid){ctx.strokeStyle='rgba(222,239,220,.20)';ctx.lineWidth=1;const step=32;for(let x=cx%step;x<canvasWidth;x+=step){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,canvasHeight);ctx.stroke()}for(let y=cy%step;y<canvasHeight;y+=step){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(canvasWidth,y);ctx.stroke()}}
+    const limit=((rangeOwner==='enemy'?AttackRange.enemyRadius(enemyKey,enemyMasterData[enemyKey]):14)+Number(settings?.range_px||0)-(rangeOwner==='enemy'&&rangeMode==='contact'?3:0));
     if(settings){ctx.save();ctx.translate(cx,cy);ctx.fillStyle='rgba(241,198,99,.16)';ctx.strokeStyle='rgba(241,198,99,.8)';ctx.lineWidth=2;ctx.beginPath();if(settings.angle_degrees<360){const half=settings.angle_degrees*Math.PI/360;ctx.moveTo(0,0);ctx.arc(0,0,limit,rangePlayerAngle-half,rangePlayerAngle+half);ctx.closePath()}else ctx.arc(0,0,limit,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.restore()}
     ctx.strokeStyle='rgba(242,245,222,.45)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(target.x,target.y);ctx.stroke();
     const now=performance.now(),striking=now<rangeStrikeUntil,progress=striking?(now-rangeStrikeStartedAt)/rangeAttackDuration():0;
     let enemy=enemyMoveImages.find(item=>item.image)||enemyAttackImages.find(item=>item.image);
     const strikeFrames=rangeAttackFrames();
     if(rangeOwner==='enemy'&&striking&&strikeFrames.length){let time=(now-rangeStrikeStartedAt)/1000;enemy=strikeFrames.at(-1);for(let i=0;i<strikeFrames.length;i++){if(time<rangeFrameTime(i)){enemy=strikeFrames[i];break}time-=rangeFrameTime(i)}}
-    ctx.save();ctx.translate(cx,cy);ctx.scale(scale,scale);rangeEffects.draw(ctx);ctx.restore();
+    ctx.save();ctx.translate(cx,cy);rangeEffects.draw(ctx);ctx.restore();
     const enemyX=rangeOwner==='enemy'?cx:target.x,enemyY=rangeOwner==='enemy'?cy:target.y,playerX=rangeOwner==='enemy'?target.x:cx,playerY=rangeOwner==='enemy'?target.y:cy;
-    if(enemy){const angle=rangeOwner==='enemy'?rangePlayerAngle:Math.atan2(playerY-enemyY,playerX-enemyX);drawEnemyImage(enemy,enemyX,enemyY,angle,scale)}else{ctx.fillStyle='#b88257';ctx.beginPath();ctx.arc(enemyX,enemyY,AttackRange.enemyRadius(enemyKey,enemyMasterData[enemyKey])*scale,0,Math.PI*2);ctx.fill()}
+    if(enemy){const angle=rangeOwner==='enemy'?rangePlayerAngle:Math.atan2(playerY-enemyY,playerX-enemyX);drawEnemyImage(enemy,enemyX,enemyY,angle)}else{ctx.fillStyle='#b88257';ctx.beginPath();ctx.arc(enemyX,enemyY,AttackRange.enemyRadius(enemyKey,enemyMasterData[enemyKey]),0,Math.PI*2);ctx.fill()}
     drawPlayer(actorImages[4],playerX,playerY);
     if(striking&&rangeStrikeHit&&progress>.35){ctx.save();ctx.globalAlpha=Math.max(0,1-progress);ctx.strokeStyle='#fff5c6';ctx.lineWidth=5;ctx.beginPath();ctx.arc(target.x,target.y,22+progress*18,0,Math.PI*2);ctx.stroke();ctx.restore()}
     if(striking&&rangeOwner==='player'){
