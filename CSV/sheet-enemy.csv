@@ -1,10 +1,10 @@
-enabled,enemy_key,description,family,variant,hp,attack,super_armor,ai_type,death_hit_stop_seconds,knockback_distance_px,sprite_facing,notes,notes2,sprite_size_px,collision_radius_px
-1,slime_blue,青スライム,slime,blue,1,1,0,chase2,0.15,50,right,knockback_distance_px,その敵が攻撃を受けたときに押される距離,,
-1,slime_green,緑スライム,slime,green,2,1,0,chase2,0.15,50,right,,,,
-1,slime_red,赤スライム,slime,red,5,1,0,chase2,0.15,50,right,,,,
-1,slime_purple,紫スライム,slime,purple,10,5,0,chase2,0.15,50,right,,,,
-1,slime_black,黒スライム,slime,black,20,10,1,chase2,0.15,50,right,,,,
-0,slime_metal,金属スライム,slime,metal,50,20,0,chase,0.15,50,right,,,,
-0,dragon_red,炎竜,dragon,red,100,30,0,chase,0.15,50,right,,,,
-0,golem_metal,ゴーレム,golem,metal,150,15,1,chase,0.15,50,right,,,,
-1,dragon_frost,炎竜,dragon,blue,100,30,0,chase,0.15,50,left,,,94,47
+﻿enabled,enemy_key,description,family,variant,hp,attack,super_armor,ai_type,death_hit_stop_seconds,knockback_distance_px,sprite_size_px ,collision_radius_px ,sprite_facing ,notes,notes2
+1,slime_blue,青スライム,slime,blue,1,2,0,chase2,0.15,40,56,28,right,knockback_distance_px,その敵が攻撃を受けたときに押される距離
+1,slime_green,緑スライム,slime,green,3,3,0,chase2,0.15,30,72,36,right,sprite_size_px,画像の幅・高さ
+1,slime_red,赤スライム,slime,red,7,5,0,chase2,0.15,15,72,36,right,collision_radius_px,判定の半径
+1,slime_purple,紫スライム,slime,purple,20,10,0,chase2,0.15,15,56,28,right,,
+1,slime_black,黒スライム,slime,black,50,20,1,chase2,0.15,15,56,28,right,family,敵の大分類。動きや描画方式の判定に使用
+0,slime_metal,金属スライム,slime,metal,100,20,0,chase,0.15,50,56,28,right,ariant,色、属性、材質などの違い
+0,dragon_red,炎竜,dragon,red,100,30,0,chase,0.15,50,56,28,right,,
+0,golem_metal,ゴーレム,golem,metal,150,15,1,chase,0.15,50,56,28,right,,
+1,dragon_frost,青竜,dragon,blue,100,1,1,chase,0.15,50,94,47,left,,

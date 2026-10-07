@@ -4,12 +4,12 @@
 0,,,,,,,,,,,,,,,ai_stop_distance_px,プレイヤーに近づいた際の停止距離
 ,,,,,,,,,,,,,,,ai_lose_target_range_px,追跡をやめる距離
 ,,,,,,,,,,,,,,,ai_wait_seconds,待機してから行動を再開するまでの時間
-,,,,,,,,,,,,,,,ai_obstacle_handling ,障害物への対処 0＝停止、1＝回り道(未対応)
-,,,,,,,,,,,,,,,ai_contact_damage_enabled ,接触ダメージ
-,,,,,,,,,,,,,,,ai_attack_preparation_seconds ,攻撃準備時間
-,,,,,,,,,,,,,,,ai_attack_recovery_seconds ,次の行動までの時間 
-,,,,,,,,,,,,,,,ai_move_during_attack ,攻撃中の移動
+,,,,,,,,,,,,,,,ai_obstacle_handling,障害物への対処 0＝停止、1＝回り道(未対応)
+,,,,,,,,,,,,,,,ai_contact_damage_enabled,接触ダメージ
+,,,,,,,,,,,,,,,ai_attack_preparation_seconds,攻撃準備時間
+,,,,,,,,,,,,,,,ai_attack_recovery_seconds,次の行動までの時間
+,,,,,,,,,,,,,,,ai_move_during_attack,攻撃中の移動
 ,,,,,,,,,,,,,,,ai_flinch_normal,ひるみ（通常）
 ,,,,,,,,,,,,,,,ai_flinch_during_attack,ひるみ（攻撃中）
 ,,,,,,,,,,,,,,,ai_knockback_normal,ノックバック（通常）
-,,,,,,,,,,,,,,,ai_knockback_during_attack,ノックバック（攻撃中） 
+,,,,,,,,,,,,,,,ai_knockback_during_attack,ノックバック（攻撃中）

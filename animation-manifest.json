@@ -1,126 +1,144 @@
 {
-  "enemies": {
-    "slime_black": {
-      "move": [
-        "design/enemies/slime_black/move/slime_black_1.png",
-        "design/enemies/slime_black/move/slime_black_2.png",
-        "design/enemies/slime_black/move/slime_black_3.png",
-        "design/enemies/slime_black/move/slime_black_4.png"
-      ],
-      "attack": [
-        "design/enemies/slime_black/attack/slime_black_0.png",
-        "design/enemies/slime_black/attack/slime_black_1.png",
-        "design/enemies/slime_black/attack/slime_black_2.png",
-        "design/enemies/slime_black/attack/slime_black_3.png",
-        "design/enemies/slime_black/attack/slime_black_4.png"
-      ]
-    },
-    "slime_blue": {
-      "move": [
-        "design/enemies/slime_blue/move/slime_blue_1.png",
-        "design/enemies/slime_blue/move/slime_blue_2.png",
-        "design/enemies/slime_blue/move/slime_blue_3.png",
-        "design/enemies/slime_blue/move/slime_blue_4.png"
-      ],
-      "attack": [
-        "design/enemies/slime_blue/attack/slime_blue_0.png",
-        "design/enemies/slime_blue/attack/slime_blue_1.png",
-        "design/enemies/slime_blue/attack/slime_blue_2.png",
-        "design/enemies/slime_blue/attack/slime_blue_3.png",
-        "design/enemies/slime_blue/attack/slime_blue_4.png"
-      ]
-    },
-    "slime_green": {
-      "move": [
-        "design/enemies/slime_green/move/slime_green_1.png",
-        "design/enemies/slime_green/move/slime_green_2.png",
-        "design/enemies/slime_green/move/slime_green_3.png",
-        "design/enemies/slime_green/move/slime_green_4.png"
-      ],
-      "attack": [
-        "design/enemies/slime_green/attack/slime_green_0.png",
-        "design/enemies/slime_green/attack/slime_green_1.png",
-        "design/enemies/slime_green/attack/slime_green_2.png",
-        "design/enemies/slime_green/attack/slime_green_3.png",
-        "design/enemies/slime_green/attack/slime_green_4.png"
-      ]
-    },
-    "slime_metal": {
-      "move": [
-        "design/enemies/slime_metal/move/slime_metal_1.png",
-        "design/enemies/slime_metal/move/slime_metal_2.png",
-        "design/enemies/slime_metal/move/slime_metal_3.png",
-        "design/enemies/slime_metal/move/slime_metal_4.png"
-      ],
-      "attack": [
-        "design/enemies/slime_metal/attack/slime_metal_0.png",
-        "design/enemies/slime_metal/attack/slime_metal_1.png",
-        "design/enemies/slime_metal/attack/slime_metal_2.png",
-        "design/enemies/slime_metal/attack/slime_metal_3.png",
-        "design/enemies/slime_metal/attack/slime_metal_4.png"
-      ]
-    },
-    "slime_purple": {
-      "move": [
-        "design/enemies/slime_purple/move/slime_purple_1.png",
-        "design/enemies/slime_purple/move/slime_purple_2.png",
-        "design/enemies/slime_purple/move/slime_purple_3.png",
-        "design/enemies/slime_purple/move/slime_purple_4.png"
-      ],
-      "attack": [
-        "design/enemies/slime_purple/attack/slime_purple_0.png",
-        "design/enemies/slime_purple/attack/slime_purple_1.png",
-        "design/enemies/slime_purple/attack/slime_purple_2.png",
-        "design/enemies/slime_purple/attack/slime_purple_3.png",
-        "design/enemies/slime_purple/attack/slime_purple_4.png"
-      ]
-    },
-    "slime_red": {
-      "move": [
-        "design/enemies/slime_red/move/slime_red_1.png",
-        "design/enemies/slime_red/move/slime_red_2.png",
-        "design/enemies/slime_red/move/slime_red_3.png",
-        "design/enemies/slime_red/move/slime_red_4.png"
-      ],
-      "attack": [
-        "design/enemies/slime_red/attack/slime_red_0.png",
-        "design/enemies/slime_red/attack/slime_red_1.png",
-        "design/enemies/slime_red/attack/slime_red_2.png",
-        "design/enemies/slime_red/attack/slime_red_3.png",
-        "design/enemies/slime_red/attack/slime_red_4.png"
-      ]
-    },
-    "dragon_frost": {
-      "move": [
-        "design/enemies/dragon_frost/move/dragon_frost_1.png",
-        "design/enemies/dragon_frost/move/dragon_frost_2.png",
-        "design/enemies/dragon_frost/move/dragon_frost_3.png",
-        "design/enemies/dragon_frost/move/dragon_frost_4.png",
-        "design/enemies/dragon_frost/move/dragon_frost_5.png",
-        "design/enemies/dragon_frost/move/dragon_frost_6.png",
-        "design/enemies/dragon_frost/move/dragon_frost_7.png",
-        "design/enemies/dragon_frost/move/dragon_frost_8.png",
-        "design/enemies/dragon_frost/move/dragon_frost_9.png",
-        "design/enemies/dragon_frost/move/dragon_frost_10.png"
-      ],
-      "attack": [
-        "design/enemies/dragon_frost/attack/dragon_frost_1.png",
-        "design/enemies/dragon_frost/attack/dragon_frost_2.png",
-        "design/enemies/dragon_frost/attack/dragon_frost_3.png",
-        "design/enemies/dragon_frost/attack/dragon_frost_4.png",
-        "design/enemies/dragon_frost/attack/dragon_frost_5.png",
-        "design/enemies/dragon_frost/attack/dragon_frost_6.png",
-        "design/enemies/dragon_frost/attack/dragon_frost_7.png",
-        "design/enemies/dragon_frost/attack/dragon_frost_8.png",
-        "design/enemies/dragon_frost/attack/dragon_frost_9.png",
-        "design/enemies/dragon_frost/attack/dragon_frost_10.png"
-      ],
-      "special": [
-        "design/enemies/dragon_frost/special/dragon_frost_1.png",
-        "design/enemies/dragon_frost/special/dragon_frost_2.png",
-        "design/enemies/dragon_frost/special/dragon_frost_3.png",
-        "design/enemies/dragon_frost/special/dragon_frost_4.png"
-      ]
-    }
-  }
+    "enemies":  {
+                    "dragon_frost":  {
+                                         "move":  [
+                                                      "design/enemies/dragon_frost/move/dragon_frost_1.png",
+                                                      "design/enemies/dragon_frost/move/dragon_frost_2.png",
+                                                      "design/enemies/dragon_frost/move/dragon_frost_3.png",
+                                                      "design/enemies/dragon_frost/move/dragon_frost_4.png",
+                                                      "design/enemies/dragon_frost/move/dragon_frost_5.png",
+                                                      "design/enemies/dragon_frost/move/dragon_frost_6.png",
+                                                      "design/enemies/dragon_frost/move/dragon_frost_7.png",
+                                                      "design/enemies/dragon_frost/move/dragon_frost_8.png",
+                                                      "design/enemies/dragon_frost/move/dragon_frost_9.png",
+                                                      "design/enemies/dragon_frost/move/dragon_frost_10.png"
+                                                  ],
+                                         "attack":  [
+                                                        "design/enemies/dragon_frost/attack/dragon_frost_1.png",
+                                                        "design/enemies/dragon_frost/attack/dragon_frost_2.png",
+                                                        "design/enemies/dragon_frost/attack/dragon_frost_3.png",
+                                                        "design/enemies/dragon_frost/attack/dragon_frost_4.png",
+                                                        "design/enemies/dragon_frost/attack/dragon_frost_5.png",
+                                                        "design/enemies/dragon_frost/attack/dragon_frost_6.png",
+                                                        "design/enemies/dragon_frost/attack/dragon_frost_7.png",
+                                                        "design/enemies/dragon_frost/attack/dragon_frost_8.png",
+                                                        "design/enemies/dragon_frost/attack/dragon_frost_9.png",
+                                                        "design/enemies/dragon_frost/attack/dragon_frost_10.png"
+                                                    ],
+                                         "special":  [
+                                                         "design/enemies/dragon_frost/special/dragon_frost_1.png",
+                                                         "design/enemies/dragon_frost/special/dragon_frost_2.png",
+                                                         "design/enemies/dragon_frost/special/dragon_frost_3.png",
+                                                         "design/enemies/dragon_frost/special/dragon_frost_4.png"
+                                                     ]
+                                     },
+                    "slime_black":  {
+                                        "move":  [
+                                                     "design/enemies/slime_black/move/slime_black_1.png",
+                                                     "design/enemies/slime_black/move/slime_black_2.png",
+                                                     "design/enemies/slime_black/move/slime_black_3.png",
+                                                     "design/enemies/slime_black/move/slime_black_4.png"
+                                                 ],
+                                        "attack":  [
+                                                       "design/enemies/slime_black/attack/slime_black_0.png",
+                                                       "design/enemies/slime_black/attack/slime_black_1.png",
+                                                       "design/enemies/slime_black/attack/slime_black_2.png",
+                                                       "design/enemies/slime_black/attack/slime_black_3.png",
+                                                       "design/enemies/slime_black/attack/slime_black_4.png"
+                                                   ],
+                                        "special":  [
+
+                                                    ]
+                                    },
+                    "slime_blue":  {
+                                       "move":  [
+                                                    "design/enemies/slime_blue/move/slime_blue_1.png",
+                                                    "design/enemies/slime_blue/move/slime_blue_2.png",
+                                                    "design/enemies/slime_blue/move/slime_blue_3.png",
+                                                    "design/enemies/slime_blue/move/slime_blue_4.png"
+                                                ],
+                                       "attack":  [
+                                                      "design/enemies/slime_blue/attack/slime_blue_0.png",
+                                                      "design/enemies/slime_blue/attack/slime_blue_1.png",
+                                                      "design/enemies/slime_blue/attack/slime_blue_2.png",
+                                                      "design/enemies/slime_blue/attack/slime_blue_3.png",
+                                                      "design/enemies/slime_blue/attack/slime_blue_4.png"
+                                                  ],
+                                       "special":  [
+
+                                                   ]
+                                   },
+                    "slime_green":  {
+                                        "move":  [
+                                                     "design/enemies/slime_green/move/slime_green_1.png",
+                                                     "design/enemies/slime_green/move/slime_green_2.png",
+                                                     "design/enemies/slime_green/move/slime_green_3.png",
+                                                     "design/enemies/slime_green/move/slime_green_4.png"
+                                                 ],
+                                        "attack":  [
+                                                       "design/enemies/slime_green/attack/slime_green_0.png",
+                                                       "design/enemies/slime_green/attack/slime_green_1.png",
+                                                       "design/enemies/slime_green/attack/slime_green_2.png",
+                                                       "design/enemies/slime_green/attack/slime_green_3.png",
+                                                       "design/enemies/slime_green/attack/slime_green_4.png"
+                                                   ],
+                                        "special":  [
+
+                                                    ]
+                                    },
+                    "slime_metal":  {
+                                        "move":  [
+                                                     "design/enemies/slime_metal/move/slime_metal_1.png",
+                                                     "design/enemies/slime_metal/move/slime_metal_2.png",
+                                                     "design/enemies/slime_metal/move/slime_metal_3.png",
+                                                     "design/enemies/slime_metal/move/slime_metal_4.png"
+                                                 ],
+                                        "attack":  [
+                                                       "design/enemies/slime_metal/attack/slime_metal_0.png",
+                                                       "design/enemies/slime_metal/attack/slime_metal_1.png",
+                                                       "design/enemies/slime_metal/attack/slime_metal_2.png",
+                                                       "design/enemies/slime_metal/attack/slime_metal_3.png",
+                                                       "design/enemies/slime_metal/attack/slime_metal_4.png"
+                                                   ],
+                                        "special":  [
+
+                                                    ]
+                                    },
+                    "slime_purple":  {
+                                         "move":  [
+                                                      "design/enemies/slime_purple/move/slime_purple_1.png",
+                                                      "design/enemies/slime_purple/move/slime_purple_2.png",
+                                                      "design/enemies/slime_purple/move/slime_purple_3.png",
+                                                      "design/enemies/slime_purple/move/slime_purple_4.png"
+                                                  ],
+                                         "attack":  [
+                                                        "design/enemies/slime_purple/attack/slime_purple_0.png",
+                                                        "design/enemies/slime_purple/attack/slime_purple_1.png",
+                                                        "design/enemies/slime_purple/attack/slime_purple_2.png",
+                                                        "design/enemies/slime_purple/attack/slime_purple_3.png",
+                                                        "design/enemies/slime_purple/attack/slime_purple_4.png"
+                                                    ],
+                                         "special":  [
+
+                                                     ]
+                                     },
+                    "slime_red":  {
+                                      "move":  [
+                                                   "design/enemies/slime_red/move/slime_red_1.png",
+                                                   "design/enemies/slime_red/move/slime_red_2.png",
+                                                   "design/enemies/slime_red/move/slime_red_3.png",
+                                                   "design/enemies/slime_red/move/slime_red_4.png"
+                                               ],
+                                      "attack":  [
+                                                     "design/enemies/slime_red/attack/slime_red_0.png",
+                                                     "design/enemies/slime_red/attack/slime_red_1.png",
+                                                     "design/enemies/slime_red/attack/slime_red_2.png",
+                                                     "design/enemies/slime_red/attack/slime_red_3.png",
+                                                     "design/enemies/slime_red/attack/slime_red_4.png"
+                                                 ],
+                                      "special":  [
+
+                                                  ]
+                                  }
+                }
 }

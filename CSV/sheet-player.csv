@@ -9,7 +9,7 @@ max_sword_count,剣カウント上限,150,integer,1,1000,count,,0
 white_aura_interval,白オーラ発動間隔,10,integer,1,1000,count,,0
 red_aura_interval,赤オーラ発動間隔,30,integer,1,1000,count,,0
 spin_charge_seconds,回転斬りの長押し時間,1.5,number,0.1,10,seconds,,0
-damage_knockback_distance_px,プレイヤーが被弾したときに押される距離 ,30,number,0,100,pixel_per_point,,0
+damage_knockback_distance_px,プレイヤーが被弾したときに押される距離,30,number,0,100,pixel_per_point,,0
 ,,,,,,,ダメージ系↓,
 base_attack_damage,通常攻撃力,1,integer,1,100,damage,,0
 white_aura_damage,白オーラ攻撃力,5,integer,1,100,damage,,0
